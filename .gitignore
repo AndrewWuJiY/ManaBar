@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+
+# Local agent/tooling state
+.claude/
+.codex/
+.cursor/
+.vscode/
+.idea/
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# CocoaPods / Carthage (预留)
+Pods/
+Carthage/Build/
+
+# Local env / credentials / generated app data
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.plist
+*.local.yaml
+*.local.yml
+*.local.toml
+*.local.env
+auth.json
+credentials.json
+.credentials.json
+secrets.json
+tokens.json
+quota-cache.json
+scan-state.json
+usage-rollup.json
+
+# Archives / signing artifacts
+*.xcarchive
+*.ipa
+*.dSYM/
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.cer
+*.key
+*.pem

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>cc-bar · Design Canvas</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  html, body { background: #f0eee9; margin: 0; }
+  body { font-family: var(--font-sf); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="mac-frames.jsx"></script>
+<script type="text/babel" src="artboards/menubar.jsx"></script>
+<script type="text/babel" src="artboards/popover.jsx"></script>
+<script type="text/babel" src="artboards/hud.jsx"></script>
+<script type="text/babel" src="artboards/stats.jsx"></script>
+<script type="text/babel" src="artboards/prefs.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="overview" title="cc-bar" subtitle="A macOS Tahoe menu-bar app for Codex + Claude Code · 菜单栏额度监控 · static comparison plates · all variants live side-by-side · pan / zoom freely">
+        <DCArtboard id="intro" label="00 · Brief · 设计说明" width={620} height={300}>
+          <Intro/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="menubar" title="① Menu bar icon" subtitle="8 variants · what users see at a glance · dark + light pairs">
+        <DCArtboard id="mb1d" label="V1 · Icon only · Dark" width={520} height={260}><MBV_IconOnly theme="dark"/></DCArtboard>
+        <DCArtboard id="mb1l" label="V1 · Icon only · Light" width={520} height={260}><MBV_IconOnly theme="light"/></DCArtboard>
+        <DCArtboard id="mb2d" label="V2 · Icon + % · Dark (你选的默认)" width={520} height={260}><MBV_IconPercent theme="dark"/></DCArtboard>
+        <DCArtboard id="mb2l" label="V2 · Icon + % · Light" width={520} height={260}><MBV_IconPercent theme="light"/></DCArtboard>
+        <DCArtboard id="mb3d" label="V3 · Two pills · Dark" width={520} height={260}><MBV_TwoPills theme="dark"/></DCArtboard>
+        <DCArtboard id="mb3l" label="V3 · Two pills · Light" width={520} height={260}><MBV_TwoPills theme="light"/></DCArtboard>
+        <DCArtboard id="mb4d" label="V4 · Ring + % · Dark" width={520} height={260}><MBV_RingPercent theme="dark"/></DCArtboard>
+        <DCArtboard id="mb4l" label="V4 · Ring + % · Light" width={520} height={260}><MBV_RingPercent theme="light"/></DCArtboard>
+        <DCArtboard id="mb5d" label="V5 · Dual bars · Dark" width={520} height={260}><MBV_DualBars theme="dark"/></DCArtboard>
+        <DCArtboard id="mb5l" label="V5 · Dual bars · Light" width={520} height={260}><MBV_DualBars theme="light"/></DCArtboard>
+        <DCArtboard id="mb6d" label="V6 · Text only · Dark" width={520} height={260}><MBV_TextOnly theme="dark"/></DCArtboard>
+        <DCArtboard id="mb7d" label="V7 · State color (low) · Dark" width={520} height={260}><MBV_StateColor theme="dark"/></DCArtboard>
+        <DCArtboard id="mb8d" label="V8 · 5h ↔ Weekly · Dark" width={520} height={260}><MBV_WeeklyMode theme="dark"/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="popover" title="② Popover panel" subtitle="Clicked from the menu bar · Codex first, Claude Code second · all variants paired for dark + light">
+        <DCArtboard id="pp1d" label="A · Vertical list · Dark (推荐)" width={400} height={520}>
+          <SwatchBg theme="dark"><PopV_VerticalList theme="dark"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp1l" label="A · Vertical list · Light" width={400} height={520}>
+          <SwatchBg theme="light"><PopV_VerticalList theme="light"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp2d" label="B · Dense compact · Dark" width={460} height={400}>
+          <SwatchBg theme="dark"><PopV_DenseCompact theme="dark"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp2l" label="B · Dense compact · Light" width={460} height={400}>
+          <SwatchBg theme="light"><PopV_DenseCompact theme="light"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp3d" label="C · Spark chart top · Dark" width={420} height={500}>
+          <SwatchBg theme="dark"><PopV_SparkChart theme="dark"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp3l" label="C · Spark chart top · Light" width={420} height={500}>
+          <SwatchBg theme="light"><PopV_SparkChart theme="light"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp4d" label="D · Big stat · Dark" width={380} height={480}>
+          <SwatchBg theme="dark"><PopV_BigStat theme="dark"/></SwatchBg>
+        </DCArtboard>
+        <DCArtboard id="pp4l" label="D · Big stat · Light" width={380} height={480}>
+          <SwatchBg theme="light"><PopV_BigStat theme="light"/></SwatchBg>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="hud" title="③ Floating HUD" subtitle="Always-on-top minimal widget · two-line percentages per spec · 8 takes">
+        <DCArtboard id="hud1d" label="V1 · Two-row pill · Dark (推荐)" width={300} height={140}><HUDV_TwoRowPill theme="dark"/></DCArtboard>
+        <DCArtboard id="hud1l" label="V1 · Two-row pill · Light" width={300} height={140}><HUDV_TwoRowPill theme="light"/></DCArtboard>
+        <DCArtboard id="hud2d" label="V2 · Stacked numbers · Dark" width={300} height={140}><HUDV_StackedNumbers theme="dark"/></DCArtboard>
+        <DCArtboard id="hud2l" label="V2 · Stacked numbers · Light" width={300} height={140}><HUDV_StackedNumbers theme="light"/></DCArtboard>
+        <DCArtboard id="hud3d" label="V3 · Dual rings · Dark" width={300} height={140}><HUDV_DualRings theme="dark"/></DCArtboard>
+        <DCArtboard id="hud3l" label="V3 · Dual rings · Light" width={300} height={140}><HUDV_DualRings theme="light"/></DCArtboard>
+        <DCArtboard id="hud4d" label="V4 · Ultra-minimal · Dark" width={300} height={140}><HUDV_UltraThin theme="dark"/></DCArtboard>
+        <DCArtboard id="hud4l" label="V4 · Ultra-minimal · Light" width={300} height={140}><HUDV_UltraThin theme="light"/></DCArtboard>
+        <DCArtboard id="hud5d" label="V5 · Single service mode · Dark" width={300} height={140}><HUDV_SingleService theme="dark"/></DCArtboard>
+        <DCArtboard id="hud6d" label="V6 · Horizontal slim · Dark" width={360} height={140}><HUDV_HorizontalSlim theme="dark"/></DCArtboard>
+        <DCArtboard id="hud7d" label="V7 · 5h + Weekly · Dark" width={300} height={160}><HUDV_FiveHourWeek theme="dark"/></DCArtboard>
+        <DCArtboard id="hud7l" label="V7 · 5h + Weekly · Light" width={300} height={160}><HUDV_FiveHourWeek theme="light"/></DCArtboard>
+        <DCArtboard id="hud8d" label="V8 · No chrome (pure text) · Dark" width={300} height={140}><HUDV_NoChrome theme="dark"/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="stats" title="④ Statistics window" subtitle="Full window · range presets + custom · cards / charts / breakdowns">
+        <DCArtboard id="stats1d" label="Dashboard view · Dark" width={1040} height={680}><StatsV_Dashboard theme="dark"/></DCArtboard>
+        <DCArtboard id="stats1l" label="Dashboard view · Light" width={1040} height={680}><StatsV_Dashboard theme="light"/></DCArtboard>
+        <DCArtboard id="stats2d" label="Timeline + heatmap · Dark" width={1040} height={680}><StatsV_Timeline theme="dark"/></DCArtboard>
+        <DCArtboard id="stats2l" label="Timeline + heatmap · Light" width={1040} height={680}><StatsV_Timeline theme="light"/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="prefs" title="⑤ Preferences" subtitle="Single-pane settings with grouped insets · macOS Tahoe convention">
+        <DCArtboard id="prefs1d" label="Preferences · Dark" width={680} height={780}><PrefsV_Main theme="dark"/></DCArtboard>
+        <DCArtboard id="prefs1l" label="Preferences · Light" width={680} height={780}><PrefsV_Main theme="light"/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="onboarding" title="⑥ Onboarding" subtitle="First-run flow · welcome + auto account detection">
+        <DCArtboard id="onb1d" label="Step 1 · Welcome · Dark" width={620} height={520}><OnboardingV_Welcome theme="dark"/></DCArtboard>
+        <DCArtboard id="onb1l" label="Step 1 · Welcome · Light" width={620} height={520}><OnboardingV_Welcome theme="light"/></DCArtboard>
+        <DCArtboard id="onb2d" label="Step 2 · Detect accounts · Dark" width={620} height={520}><OnboardingV_DetectAccounts theme="dark"/></DCArtboard>
+        <DCArtboard id="onb2l" label="Step 2 · Detect accounts · Light" width={620} height={520}><OnboardingV_DetectAccounts theme="light"/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="cta" title="Next" subtitle="Interactive prototype combining the recommended picks">
+        <DCArtboard id="cta1" label="→ Open interactive prototype" width={620} height={220}>
+          <CTAOpenProto/>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+// Subtle wallpaper background to host translucent popovers/HUDs
+function SwatchBg({ theme, children }) {
+  const wp = theme === 'dark' ? MAC_WALLPAPERS.dark : MAC_WALLPAPERS.light;
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: wp,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      padding: '24px 24px 24px',
+      overflow: 'hidden',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function Intro() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#FAFAF7',
+      borderRadius: 16,
+      padding: '28px 32px',
+      fontFamily: 'var(--font-sf)',
+      color: '#1d1d1f',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.07)',
+    }}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+        <span style={{
+          width: 44, height: 44, borderRadius: 11,
+          background: 'linear-gradient(155deg, #4A4A4F 0%, #6C6C70 50%, #D97757 100%)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}><AppGlyph size={22} color="#fff"/></span>
+        <div>
+          <div style={{fontSize: 22, fontWeight: 700, letterSpacing: -0.4}}>cc-bar</div>
+          <div style={{fontSize: 12.5, color: 'rgba(0,0,0,0.55)'}}>macOS Tahoe 菜单栏额度监控 · static design canvas</div>
+        </div>
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px',
+        fontSize: 12, lineHeight: 1.45, color: 'rgba(0,0,0,0.7)', marginTop: 4,
+      }}>
+        <div style={{color: '#6C6C70', fontWeight: 600}}>Aesthetic</div>
+        <div>macOS 26 Tahoe · Liquid Glass · SF Pro · continuous-curvature radii · system semantic colors</div>
+        <div style={{color: '#6C6C70', fontWeight: 600}}>Lang</div>
+        <div>Bilingual EN + 中文 (small line beneath primary label)</div>
+        <div style={{color: '#6C6C70', fontWeight: 600}}>Colors</div>
+        <div>Codex → graphite grey · Claude Code → peach/amber · accent blue / green / orange / red from system</div>
+        <div style={{color: '#6C6C70', fontWeight: 600}}>Pan / zoom</div>
+        <div>Two-finger pan · pinch / ⌘+scroll to zoom · drag artboard headers to reorder · click ⤢ to focus</div>
+      </div>
+    </div>
+  );
+}
+
+function CTAOpenProto() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      borderRadius: 16,
+      background: 'linear-gradient(135deg, #0A84FF 0%, #5E5CE6 60%, #BF5AF2 100%)',
+      color: '#fff',
+      padding: '24px 28px',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      fontFamily: 'var(--font-sf)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: 200, background: 'rgba(255,255,255,0.12)'}}/>
+      <div style={{position: 'absolute', right: 40, bottom: -50, width: 140, height: 140, borderRadius: 140, background: 'rgba(255,255,255,0.08)'}}/>
+      <div>
+        <div style={{fontSize: 11, opacity: 0.85, letterSpacing: 0.5, textTransform: 'uppercase'}}>Interactive prototype · 可交互原型</div>
+        <div style={{fontSize: 22, fontWeight: 700, letterSpacing: -0.4, marginTop: 4}}>Try the recommended picks live</div>
+        <div style={{fontSize: 12.5, opacity: 0.85, marginTop: 2}}>体验组合推荐方案 · click the menu bar, drag the HUD, switch dark/light</div>
+      </div>
+      <div>
+        <a href="prototype.html" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '8px 14px', borderRadius: 8,
+          background: 'rgba(255,255,255,0.96)',
+          color: '#0A84FF',
+          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+          textDecoration: 'none',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+        }}>Open prototype →</a>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
