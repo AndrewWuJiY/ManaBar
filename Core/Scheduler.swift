@@ -3,21 +3,25 @@ import Foundation
 @MainActor
 final class Scheduler {
     private weak var appState: AppState?
-    private var task: Task<Void, Never>?
-    private(set) var quotaInterval: TimeInterval = 120
+    private var quotaTask: Task<Void, Never>?
+    private var usageTask: Task<Void, Never>?
+    private(set) var quotaInterval: TimeInterval?
+    private(set) var usageInterval: TimeInterval?
 
-    func start(appState: AppState, quotaInterval: TimeInterval = 120) {
+    func start(appState: AppState, quotaInterval: TimeInterval?, usageInterval: TimeInterval?) {
         self.appState = appState
         self.quotaInterval = quotaInterval
+        self.usageInterval = usageInterval
         stop()
-        task = Task { [weak self] in
-            await self?.loop()
-        }
+        startQuotaLoop()
+        startUsageLoop()
     }
 
     func stop() {
-        task?.cancel()
-        task = nil
+        quotaTask?.cancel()
+        quotaTask = nil
+        usageTask?.cancel()
+        usageTask = nil
     }
 
     /// 立即触发一次刷新（不打断现有周期）
@@ -26,15 +30,39 @@ final class Scheduler {
         Task { await appState.refreshQuotas(reason: .userInitiated) }
     }
 
-    func setQuotaInterval(_ seconds: TimeInterval) {
-        guard seconds != quotaInterval, let appState else { return }
+    func setQuotaInterval(_ seconds: TimeInterval?) {
+        guard seconds != quotaInterval else { return }
         quotaInterval = seconds
-        start(appState: appState, quotaInterval: seconds)
+        quotaTask?.cancel()
+        quotaTask = nil
+        startQuotaLoop()
     }
 
-    private func loop() async {
+    func setUsageInterval(_ seconds: TimeInterval?) {
+        guard seconds != usageInterval else { return }
+        usageInterval = seconds
+        usageTask?.cancel()
+        usageTask = nil
+        startUsageLoop()
+    }
+
+    private func startQuotaLoop() {
+        guard let interval = quotaInterval, interval > 0 else { return }
+        quotaTask = Task { [weak self] in
+            await self?.quotaLoop(interval: interval)
+        }
+    }
+
+    private func startUsageLoop() {
+        guard let interval = usageInterval, interval > 0 else { return }
+        usageTask = Task { [weak self] in
+            await self?.usageLoop(interval: interval)
+        }
+    }
+
+    private func quotaLoop(interval: TimeInterval) async {
         while !Task.isCancelled {
-            let nanos = UInt64(quotaInterval * 1_000_000_000)
+            let nanos = UInt64(interval * 1_000_000_000)
             do {
                 try await Task.sleep(nanoseconds: nanos)
             } catch {
@@ -42,6 +70,19 @@ final class Scheduler {
             }
             guard let appState, !Task.isCancelled else { return }
             await appState.refreshQuotas(reason: .periodic)
+        }
+    }
+
+    private func usageLoop(interval: TimeInterval) async {
+        while !Task.isCancelled {
+            let nanos = UInt64(interval * 1_000_000_000)
+            do {
+                try await Task.sleep(nanoseconds: nanos)
+            } catch {
+                return
+            }
+            guard let appState, !Task.isCancelled else { return }
+            await appState.usageService.scanNow()
         }
     }
 }

@@ -52,6 +52,7 @@ struct QuotaSnapshot: Sendable, Equatable, Codable {
     var weekly: QuotaWindow?
     var weeklyOpus: QuotaWindow?      // 仅 Claude
     var weeklySonnet: QuotaWindow?    // 仅 Claude
+    var weeklyDesign: QuotaWindow?    // 仅 Claude(Claude Design 功能独立额度)
     var planType: String?
     var fetchedAt: Date
 }

@@ -1,0 +1,384 @@
+import SwiftUI
+import AppKit
+
+// MARK: - Product accent colors
+//
+// Codex / Claude 识别色定义在 Asset Catalog (CodexAccent / ClaudeAccent)。
+// 浅色 #6C6C70 / #D97757,深色 #98989D / #E68A6E。
+// Xcode 自动从 .xcassets 生成 `Color.codexAccent` / `Color.claudeAccent`,直接使用即可。
+// 见 docs/03-设计风格.md §4.2。
+
+// MARK: - Status color
+
+/// 按剩余百分比解析状态色:>=20% → 服务色 / <20% → orange / <=0 → red。
+///
+/// 见 docs/03-设计风格.md §4.3。Popover / Floating / Stats KPI 全部走这里。
+func statusColor(remainingPercent: Double?, tint: Color) -> Color {
+    guard let value = remainingPercent else { return .secondary }
+    if value <= 0 { return .red }
+    if value < 20 { return .orange }
+    return tint
+}
+
+// MARK: - Panel background / stroke (浅深色对照)
+//
+// 见 docs/03-设计风格.md §12.3。
+// Stats KPI 卡、Daily usage panel、Settings PrefsGroup body、Onboarding DetectedAccount 全部用这一对。
+
+private struct PanelBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var body: some View {
+        Group {
+            if colorScheme == .dark {
+                Color(white: 0.235, opacity: 0.4)
+            } else {
+                Color.white
+            }
+        }
+    }
+}
+
+/// Panel 0.5pt 内描边,做"卡片感"。
+struct CCPanelStroke: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content.overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(
+                    colorScheme == .dark
+                        ? Color.white.opacity(0.06)
+                        : Color.black.opacity(0.06),
+                    lineWidth: 0.5
+                )
+        )
+    }
+}
+
+extension View {
+    /// 给 Panel / KPI 卡上 0.5pt 内描边。
+    func ccPanelStroke(cornerRadius: CGFloat) -> some View {
+        modifier(CCPanelStroke(cornerRadius: cornerRadius))
+    }
+
+    /// 一步给出 Panel 完整外观:背景 + 圆角 + 0.5pt 描边。
+    func ccPanel(cornerRadius: CGFloat = 12) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.background)
+                    .overlay(PanelBackground().clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)))
+            )
+            .ccPanelStroke(cornerRadius: cornerRadius)
+    }
+}
+
+// MARK: - ServiceMark (色块)
+//
+// 见 docs/03-设计风格.md §11.1。
+// prototype 用的是 8×8 squircle(圆角 2pt),不是圆。
+
+struct ServiceMark: View {
+    let color: Color
+    var size: CGFloat = 8
+    var cornerRadius: CGFloat = 2
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(color)
+            .frame(width: size, height: size)
+    }
+}
+
+// MARK: - ServiceTile (带 logo 的 squircle)
+//
+// 见 docs/03-设计风格.md §11.2。
+// Popover 服务行左侧、Stats sidebar 服务条目、Onboarding 账号列表都用。
+
+struct ServiceTile: View {
+    /// 资源名,对应 Resources/Logos/ 下的 svg。
+    let logoName: String
+    /// 备用字母(SVG 加载失败时显示)。
+    let fallback: String
+    /// 背景填充色(服务识别色)。Codex 走 OpenAI 官方观感(白底黑 logo),会忽略此值。
+    let tint: Color
+    /// tile 尺寸,默认 Popover 用 22pt。
+    var size: CGFloat = 22
+    /// 内 logo 尺寸,默认 14pt。
+    var logoSize: CGFloat = 14
+    /// 圆角半径,默认 6pt。
+    var cornerRadius: CGFloat = 6
+
+    /// Codex 的 tile 还原 OpenAI 官方品牌图标:白底黑 logo + 极细边框。
+    /// 其余地方(文字色、环形、图表)的 `Color.codexAccent` 仍是石墨灰,不受影响。
+    private var isOpenAIBrand: Bool { logoName == "codex" }
+
+    private var background: Color { isOpenAIBrand ? .white : tint }
+    private var foreground: Color { isOpenAIBrand ? .black : .white }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(background)
+            .frame(width: size, height: size)
+            .overlay {
+                if isOpenAIBrand {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
+                }
+            }
+            .overlay(logoView)
+    }
+
+    @ViewBuilder
+    private var logoView: some View {
+        if let nsImage = LogoCache.image(named: logoName) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(foreground)
+                .frame(width: logoSize, height: logoSize)
+        } else {
+            Text(fallback)
+                .font(.system(size: logoSize * 0.7, weight: .semibold))
+                .foregroundStyle(foreground)
+        }
+    }
+}
+
+private enum LogoCache {
+    private static let cache = NSCache<NSString, NSImage>()
+
+    static func image(named name: String) -> NSImage? {
+        if let cached = cache.object(forKey: name as NSString) { return cached }
+        guard let url = Bundle.main.url(forResource: name, withExtension: "svg"),
+              let image = NSImage(contentsOf: url)
+        else { return nil }
+        image.isTemplate = true
+        cache.setObject(image, forKey: name as NSString)
+        return image
+    }
+}
+
+// MARK: - ProgressRing (进度环)
+//
+// 见 docs/03-设计风格.md §11.3。
+// Popover 56/5.5、Stats limits 32/4、HUD dual rings 26/3.5、HUD single 34/4。
+// value 取 0...1,值越大环越满。颜色由调用方传入(通常用 statusColor)。
+
+struct ProgressRing<Center: View>: View {
+    let value: Double
+    let tint: Color
+    var diameter: CGFloat = 56
+    var stroke: CGFloat = 5.5
+    @ViewBuilder var center: () -> Center
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.secondary.opacity(0.18), style: StrokeStyle(lineWidth: stroke))
+
+            Circle()
+                .trim(from: 0, to: clampedValue)
+                .stroke(tint, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.easeOut(duration: 0.25), value: clampedValue)
+
+            center()
+        }
+        .frame(width: diameter, height: diameter)
+    }
+
+    private var clampedValue: CGFloat {
+        max(0, min(1, CGFloat(value)))
+    }
+}
+
+extension ProgressRing where Center == EmptyView {
+    init(value: Double, tint: Color, diameter: CGFloat = 56, stroke: CGFloat = 5.5) {
+        self.init(value: value, tint: tint, diameter: diameter, stroke: stroke) {
+            EmptyView()
+        }
+    }
+}
+
+// MARK: - ProgressBar (横条)
+//
+// 见 docs/03-设计风格.md §11.4。
+// Popover weekly 5/2.5、HUD 4/2、Dense compact 3/1.5、BigStat 6/3。
+
+struct ProgressBar: View {
+    let value: Double
+    let tint: Color
+    var height: CGFloat = 5
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.18))
+
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(0, proxy.size.width * clampedValue))
+                    .animation(.easeOut(duration: 0.25), value: clampedValue)
+            }
+        }
+        .frame(height: height)
+    }
+
+    private var clampedValue: CGFloat {
+        max(0, min(1, CGFloat(value)))
+    }
+}
+
+// MARK: - Bilingual label helpers
+//
+// 见 docs/03-设计风格.md §5。
+// 单语切换 · 由 SettingsStore.shared.resolvedLanguage 决定渲染中文还是英文。
+// 调用方保留 `english` + `chinese` 两个字段,组件内自动选词,无需迁移调用点。
+
+/// 行内单语显示 · zh 渲染 chinese,en 渲染 english。
+struct BilingualInline: View {
+    let english: String
+    let chinese: String
+    /// 保留参数以兼容历史调用,运行时不再拼接。
+    var separator: String = " · "
+
+    var body: some View {
+        switch SettingsStore.shared.resolvedLanguage {
+        case .zh: Text(chinese)
+        case .en: Text(english)
+        }
+    }
+}
+
+/// 节标题 / KPI label · 单语模式下退化为单行 Text,保留主字体。
+struct BilingualStack: View {
+    let english: String
+    let chinese: String
+    var englishFont: Font = .headline
+    var chineseFont: Font = .caption
+
+    var body: some View {
+        switch SettingsStore.shared.resolvedLanguage {
+        case .zh: Text(chinese).font(englishFont)
+        case .en: Text(english).font(englishFont)
+        }
+    }
+}
+
+// MARK: - Spacing tokens (4pt 基线)
+//
+// 见 docs/03-设计风格.md §10。
+
+enum CCSpacing {
+    static let xxs: CGFloat = 2
+    static let xs: CGFloat = 4
+    static let s2: CGFloat = 6
+    static let s: CGFloat = 8
+    static let m2: CGFloat = 10
+    static let m: CGFloat = 12
+    static let l2: CGFloat = 14
+    static let l: CGFloat = 16
+    static let xl: CGFloat = 20
+    static let xxl: CGFloat = 24
+    static let xxxl: CGFloat = 28
+    static let huge: CGFloat = 32
+}
+
+// MARK: - VisualEffectBackground
+//
+// SwiftUI 包 NSVisualEffectView,用于把指定 material(.hudWindow / .popover / .sidebar 等)
+// 接到 SwiftUI 视图层级里。HUD 必须用 .hudWindow material(prototype 给的 alpha + blur)。
+// 不要用 .background(.regularMaterial),它对应的是 .popover material。
+
+struct VisualEffectBackground: NSViewRepresentable {
+    var material: NSVisualEffectView.Material
+    var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
+    var state: NSVisualEffectView.State = .active
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = state
+        view.isEmphasized = false
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = state
+    }
+}
+
+// MARK: - Refresh state badge
+//
+// Popover header 状态点;Live / Stale / Offline。
+
+enum CCRefreshState {
+    case live, stale, offline
+
+    var color: Color {
+        switch self {
+        case .live: return .green
+        case .stale: return .orange
+        case .offline: return .red
+        }
+    }
+
+    var tooltip: String {
+        switch self {
+        case .live: return tr("Live", "在线")
+        case .stale: return tr("Stale", "数据陈旧")
+        case .offline: return tr("Offline", "离线")
+        }
+    }
+}
+
+// MARK: - Pointing-hand cursor
+//
+// 全局统一的 hover 手型光标 ViewModifier。用在所有 `.borderless` / `.plain`
+// 自定义按钮上,弥补 SwiftUI 默认按钮在 macOS 上无光标提示的问题。
+
+private struct PointingHandCursor: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+
+extension View {
+    /// 鼠标进入时切换为手型光标,离开时还原。
+    func pointingHandCursor() -> some View { modifier(PointingHandCursor()) }
+}
+
+// MARK: - PopoverIconButtonStyle
+//
+// Popover 顶部 26×22 圆角 5pt borderless 图标按钮。
+// hover 浅灰背景 + 手型光标,匹配 docs/04-界面布局.md §1.3。
+
+struct PopoverIconButtonStyle: ButtonStyle {
+    @State private var hovering = false
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(width: 26, height: 22)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(hovering && isEnabled ? Color.primary.opacity(0.08) : .clear)
+            )
+            .opacity(configuration.isPressed ? 0.5 : 1)
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .pointingHandCursor()
+    }
+}

@@ -1,46 +1,466 @@
 import SwiftUI
 
+// MARK: - SettingsRootView
+//
+// 见 docs/04-界面布局.md §4。
+// 使用 prototype 的 PrefsGroup + PrefsRow 卡片结构,放弃 Form .grouped。
+
 struct SettingsRootView: View {
     @Environment(AppState.self) private var appState
+    @State private var launchAtLoginError: String?
 
     var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .tabItem { Label("通用", systemImage: "gearshape") }
+        @Bindable var settings = SettingsStore.shared
 
-            AccountSettingsView()
-                .tabItem { Label("账号", systemImage: "person.crop.circle") }
-
-            MenuBarSettingsView()
-                .tabItem { Label("菜单栏", systemImage: "menubar.rectangle") }
-
-            RefreshSettingsView()
-                .tabItem { Label("刷新", systemImage: "arrow.clockwise") }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                accountsGroup(settings: settings)
+                menuBarGroup(settings: settings)
+                floatingGroup(settings: settings)
+                refreshGroup(settings: settings)
+                generalGroup(settings: settings)
+                footer
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 20)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(width: 480, height: 320)
+    }
+
+    // MARK: Accounts
+
+    private func accountsGroup(settings: SettingsStore) -> some View {
+        PrefsGroup(
+            title: "Accounts",
+            chinese: "账号",
+            desc: "Auto-detected on your Mac. Toggle which services to display.",
+            chineseDesc: "自动检测,自行勾选要显示的"
+        ) {
+            AccountRow(
+                title: "Codex",
+                subtitle: "OpenAI",
+                tint: .codexAccent,
+                logoName: "codex",
+                fallback: "C",
+                email: appState.codexAccount?.email,
+                plan: appState.codexAccount?.planType,
+                isOn: Binding(get: { settings.showCodex }, set: { settings.showCodex = $0 })
+            )
+            AccountRow(
+                title: "Claude Code",
+                subtitle: "Anthropic",
+                tint: .claudeAccent,
+                logoName: "claude",
+                fallback: "K",
+                email: appState.claudeAccount?.email,
+                plan: appState.claudeAccount?.subscriptionType,
+                isOn: Binding(get: { settings.showClaude }, set: { settings.showClaude = $0 })
+            )
+        }
+    }
+
+    // MARK: Menu Bar
+
+    private func menuBarGroup(settings: SettingsStore) -> some View {
+        PrefsGroup(
+            title: "Menu Bar",
+            chinese: "菜单栏",
+            desc: "What appears next to the icon.",
+            chineseDesc: "图标旁显示什么"
+        ) {
+            PrefsRow(label: "Show Codex", chinese: "显示 Codex") {
+                Toggle("", isOn: Binding(get: { settings.menuBarShowCodex }, set: { settings.menuBarShowCodex = $0 }))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+            }
+            PrefsRow(label: "Show Claude", chinese: "显示 Claude") {
+                Toggle("", isOn: Binding(get: { settings.menuBarShowClaude }, set: { settings.menuBarShowClaude = $0 }))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+            }
+            PrefsRow(
+                label: "Quota period",
+                chinese: "额度周期",
+                desc: "Which window to display in the menu bar.",
+                chineseDesc: "菜单栏显示哪个窗口"
+            ) {
+                Picker("", selection: Binding(get: { settings.menuBarWindow }, set: { settings.menuBarWindow = $0 })) {
+                    Text(tr("5-hour", "5 小时")).tag(MenuBarWindowChoice.fiveHour)
+                    Text(tr("Weekly", "周额度")).tag(MenuBarWindowChoice.weekly)
+                    Text(tr("Both", "都显示")).tag(MenuBarWindowChoice.both)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+        }
+    }
+
+    // MARK: Floating HUD
+
+    private func floatingGroup(settings: SettingsStore) -> some View {
+        PrefsGroup(
+            title: "Floating HUD",
+            chinese: "桌面悬浮窗",
+            desc: "A small always-on-top window pinned to your desktop.",
+            chineseDesc: "桌面常驻的小悬浮窗"
+        ) {
+            PrefsRow(label: "Show floating window", chinese: "显示悬浮窗") {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingEnabled },
+                    set: { newValue in
+                        settings.floatingEnabled = newValue
+                        FloatingPanelController.shared.sync()
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+            }
+            PrefsRow(label: "Show Codex row", chinese: "显示 Codex 行") {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingShowCodex },
+                    set: { newValue in
+                        settings.floatingShowCodex = newValue
+                        FloatingPanelController.shared.sync()
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+                .disabled(!settings.floatingEnabled)
+            }
+            PrefsRow(label: "Show Claude row", chinese: "显示 Claude 行") {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingShowClaude },
+                    set: { newValue in
+                        settings.floatingShowClaude = newValue
+                        FloatingPanelController.shared.sync()
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+                .disabled(!settings.floatingEnabled)
+            }
+        }
+    }
+
+    // MARK: Refresh
+
+    private func refreshGroup(settings: SettingsStore) -> some View {
+        PrefsGroup(
+            title: "Refresh",
+            chinese: "刷新",
+            desc: "How often the app polls usage in the background.",
+            chineseDesc: "后台轮询用量的频率"
+        ) {
+            PrefsRow(label: "Quota refresh", chinese: "额度刷新") {
+                Picker("", selection: Binding(
+                    get: { settings.quotaInterval },
+                    set: { newValue in
+                        settings.quotaInterval = newValue
+                        appState.applySettingsChange()
+                    }
+                )) {
+                    ForEach(QuotaIntervalChoice.allCases) { choice in
+                        Text(choice.bilingualDisplayName).tag(choice)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+            PrefsRow(label: "Log scan", chinese: "日志扫描") {
+                Picker("", selection: Binding(
+                    get: { settings.usageInterval },
+                    set: { newValue in
+                        settings.usageInterval = newValue
+                        appState.applySettingsChange()
+                    }
+                )) {
+                    ForEach(UsageIntervalChoice.allCases) { choice in
+                        Text(choice.bilingualDisplayName).tag(choice)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+            PrefsRow(
+                label: "Reset time",
+                chinese: "重置时间",
+                desc: "How quota reset time is shown.",
+                chineseDesc: "额度重置时间的显示方式"
+            ) {
+                Picker("", selection: Binding(
+                    get: { settings.resetTimeDisplay },
+                    set: { settings.resetTimeDisplay = $0 }
+                )) {
+                    Text(tr("Remaining", "剩余时长")).tag(ResetTimeDisplay.relative)
+                    Text(tr("Exact time", "具体时间")).tag(ResetTimeDisplay.absolute)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+            PrefsRow(label: "Last refresh", chinese: "上次刷新") {
+                Text(lastRefreshText)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    // MARK: General
+
+    private func generalGroup(settings: SettingsStore) -> some View {
+        PrefsGroup(title: "General", chinese: "通用") {
+            PrefsRow(label: "Language", chinese: "语言") {
+                Picker("", selection: Binding(
+                    get: { settings.appLanguage },
+                    set: { settings.appLanguage = $0 }
+                )) {
+                    ForEach(AppLanguage.allCases) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+            PrefsRow(label: "Launch at login", chinese: "开机自动启动") {
+                Toggle("", isOn: Binding(
+                    get: { settings.launchAtLogin },
+                    set: { newValue in
+                        do {
+                            try settings.setLaunchAtLogin(newValue)
+                            launchAtLoginError = nil
+                        } catch {
+                            launchAtLoginError = error.localizedDescription
+                        }
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+            }
+            if let launchAtLoginError {
+                PrefsRow(label: "Error", chinese: "错误") {
+                    Text(launchAtLoginError)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                        .frame(maxWidth: 200, alignment: .trailing)
+                }
+            }
+            PrefsRow(label: "Version", chinese: "版本") {
+                Text(appVersion)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            Text(tr("cc-bar \(shortVersion) · made with Liquid Glass",
+                    "CCBar \(shortVersion) · 双应用额度与本地用量统计"))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+            Spacer()
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: Helpers
+
+    private var lastRefreshText: String {
+        let latest = [
+            appState.codexRefreshState.lastSuccessAt,
+            appState.claudeRefreshState.lastSuccessAt
+        ].compactMap { $0 }.max()
+        guard let latest else { return "—" }
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm:ss"
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        return "\(timeFormatter.string(from: latest)) · \(PopoverRootView.relativeAge(from: latest)) \(tr("ago", "前"))"
+    }
+
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "0.0"
+        let build = info?["CFBundleVersion"] as? String ?? "0"
+        return "\(short) (\(build))"
+    }
+
+    private var shortVersion: String {
+        let info = Bundle.main.infoDictionary
+        return info?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 }
 
-private struct GeneralSettingsView: View {
+// MARK: - PrefsGroup
+
+private struct PrefsGroup<Content: View>: View {
+    let title: String
+    let chinese: String
+    var desc: String? = nil
+    var chineseDesc: String? = nil
+    @ViewBuilder var content: () -> Content
+
     var body: some View {
-        Form { Text("待接入") }
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tr(title, chinese))
+                    .font(.system(size: 12, weight: .semibold))
+                    .kerning(-0.05)
+                if let desc, let chineseDesc {
+                    Text(tr(desc, chineseDesc))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 8)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .ccPanel(cornerRadius: 10)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
     }
 }
 
-private struct AccountSettingsView: View {
+// MARK: - PrefsRow
+
+private struct PrefsRow<Trailing: View>: View {
+    let label: String
+    let chinese: String
+    var desc: String? = nil
+    var chineseDesc: String? = nil
+    @ViewBuilder var trailing: () -> Trailing
+
     var body: some View {
-        Form { Text("待接入") }
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(tr(label, chinese))
+                    .font(.system(size: 12.5))
+                if let desc, let chineseDesc {
+                    Text(tr(desc, chineseDesc))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Spacer()
+            trailing()
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
     }
 }
 
-private struct MenuBarSettingsView: View {
+// MARK: - AccountRow
+
+private struct AccountRow: View {
+    let title: String
+    let subtitle: String
+    let tint: Color
+    let logoName: String
+    let fallback: String
+    let email: String?
+    let plan: String?
+    @Binding var isOn: Bool
+
     var body: some View {
-        Form { Text("待接入") }
+        HStack(spacing: 11) {
+            ServiceTile(logoName: logoName, fallback: fallback, tint: tint, size: 28, logoSize: 16, cornerRadius: 7)
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 12.5, weight: .semibold))
+                    Text("· \(subtitle)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                }
+                Text(detailText)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                statusBadge
+
+                Toggle("", isOn: $isOn)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+                    .disabled(email == nil)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+    }
+
+    private var detailText: String {
+        if let email {
+            if let plan, !plan.isEmpty {
+                return "\(email) · \(plan)"
+            }
+            return email
+        }
+        return tr("Not detected", "未识别")
+    }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        if email != nil {
+            HStack(spacing: 4) {
+                Circle().fill(Color.green).frame(width: 6, height: 6)
+                Text(tr("Connected", "已连接"))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.green)
+            }
+        } else {
+            HStack(spacing: 4) {
+                Circle().fill(Color.orange).frame(width: 6, height: 6)
+                Text(tr("Not detected", "未识别"))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.orange)
+            }
+        }
     }
 }
 
-private struct RefreshSettingsView: View {
-    var body: some View {
-        Form { Text("待接入") }
+// MARK: - Bilingual display names for existing enums
+
+extension QuotaIntervalChoice {
+    var bilingualDisplayName: String {
+        switch self {
+        case .off: return tr("Off", "关闭")
+        case .s30: return tr("Every 30s", "每 30 秒")
+        case .m1: return tr("1 minute", "1 分钟")
+        case .m5: return tr("5 minutes", "5 分钟")
+        case .m10: return tr("10 minutes", "10 分钟")
+        }
+    }
+}
+
+extension UsageIntervalChoice {
+    var bilingualDisplayName: String {
+        switch self {
+        case .s15: return tr("15 seconds", "15 秒")
+        case .s30: return tr("30 seconds", "30 秒")
+        case .m1: return tr("1 minute", "1 分钟")
+        case .m5: return tr("5 minutes", "5 分钟")
+        }
     }
 }

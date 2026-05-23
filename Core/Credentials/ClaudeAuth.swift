@@ -2,8 +2,25 @@ import Foundation
 
 enum ClaudeAuth {
     nonisolated static func load() throws -> ClaudeAccount {
-        if let acc = try loadFromFile() { return acc }
-        return try loadFromKeychain()
+        var account = try loadFromFile() ?? loadFromKeychain()
+        if account.email == nil, let email = loadEmailFromConfig() {
+            account.email = email
+        }
+        return account
+    }
+
+    /// Claude 的 OAuth 凭据本身不含邮箱，CLI 登录时会把账号信息额外写到
+    /// `~/.claude.json` 顶层的 `oauthAccount` 字段。这里只读 emailAddress 作为兜底。
+    nonisolated private static func loadEmailFromConfig() -> String? {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude.json")
+        guard let data = try? Data(contentsOf: url),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let oauth = root["oauthAccount"] as? [String: Any],
+              let email = oauth["emailAddress"] as? String,
+              !email.isEmpty
+        else { return nil }
+        return email
     }
 
     nonisolated private static func loadFromFile() throws -> ClaudeAccount? {
@@ -47,6 +64,7 @@ enum ClaudeAuth {
         let email = oauth["emailAddress"] as? String ?? oauth["email"] as? String
         let sub = oauth["subscriptionType"] as? String
         let accessToken = oauth["accessToken"] as? String ?? oauth["access_token"] as? String
+        let refreshToken = oauth["refreshToken"] as? String ?? oauth["refresh_token"] as? String
         let expiresAt: Date? = {
             if let n = oauth["expiresAt"] as? Double {
                 return Date(timeIntervalSince1970: n > 10_000_000_000 ? n / 1000 : n)
@@ -63,7 +81,8 @@ enum ClaudeAuth {
             subscriptionType: sub,
             expiresAt: expiresAt,
             expiredGuess: expired,
-            accessToken: accessToken
+            accessToken: accessToken,
+            refreshToken: refreshToken
         )
     }
 }

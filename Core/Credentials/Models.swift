@@ -25,6 +25,7 @@ struct ClaudeAccount: Sendable, Equatable {
     var expiredGuess: Bool
     /// 仅内存使用，不打印 / 不持久化到 UserDefaults
     var accessToken: String?
+    var refreshToken: String?
 }
 
 enum CredentialError: Error, CustomStringConvertible {

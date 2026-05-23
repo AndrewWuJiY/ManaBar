@@ -41,6 +41,7 @@ enum CodexQuotaClient {
             weekly: parseWindow(rate["secondary_window"] as? [String: Any]),
             weeklyOpus: nil,
             weeklySonnet: nil,
+            weeklyDesign: nil,
             planType: planType,
             fetchedAt: Date()
         )

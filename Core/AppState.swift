@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -9,6 +10,12 @@ final class AppState {
     var codexError: String?
     var claudeError: String?
 
+    /// 主窗口当前 tab,允许 ⌘1 / ⌘, 等命令从外部驱动切换
+    var mainTab: MainTab = .stats
+
+    /// 首次启动时由 bootstrap 设为 true,触发 Onboarding 窗口
+    var shouldShowOnboarding: Bool = false
+
     var codexQuota: QuotaSnapshot?
     var claudeQuota: QuotaSnapshot?
     var codexQuotaError: String?
@@ -18,6 +25,10 @@ final class AppState {
     var codexRefreshState = QuotaRefreshState()
     var claudeRefreshState = QuotaRefreshState()
 
+    var codexTodayCost: Decimal?
+    var claudeTodayCost: Decimal?
+
+    let usageService = UsageService()
     private let scheduler = Scheduler()
     private var didBootstrap = false
     private var quotaCache = QuotaCachePayload()
@@ -31,11 +42,31 @@ final class AppState {
         didBootstrap = true
 
         loadQuotaCache()
+        usageService.bootstrap(appState: self)
         await loadCodex()
+        maybeShowKeychainPrompt()
         await loadClaude()
         logCredentialSummary()
 
-        scheduler.start(appState: self)
+        if !SettingsStore.shared.didCompleteOnboarding {
+            shouldShowOnboarding = true
+        }
+
+        let settings = SettingsStore.shared
+        scheduler.start(
+            appState: self,
+            quotaInterval: settings.quotaInterval.seconds,
+            usageInterval: settings.usageInterval.seconds
+        )
+        // 启动后台触发一次 JSONL 扫描，让今日 cost 立刻更新（不阻塞 bootstrap）
+        Task { await usageService.scanNow() }
+    }
+
+    /// 设置变更后，把刷新间隔同步到 Scheduler
+    func applySettingsChange() {
+        let settings = SettingsStore.shared
+        scheduler.setQuotaInterval(settings.quotaInterval.seconds)
+        scheduler.setUsageInterval(settings.usageInterval.seconds)
     }
 
     func refreshNow() async {
@@ -46,6 +77,7 @@ final class AppState {
             await loadClaude()
         }
         await refreshQuotas(reason: .userInitiated)
+        await usageService.scanNow()
     }
 
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {
@@ -127,6 +159,27 @@ final class AppState {
         }
     }
 
+    /// 没有本地凭据文件、且尚未提示过时,先用一个模态 alert 告诉用户
+    /// 接下来会弹出系统 Keychain 授权窗口,避免一上来就被系统弹窗吓到。
+    private func maybeShowKeychainPrompt() {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/.credentials.json")
+        let hasFile = FileManager.default.fileExists(atPath: url.path)
+        let settings = SettingsStore.shared
+        guard !hasFile, !settings.didShowKeychainPrompt else { return }
+
+        let alert = NSAlert()
+        alert.messageText = tr("Allow Keychain Access", "允许访问 Keychain")
+        alert.informativeText = tr(
+            "cc-bar reads the Claude credential stored in your macOS Keychain to query your quota. After you continue, macOS will ask for permission — choose \"Always Allow\".",
+            "cc-bar 需要读取 macOS 钥匙串里的 Claude 凭据来查询额度。点击「继续」后会弹出系统授权窗口,请选择「始终允许」。"
+        )
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: tr("Continue", "继续"))
+        alert.runModal()
+        settings.didShowKeychainPrompt = true
+    }
+
     private func loadClaude() async {
         do {
             self.claudeAccount = try await Task.detached(priority: .utility) {
@@ -183,15 +236,27 @@ final class AppState {
         guard beginClaudeRefresh(reason: reason) else { return }
         defer { claudeRefreshState.inFlight = false }
 
-        guard let account = claudeAccount else {
+        guard var account = claudeAccount else {
             markClaudeFailure("no claude account")
             return
         }
-        guard let token = account.accessToken else {
+        guard account.accessToken != nil else {
             markClaudeFailure(QuotaError.missingToken.description)
             return
         }
-        let result = await ClaudeQuotaClient.fetch(accessToken: token)
+        let refreshed = await ClaudeTokenRefresher.ensureFreshAccessToken(account: &account)
+        let activeToken: String
+        switch refreshed {
+        case .success(let t):
+            activeToken = t
+            if t != claudeAccount?.accessToken {
+                claudeAccount = account
+            }
+        case .failure(let err):
+            markClaudeFailure(err.description, error: err)
+            return
+        }
+        let result = await ClaudeQuotaClient.fetch(accessToken: activeToken)
         switch result {
         case .success(let snapshot):
             storeClaude(snapshot: snapshot, source: .api)
@@ -327,6 +392,7 @@ final class AppState {
             print("[M2] Claude quota: source=\(claudeQuotaSource?.rawValue ?? "—") \(format(q))")
             if let opus = q.weeklyOpus { print("       └─ weeklyOpus=\(format(window: opus))") }
             if let sonnet = q.weeklySonnet { print("       └─ weeklySonnet=\(format(window: sonnet))") }
+            if let design = q.weeklyDesign { print("       └─ weeklyDesign=\(format(window: design))") }
         } else {
             print("[M2] Claude quota: <none> error=\(claudeQuotaError ?? "unknown")")
         }
@@ -335,7 +401,8 @@ final class AppState {
     private func format(_ q: QuotaSnapshot) -> String {
         let parts = [
             q.fiveHour.map { "5h=\(format(window: $0))" },
-            q.weekly.map { "1w=\(format(window: $0))" }
+            q.weekly.map { "1w=\(format(window: $0))" },
+            q.weeklyDesign.map { "design=\(format(window: $0))" }
         ].compactMap { $0 }
         return parts.joined(separator: " ")
     }

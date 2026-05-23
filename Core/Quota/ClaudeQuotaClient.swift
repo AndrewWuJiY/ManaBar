@@ -38,9 +38,26 @@ enum ClaudeQuotaClient {
             weekly: parseWindow(root["seven_day"] as? [String: Any]),
             weeklyOpus: parseWindow(root["seven_day_opus"] as? [String: Any]),
             weeklySonnet: parseWindow(root["seven_day_sonnet"] as? [String: Any]),
+            weeklyDesign: parseFirstWindow(root: root, keys: [
+                "seven_day_omelette",
+                "seven_day_design",
+                "seven_day_claude_design",
+                "claude_design",
+                "design",
+            ]),
             planType: nil,
             fetchedAt: Date()
         )
+    }
+
+    nonisolated private static func parseFirstWindow(root: [String: Any], keys: [String]) -> QuotaWindow? {
+        for key in keys {
+            if let dict = root[key] as? [String: Any],
+               let window = parseWindow(dict) {
+                return window
+            }
+        }
+        return nil
     }
 
     nonisolated private static func parseWindow(_ dict: [String: Any]?) -> QuotaWindow? {
