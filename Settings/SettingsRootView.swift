@@ -30,32 +30,45 @@ struct SettingsRootView: View {
     // MARK: Accounts
 
     private func accountsGroup(settings: SettingsStore) -> some View {
-        PrefsGroup(
-            title: "Accounts",
-            chinese: "账号",
-            desc: "Auto-detected on your Mac. Toggle which services to display.",
-            chineseDesc: "自动检测,自行勾选要显示的"
-        ) {
-            AccountRow(
-                title: "Codex",
-                subtitle: "OpenAI",
-                tint: .codexAccent,
-                logoName: "codex",
-                fallback: "C",
-                email: appState.codexAccount?.email,
-                plan: appState.codexAccount?.planType,
-                isOn: Binding(get: { settings.showCodex }, set: { settings.showCodex = $0 })
-            )
-            AccountRow(
-                title: "Claude Code",
-                subtitle: "Anthropic",
-                tint: .claudeAccent,
-                logoName: "claude",
-                fallback: "K",
-                email: appState.claudeAccount?.email,
-                plan: appState.claudeAccount?.subscriptionType,
-                isOn: Binding(get: { settings.showClaude }, set: { settings.showClaude = $0 })
-            )
+        VStack(alignment: .leading, spacing: 16) {
+            // 主账号（自动检测）
+            PrefsGroup(
+                title: "Accounts",
+                chinese: "账号",
+                desc: "Auto-detected on your Mac. Toggle which services to display.",
+                chineseDesc: "自动检测,自行勾选要显示的"
+            ) {
+                AccountRow(
+                    title: "Codex",
+                    subtitle: "OpenAI",
+                    tint: .codexAccent,
+                    logoName: "codex",
+                    fallback: "C",
+                    email: appState.codexAccount?.email,
+                    plan: appState.codexAccount?.planType,
+                    isOn: Binding(get: { settings.showCodex }, set: { settings.showCodex = $0 })
+                )
+                AccountRow(
+                    title: "Claude Code",
+                    subtitle: "Anthropic",
+                    tint: .claudeAccent,
+                    logoName: "claude",
+                    fallback: "K",
+                    email: appState.claudeAccount?.email,
+                    plan: appState.claudeAccount?.subscriptionType,
+                    isOn: Binding(get: { settings.showClaude }, set: { settings.showClaude = $0 })
+                )
+            }
+
+            // 其他 Codex 账号（手动导入）
+            PrefsGroup(
+                title: "Other Codex Accounts",
+                chinese: "其他 Codex 账号",
+                desc: "Paste auth.json to monitor additional Codex accounts (view only).",
+                chineseDesc: "粘贴 auth.json 添加更多 Codex 账号额度，仅查看，不会切换 CLI 登录状态"
+            ) {
+                ImportedCodexAccountsView()
+            }
         }
     }
 
@@ -87,8 +100,8 @@ struct SettingsRootView: View {
                 chineseDesc: "菜单栏显示哪个窗口"
             ) {
                 Picker("", selection: Binding(get: { settings.menuBarWindow }, set: { settings.menuBarWindow = $0 })) {
-                    Text(tr("5-hour", "5 小时")).tag(MenuBarWindowChoice.fiveHour)
-                    Text(tr("Weekly", "周额度")).tag(MenuBarWindowChoice.weekly)
+                    Text("5H").tag(MenuBarWindowChoice.fiveHour)
+                    Text("WK").tag(MenuBarWindowChoice.weekly)
                     Text(tr("Both", "都显示")).tag(MenuBarWindowChoice.both)
                 }
                 .labelsHidden()

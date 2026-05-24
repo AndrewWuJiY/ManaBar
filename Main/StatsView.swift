@@ -409,10 +409,10 @@ struct StatsView: View {
     private var currentLimitsPanel: some View {
         Panel(title: "Current limits", chinese: "当前限额") {
             VStack(spacing: 4) {
-                LimitRingRow(label: tr("Codex 5h", "Codex 5 小时"), window: appState.codexQuota?.fiveHour, tint: .codexAccent)
-                LimitRingRow(label: tr("Codex Week", "Codex 1 周"), window: appState.codexQuota?.weekly, tint: .codexAccent)
-                LimitRingRow(label: tr("Claude 5h", "Claude 5 小时"), window: appState.claudeQuota?.fiveHour, tint: .claudeAccent)
-                LimitRingRow(label: tr("Claude Week", "Claude 1 周"), window: appState.claudeQuota?.weekly, tint: .claudeAccent)
+                LimitRingRow(label: "Codex 5H", window: appState.codexQuota?.fiveHour, tint: .codexAccent)
+                LimitRingRow(label: "Codex WK", window: appState.codexQuota?.weekly, tint: .codexAccent)
+                LimitRingRow(label: "Claude 5H", window: appState.claudeQuota?.fiveHour, tint: .claudeAccent)
+                LimitRingRow(label: "Claude WK", window: appState.claudeQuota?.weekly, tint: .claudeAccent)
             }
         }
     }

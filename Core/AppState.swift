@@ -10,6 +10,19 @@ final class AppState {
     var codexError: String?
     var claudeError: String?
 
+    // MARK: 导入的 Codex 副账号
+    //
+    // 用户手动粘贴 auth.json 添加的"其他账号"。与默认账号(`~/.codex/auth.json`)解耦,
+    // 允许重复出现,token 走 Keychain (见 ImportedCodexStore)。
+    // - `importedCodexAccounts` 元数据列表,保持添加顺序。
+    // - `importedCodexQuotas / Sources / Errors / RefreshStates` 按 account.id 索引,
+    //   只在该账号 `visibleInPopover` 为 true 时才刷新与展示。
+    var importedCodexAccounts: [ImportedCodexAccount] = []
+    var importedCodexQuotas: [String: QuotaSnapshot] = [:]
+    var importedCodexSources: [String: QuotaSnapshotSource] = [:]
+    var importedCodexErrors: [String: String] = [:]
+    var importedCodexRefreshStates: [String: QuotaRefreshState] = [:]
+
     /// 主窗口当前 tab,允许 ⌘1 / ⌘, 等命令从外部驱动切换
     var mainTab: MainTab = .stats
 
@@ -46,6 +59,7 @@ final class AppState {
         didBootstrap = true
 
         loadQuotaCache()
+        reloadImportedCodexAccounts()
         usageService.bootstrap(appState: self)
         await loadCodex()
         maybeShowKeychainPrompt()
@@ -90,6 +104,7 @@ final class AppState {
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {
         await loadCodexQuota(reason: reason)
         await loadClaudeQuota(reason: reason)
+        await loadAllImportedCodexQuotas(reason: reason)
         logQuotaSummary()
     }
 
@@ -164,6 +179,210 @@ final class AppState {
             claudeRefreshState.lastSuccessAt = record.updatedAt
             claudeRefreshState.source = .cache
         }
+        for (id, record) in quotaCache.importedCodex ?? [:] {
+            importedCodexQuotas[id] = record.snapshot
+            importedCodexSources[id] = .cache
+            var state = QuotaRefreshState()
+            state.lastSuccessAt = record.updatedAt
+            state.source = .cache
+            importedCodexRefreshStates[id] = state
+        }
+    }
+
+    // MARK: - Imported Codex accounts
+
+    /// 从磁盘读取元数据列表,移除内存中已经不存在的账号的运行时状态。
+    /// 设置页增删账号后由调用方触发。
+    func reloadImportedCodexAccounts() {
+        importedCodexAccounts = ImportedCodexStore.loadAll()
+        let alive = Set(importedCodexAccounts.map(\.id))
+        importedCodexQuotas = importedCodexQuotas.filter { alive.contains($0.key) }
+        importedCodexSources = importedCodexSources.filter { alive.contains($0.key) }
+        importedCodexErrors = importedCodexErrors.filter { alive.contains($0.key) }
+        importedCodexRefreshStates = importedCodexRefreshStates.filter { alive.contains($0.key) }
+        var importedCache = quotaCache.importedCodex ?? [:]
+        importedCache = importedCache.filter { alive.contains($0.key) }
+        quotaCache.importedCodex = importedCache.isEmpty ? nil : importedCache
+        saveQuotaCache()
+    }
+
+    /// 增 / 改:同 account_id 静默覆盖 token,元数据按入参更新;新增时落到列表末尾。
+    func upsertImportedCodexAccount(
+        from parsed: ImportedCodexPaste.Parsed,
+        alias: String,
+        visibleInPopover: Bool
+    ) throws {
+        let tokens = ImportedCodexTokens(
+            accessToken: parsed.accessToken,
+            refreshToken: parsed.refreshToken,
+            idToken: parsed.idToken
+        )
+        try ImportedCodexStore.saveTokens(tokens, accountId: parsed.id)
+
+        var list = ImportedCodexStore.loadAll()
+        if let idx = list.firstIndex(where: { $0.id == parsed.id }) {
+            var existing = list[idx]
+            existing.alias = alias
+            existing.email = parsed.email ?? existing.email
+            existing.planType = parsed.planType ?? existing.planType
+            existing.visibleInPopover = visibleInPopover
+            list[idx] = existing
+        } else {
+            list.append(ImportedCodexAccount(
+                id: parsed.id,
+                alias: alias,
+                email: parsed.email,
+                planType: parsed.planType,
+                visibleInPopover: visibleInPopover,
+                addedAt: Date()
+            ))
+        }
+        try ImportedCodexStore.saveAll(list)
+        reloadImportedCodexAccounts()
+    }
+
+    /// 仅更新元数据(别名、颜色、显示开关),不动 token。
+    func updateImportedCodexMetadata(id: String, mutate: (inout ImportedCodexAccount) -> Void) {
+        var list = ImportedCodexStore.loadAll()
+        guard let idx = list.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&list[idx])
+        do { try ImportedCodexStore.saveAll(list) } catch {
+            print("[imported-codex] save metadata failed: \(error)")
+            return
+        }
+        reloadImportedCodexAccounts()
+    }
+
+    /// 按给定 id 顺序重排导入账号(忽略不存在的 id,缺失的追加到末尾)。
+    func reorderImportedCodexAccounts(orderedIds: [String]) {
+        let list = ImportedCodexStore.loadAll()
+        let byId = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+        var seen = Set<String>()
+        var reordered: [ImportedCodexAccount] = []
+        for id in orderedIds {
+            guard let acc = byId[id], !seen.contains(id) else { continue }
+            reordered.append(acc)
+            seen.insert(id)
+        }
+        for acc in list where !seen.contains(acc.id) {
+            reordered.append(acc)
+        }
+        guard reordered.map(\.id) != list.map(\.id) else { return }
+        do { try ImportedCodexStore.saveAll(reordered) } catch {
+            print("[imported-codex] reorder failed: \(error)")
+            return
+        }
+        reloadImportedCodexAccounts()
+    }
+
+    /// 删除:同步清 Keychain、元数据、运行时状态与缓存。
+    func removeImportedCodexAccount(id: String) {
+        ImportedCodexStore.deleteTokens(accountId: id)
+        let list = ImportedCodexStore.loadAll().filter { $0.id != id }
+        do { try ImportedCodexStore.saveAll(list) } catch {
+            print("[imported-codex] delete failed: \(error)")
+        }
+        reloadImportedCodexAccounts()
+    }
+
+    /// 对所有 `visibleInPopover` 为 true 的导入账号并发拉一遍配额,并发上限 3。
+    private func loadAllImportedCodexQuotas(reason: QuotaRefreshReason) async {
+        let visible = importedCodexAccounts.filter(\.visibleInPopover)
+        guard !visible.isEmpty else { return }
+        let maxConcurrent = 3
+        var index = 0
+        while index < visible.count {
+            let batch = Array(visible[index..<min(index + maxConcurrent, visible.count)])
+            await withTaskGroup(of: Void.self) { group in
+                for account in batch {
+                    group.addTask { [weak self] in
+                        guard let self else { return }
+                        await self.loadImportedCodexQuota(account: account, reason: reason)
+                    }
+                }
+            }
+            index += maxConcurrent
+        }
+    }
+
+    private func loadImportedCodexQuota(account: ImportedCodexAccount, reason: QuotaRefreshReason) async {
+        guard beginImportedCodexRefresh(id: account.id, reason: reason) else { return }
+        defer { importedCodexRefreshStates[account.id]?.inFlight = false }
+
+        guard let tokens = ImportedCodexStore.loadTokens(accountId: account.id) else {
+            markImportedCodexFailure(id: account.id, message: "missing tokens in keychain")
+            return
+        }
+        let refreshed = await CodexTokenRefresher.ensureFreshAccessToken(
+            currentAccessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            writeBack: .importedAccount(id: account.id)
+        )
+        let activeToken: String
+        switch refreshed {
+        case .success(let t):
+            activeToken = t
+        case .failure(let err):
+            markImportedCodexFailure(id: account.id, message: err.description, error: err)
+            return
+        }
+        let result = await CodexQuotaClient.fetch(accessToken: activeToken, accountId: account.chatgptAccountId)
+        switch result {
+        case .success(let snapshot):
+            storeImportedCodex(id: account.id, snapshot: snapshot, source: .api)
+        case .failure(let err):
+            markImportedCodexFailure(id: account.id, message: err.description, error: err)
+        }
+    }
+
+    private func beginImportedCodexRefresh(id: String, reason: QuotaRefreshReason) -> Bool {
+        let now = Date()
+        var state = importedCodexRefreshStates[id] ?? QuotaRefreshState()
+        guard !state.inFlight else { return false }
+        if let backoffUntil = state.backoffUntil, backoffUntil > now {
+            state.lastError = backoffMessage(until: backoffUntil)
+            importedCodexRefreshStates[id] = state
+            importedCodexErrors[id] = state.lastError
+            return false
+        }
+        if reason == .periodic,
+           let lastSuccessAt = state.lastSuccessAt,
+           now.timeIntervalSince(lastSuccessAt) < minSuccessInterval
+        {
+            return false
+        }
+        state.inFlight = true
+        state.lastAttemptAt = now
+        importedCodexRefreshStates[id] = state
+        return true
+    }
+
+    private func storeImportedCodex(id: String, snapshot: QuotaSnapshot, source: QuotaSnapshotSource) {
+        let updatedAt = Date()
+        importedCodexQuotas[id] = snapshot
+        importedCodexSources[id] = source
+        importedCodexErrors[id] = nil
+        var state = importedCodexRefreshStates[id] ?? QuotaRefreshState()
+        state.lastSuccessAt = updatedAt
+        state.lastError = nil
+        state.backoffUntil = nil
+        state.source = source
+        importedCodexRefreshStates[id] = state
+
+        var cache = quotaCache.importedCodex ?? [:]
+        cache[id] = QuotaCacheRecord(snapshot: snapshot, source: source, updatedAt: updatedAt)
+        quotaCache.importedCodex = cache
+        saveQuotaCache()
+    }
+
+    private func markImportedCodexFailure(id: String, message: String, error: QuotaError? = nil) {
+        importedCodexErrors[id] = message
+        var state = importedCodexRefreshStates[id] ?? QuotaRefreshState()
+        state.lastError = message
+        if error?.isRateLimited == true {
+            state.backoffUntil = Date().addingTimeInterval(rateLimitBackoff)
+        }
+        importedCodexRefreshStates[id] = state
     }
 
     private func saveQuotaCache() {

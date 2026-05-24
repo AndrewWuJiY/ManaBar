@@ -11,11 +11,21 @@ enum CodexTokenRefresher {
         var idToken: String?
     }
 
-    /// 若 access_token 即将过期则用 refresh_token 续期并原子写回 auth.json。
+    /// 续期成功后,新 token 该落到哪里。
+    /// - `codexAuthJSON`:回写 `~/.codex/auth.json`,默认账号(与 codex CLI 共享)用。
+    /// - `importedAccount(id:)`:回写到 Keychain (ImportedCodexStore),用户手动导入的副账号用,
+    ///   绝不触碰 `~/.codex/auth.json`。
+    enum WriteBack: Sendable {
+        case codexAuthJSON
+        case importedAccount(id: String)
+    }
+
+    /// 若 access_token 即将过期则用 refresh_token 续期并按 `writeBack` 指示原子落盘。
     /// 返回当前可用的最新 access_token（未过期时即原值）。
     nonisolated static func ensureFreshAccessToken(
         currentAccessToken: String,
-        refreshToken: String?
+        refreshToken: String?,
+        writeBack: WriteBack = .codexAuthJSON
     ) async -> Result<String, QuotaError> {
         if !isExpired(accessToken: currentAccessToken) {
             return .success(currentAccessToken)
@@ -24,7 +34,7 @@ enum CodexTokenRefresher {
             return .failure(.tokenRefreshFailed("no refresh_token"))
         }
         do {
-            let r = try await refresh(using: refreshToken)
+            let r = try await refresh(using: refreshToken, writeBack: writeBack)
             return .success(r.accessToken)
         } catch let err as QuotaError {
             return .failure(err)
@@ -40,7 +50,10 @@ enum CodexTokenRefresher {
         return Date(timeIntervalSince1970: exp).timeIntervalSinceNow < refreshSkew
     }
 
-    nonisolated private static func refresh(using refreshToken: String) async throws -> Refreshed {
+    nonisolated private static func refresh(
+        using refreshToken: String,
+        writeBack: WriteBack
+    ) async throws -> Refreshed {
         var req = URLRequest(url: tokenEndpoint)
         req.httpMethod = "POST"
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -72,11 +85,19 @@ enum CodexTokenRefresher {
         }
         let newId = root["id_token"] as? String
         let newRefresh = root["refresh_token"] as? String ?? refreshToken
-        try writeBack(accessToken: newAccess, idToken: newId, refreshToken: newRefresh)
+        switch writeBack {
+        case .codexAuthJSON:
+            try writeBackToAuthJSON(accessToken: newAccess, idToken: newId, refreshToken: newRefresh)
+        case .importedAccount(let id):
+            try ImportedCodexStore.saveTokens(
+                ImportedCodexTokens(accessToken: newAccess, refreshToken: newRefresh, idToken: newId),
+                accountId: id
+            )
+        }
         return Refreshed(accessToken: newAccess, refreshToken: newRefresh, idToken: newId)
     }
 
-    nonisolated private static func writeBack(
+    nonisolated private static func writeBackToAuthJSON(
         accessToken: String,
         idToken: String?,
         refreshToken: String

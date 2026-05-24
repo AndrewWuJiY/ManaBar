@@ -10,11 +10,14 @@ struct QuotaCachePayload: Sendable, Equatable, Codable {
     var version: Int = 1
     var codex: QuotaCacheRecord?
     var claude: QuotaCacheRecord?
+    /// 用户导入的 Codex 账号配额缓存,key = ImportedCodexAccount.id (= chatgpt_account_id)。
+    /// 字段缺失时解码为 nil,旧缓存文件兼容。
+    var importedCodex: [String: QuotaCacheRecord]?
 }
 
 enum QuotaCache {
     nonisolated private static let fileName = "quota-cache.json"
-    nonisolated private static let bundleDirectory = "com.nanvon.ccbar"
+    nonisolated private static let bundleDirectory = "CCBar"
 
     nonisolated static func load() -> QuotaCachePayload {
         let url = cacheFileURL()

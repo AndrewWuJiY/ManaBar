@@ -76,8 +76,8 @@ enum MenuBarWindowChoice: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .fiveHour: return "5 小时窗口"
-        case .weekly: return "1 周窗口"
+        case .fiveHour: return "5H 窗口"
+        case .weekly: return "WK 窗口"
         case .both: return "两者都显示"
         }
     }

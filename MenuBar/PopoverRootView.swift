@@ -141,7 +141,15 @@ struct PopoverRootView: View {
                         serviceStatus: SettingsStore.shared.showServiceStatus ? appState.codexServiceStatus : nil
                     )
                 }
-                if showCodex && showClaude {
+
+                // 其他 Codex 账号分区（visible 为 0 时自动隐藏）
+                let hasImported = appState.importedCodexAccounts.contains(where: \.visibleInPopover)
+                if hasImported {
+                    Divider().padding(.horizontal, 16)
+                    OtherCodexAccountsSection()
+                }
+
+                if showClaude && (showCodex || hasImported) {
                     Divider().padding(.horizontal, 16)
                 }
                 if showClaude {
@@ -164,18 +172,26 @@ struct PopoverRootView: View {
     }
 
     private var codexSubtitle: String {
-        var parts = ["OpenAI"]
+        var parts: [String] = []
+        if let email = appState.codexAccount?.email, !email.isEmpty {
+            parts.append(email)
+        }
         if let plan = appState.codexAccount?.planType, !plan.isEmpty {
             parts.append(plan.capitalized)
         }
+        if parts.isEmpty { parts.append("OpenAI") }
         return parts.joined(separator: " · ")
     }
 
     private var claudeSubtitle: String {
-        var parts = ["Anthropic"]
+        var parts: [String] = []
+        if let email = appState.claudeAccount?.email, !email.isEmpty {
+            parts.append(email)
+        }
         if let plan = appState.claudeAccount?.subscriptionType, !plan.isEmpty {
             parts.append(plan.capitalized)
         }
+        if parts.isEmpty { parts.append("Anthropic") }
         return parts.joined(separator: " · ")
     }
 
@@ -393,7 +409,7 @@ private struct ServiceBlockView: View {
 
     private var weeklyRow: some View {
         HStack(spacing: 10) {
-            Text("1w")
+            Text("WK")
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.6)
                 .foregroundStyle(.quaternary)
