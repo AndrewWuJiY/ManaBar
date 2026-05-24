@@ -74,7 +74,7 @@ private struct ImportedCodexRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .frame(width: 100, alignment: .leading)
+            .frame(width: 78, alignment: .leading)
 
             // 右：5H + WK 两行进度
             if let snap = snapshot {
@@ -118,7 +118,7 @@ private struct ImportedCodexRow: View {
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(.quaternary)
-                .frame(width: 44, alignment: .trailing)
+                .frame(width: 70, alignment: .trailing)
         }
     }
 
