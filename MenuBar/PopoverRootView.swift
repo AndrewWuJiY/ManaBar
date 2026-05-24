@@ -137,7 +137,8 @@ struct PopoverRootView: View {
                         error: appState.codexQuotaError,
                         weekSpend: weekSpend(for: .codex),
                         todayCost: appState.codexTodayCost,
-                        showsDesignQuota: false
+                        showsDesignQuota: false,
+                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.codexServiceStatus : nil
                     )
                 }
                 if showCodex && showClaude {
@@ -154,7 +155,8 @@ struct PopoverRootView: View {
                         error: appState.claudeQuotaError,
                         weekSpend: weekSpend(for: .claude),
                         todayCost: appState.claudeTodayCost,
-                        showsDesignQuota: true
+                        showsDesignQuota: true,
+                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil
                     )
                 }
             }
@@ -271,6 +273,7 @@ private struct ServiceBlockView: View {
     let weekSpend: Decimal
     let todayCost: Decimal?
     let showsDesignQuota: Bool
+    let serviceStatus: ServiceStatus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -310,7 +313,22 @@ private struct ServiceBlockView: View {
             .truncationMode(.tail)
 
             Spacer(minLength: 0)
+
+            if let status = serviceStatus, status.indicator != .unknown {
+                Circle()
+                    .fill(status.indicator.dotColor)
+                    .frame(width: 6, height: 6)
+                    .help(serviceStatusTooltip(status))
+            }
         }
+    }
+
+    private func serviceStatusTooltip(_ status: ServiceStatus) -> String {
+        let trimmed = status.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let head = trimmed.isEmpty ? status.indicator.label : trimmed
+        guard let updatedAt = status.updatedAt else { return head }
+        let age = PopoverRootView.relativeAge(from: updatedAt)
+        return tr("\(head) · updated \(age) ago", "\(head) · \(age) 前更新")
     }
 
     private var bodyRow: some View {

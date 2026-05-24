@@ -212,6 +212,17 @@ struct SettingsRootView: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
+            PrefsRow(
+                label: "Service status dot",
+                chinese: "服务状态圆点",
+                desc: "Show OpenAI / Anthropic status next to each service in the popover.",
+                chineseDesc: "在弹出窗口为每个服务显示官方状态页圆点"
+            ) {
+                Toggle("", isOn: Binding(get: { settings.showServiceStatus }, set: { settings.showServiceStatus = $0 }))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+            }
         }
     }
 

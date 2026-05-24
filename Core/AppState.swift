@@ -28,6 +28,10 @@ final class AppState {
     var codexTodayCost: Decimal?
     var claudeTodayCost: Decimal?
 
+    /// OpenAI / Anthropic statuspage.io 最新快照,失败时保留上一份。
+    var codexServiceStatus: ServiceStatus?
+    var claudeServiceStatus: ServiceStatus?
+
     let usageService = UsageService()
     private let scheduler = Scheduler()
     private var didBootstrap = false
@@ -60,6 +64,8 @@ final class AppState {
         )
         // 启动后台触发一次 JSONL 扫描，让今日 cost 立刻更新（不阻塞 bootstrap）
         Task { await usageService.scanNow() }
+        // 启动后异步拉一次服务状态;后续由 Scheduler 5 分钟刷新一次
+        Task { await refreshServiceStatus() }
     }
 
     /// 设置变更后，把刷新间隔同步到 Scheduler
@@ -78,12 +84,33 @@ final class AppState {
         }
         await refreshQuotas(reason: .userInitiated)
         await usageService.scanNow()
+        await refreshServiceStatus()
     }
 
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {
         await loadCodexQuota(reason: reason)
         await loadClaudeQuota(reason: reason)
         logQuotaSummary()
+    }
+
+    /// 拉取 OpenAI / Anthropic statuspage 状态。失败保留旧快照,不清空。
+    /// 两个请求并发,任意一个失败不影响另一个。
+    func refreshServiceStatus() async {
+        async let codex = Self.fetchServiceStatus(url: ServiceStatusClient.openAIStatusURL, tag: "openai")
+        async let claude = Self.fetchServiceStatus(url: ServiceStatusClient.anthropicStatusURL, tag: "anthropic")
+        let codexResult = await codex
+        let claudeResult = await claude
+        if let codexResult { codexServiceStatus = codexResult }
+        if let claudeResult { claudeServiceStatus = claudeResult }
+    }
+
+    private static func fetchServiceStatus(url: URL, tag: String) async -> ServiceStatus? {
+        do {
+            return try await ServiceStatusClient.fetch(from: url)
+        } catch {
+            print("[service-status] \(tag) fetch failed: \(error)")
+            return nil
+        }
     }
 
     func quotaStatusLine(for app: QuotaApp) -> String? {
