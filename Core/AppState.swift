@@ -389,7 +389,7 @@ final class AppState {
         do {
             try QuotaCache.save(quotaCache)
         } catch {
-            print("[M3] quota cache save failed: \(error)")
+            print("[QuotaCache 额度缓存] 写盘失败 save failed: \(error)")
         }
     }
 
@@ -617,30 +617,30 @@ final class AppState {
 
     private func logCredentialSummary() {
         if let c = codexAccount {
-            print("[M1] Codex: email=\(c.email ?? "—") plan=\(c.planType ?? "—") account_id=\(c.accountId ?? "—") expiredGuess=\(c.expiredGuess) hasAccessToken=\(c.accessToken != nil) hasRefreshToken=\(c.refreshToken != nil)")
+            print("[Credentials 凭据] Codex: email=\(c.email ?? "—") plan=\(c.planType ?? "—") account_id=\(c.accountId ?? "—") expiredGuess=\(c.expiredGuess) hasAccessToken=\(c.accessToken != nil) hasRefreshToken=\(c.refreshToken != nil)")
         } else {
-            print("[M1] Codex: <none> error=\(codexError ?? "unknown")")
+            print("[Credentials 凭据] Codex 未加载: error=\(codexError ?? "unknown")")
         }
         if let c = claudeAccount {
-            print("[M1] Claude: source=\(c.source.rawValue) email=\(c.email ?? "—") plan=\(c.subscriptionType ?? "—") expiresAt=\(c.expiresAt.map { "\($0)" } ?? "—") expiredGuess=\(c.expiredGuess) hasAccessToken=\(c.accessToken != nil)")
+            print("[Credentials 凭据] Claude: source=\(c.source.rawValue) email=\(c.email ?? "—") plan=\(c.subscriptionType ?? "—") expiresAt=\(c.expiresAt.map { "\($0)" } ?? "—") expiredGuess=\(c.expiredGuess) hasAccessToken=\(c.accessToken != nil)")
         } else {
-            print("[M1] Claude: <none> error=\(claudeError ?? "unknown")")
+            print("[Credentials 凭据] Claude 未加载: error=\(claudeError ?? "unknown")")
         }
     }
 
     private func logQuotaSummary() {
         if let q = codexQuota {
-            print("[M2] Codex quota: source=\(codexQuotaSource?.rawValue ?? "—") plan=\(q.planType ?? "—") \(format(q))")
+            print("[Quota 额度] Codex: source=\(codexQuotaSource?.rawValue ?? "—") plan=\(q.planType ?? "—") \(format(q))")
         } else {
-            print("[M2] Codex quota: <none> error=\(codexQuotaError ?? "unknown")")
+            print("[Quota 额度] Codex 拉取失败: error=\(codexQuotaError ?? "unknown")")
         }
         if let q = claudeQuota {
-            print("[M2] Claude quota: source=\(claudeQuotaSource?.rawValue ?? "—") \(format(q))")
+            print("[Quota 额度] Claude: source=\(claudeQuotaSource?.rawValue ?? "—") \(format(q))")
             if let opus = q.weeklyOpus { print("       └─ weeklyOpus=\(format(window: opus))") }
             if let sonnet = q.weeklySonnet { print("       └─ weeklySonnet=\(format(window: sonnet))") }
             if let design = q.weeklyDesign { print("       └─ weeklyDesign=\(format(window: design))") }
         } else {
-            print("[M2] Claude quota: <none> error=\(claudeQuotaError ?? "unknown")")
+            print("[Quota 额度] Claude 拉取失败: error=\(claudeQuotaError ?? "unknown")")
         }
     }
 

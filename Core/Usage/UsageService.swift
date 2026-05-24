@@ -55,12 +55,12 @@ final class UsageService {
             do {
                 try ScanCache.save(newScanState)
             } catch {
-                print("[M5] scan-state save failed: \(error)")
+                print("[UsageScan 用量扫描] 扫描状态写盘失败 scan-state save failed: \(error)")
             }
             do {
                 try UsageRollupCache.save(rollup)
             } catch {
-                print("[M5] usage-rollup save failed: \(error)")
+                print("[UsageScan 用量扫描] 汇总写盘失败 usage-rollup save failed: \(error)")
             }
         }.value
 
@@ -69,7 +69,7 @@ final class UsageService {
         publishTotals()
 
         let elapsed = String(format: "%.2fs", Date().timeIntervalSince(started))
-        print("[M5] usage scan: claude files=\(claude.filesScanned) lines=\(claude.linesParsed) new=\(claude.entries.count); codex files=\(codex.filesScanned) lines=\(codex.linesParsed) new=\(codex.entries.count); elapsed=\(elapsed)")
+        print("[UsageScan 用量扫描] claude files=\(claude.filesScanned) lines=\(claude.linesParsed) new=\(claude.entries.count); codex files=\(codex.filesScanned) lines=\(codex.linesParsed) new=\(codex.entries.count); elapsed=\(elapsed)")
     }
 
     private func publishTotals() {
