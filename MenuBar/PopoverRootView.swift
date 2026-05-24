@@ -77,20 +77,13 @@ struct PopoverRootView: View {
             .buttonStyle(PopoverIconButtonStyle())
             .help(tr("Settings", "设置"))
 
-            Menu {
-                Button(tr("Quit", "退出")) { NSApp.terminate(nil) }
-            } label: {
-                Image(systemName: "ellipsis")
+            Button { NSApp.terminate(nil) } label: {
+                Image(systemName: "power")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
-                    .frame(width: 26, height: 22)
-                    .contentShape(Rectangle())
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .pointingHandCursor()
-            .help(tr("More", "更多"))
+            .buttonStyle(PopoverIconButtonStyle())
+            .help(tr("Quit", "退出"))
         }
         .padding(.top, 14)
         .padding(.horizontal, 12)

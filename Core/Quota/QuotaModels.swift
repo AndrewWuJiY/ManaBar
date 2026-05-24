@@ -63,6 +63,10 @@ enum QuotaError: Error, CustomStringConvertible {
     case transport(String)
     case decode(String)
     case tokenRefreshFailed(String)
+    /// OAuth 服务端拒绝了 refresh_token(典型为 `invalid_grant`),
+    /// 通常是 Claude Code CLI / Desktop / cc-switch 等其他客户端抢先刷新使旧 token 失效,
+    /// 或用户主动退登 / 改密码。此时只能重新登录。
+    case tokenRevoked
 
     var description: String {
         switch self {
@@ -71,6 +75,8 @@ enum QuotaError: Error, CustomStringConvertible {
         case .transport(let msg): return "transport: \(msg)"
         case .decode(let msg): return "decode: \(msg)"
         case .tokenRefreshFailed(let msg): return "token refresh failed: \(msg)"
+        case .tokenRevoked:
+            return "Claude 登录已失效,请在终端运行 claude 重新登录后再回来刷新"
         }
     }
 
@@ -85,5 +91,11 @@ enum QuotaError: Error, CustomStringConvertible {
 
     var isAuthFailure: Bool {
         httpStatusCode == 401 || httpStatusCode == 403
+    }
+
+    /// 是否为"需要用户重新登录"级别的失败。UI 可据此降级提示文案。
+    var isAuthRevoked: Bool {
+        if case .tokenRevoked = self { return true }
+        return false
     }
 }
