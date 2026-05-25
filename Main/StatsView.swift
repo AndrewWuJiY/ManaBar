@@ -301,10 +301,10 @@ struct StatsView: View {
         HStack(spacing: 12) {
             KPICard(
                 english: "Total tokens",
-                chinese: "总令牌",
-                value: StatsFormatter.compactToken(currentTotalsAll.inputTokens + currentTotalsAll.outputTokens),
-                delta: deltaPercent(current: Double(currentTotalsAll.inputTokens + currentTotalsAll.outputTokens),
-                                    previous: Double(previousTotalsAll.inputTokens + previousTotalsAll.outputTokens)),
+                chinese: "总 Tokens",
+                value: StatsFormatter.compactToken(currentTotalsAll.totalTokens),
+                delta: deltaPercent(current: Double(currentTotalsAll.totalTokens),
+                                    previous: Double(previousTotalsAll.totalTokens)),
                 tint: nil
             )
             KPICard(
@@ -390,7 +390,7 @@ struct StatsView: View {
                     tint: .codexAccent,
                     value: currentTotals(.codex).costUSD,
                     totalValue: currentTotalsAll.costUSD,
-                    tokens: currentTotals(.codex).inputTokens + currentTotals(.codex).outputTokens
+                    tokens: currentTotals(.codex).totalTokens
                 )
                 ByServiceRow(
                     title: "Claude Code",
@@ -398,7 +398,7 @@ struct StatsView: View {
                     tint: .claudeAccent,
                     value: currentTotals(.claude).costUSD,
                     totalValue: currentTotalsAll.costUSD,
-                    tokens: currentTotals(.claude).inputTokens + currentTotals(.claude).outputTokens
+                    tokens: currentTotals(.claude).totalTokens
                 )
             }
         }
@@ -455,11 +455,11 @@ struct StatsView: View {
                         Text(row.model)
                             .font(.system(size: 12.5))
                         Spacer()
-                        Text("\(tr("in", "入")) \(StatsFormatter.token(row.totals.inputTokens))")
+                        Text("\(tr("in", "入")) \(StatsFormatter.compactToken(row.totals.inputWithCacheTokens))")
                             .font(.system(size: 10.5))
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
-                        Text("\(tr("out", "出")) \(StatsFormatter.token(row.totals.outputTokens))")
+                        Text("\(tr("out", "出")) \(StatsFormatter.compactToken(row.totals.outputTokens))")
                             .font(.system(size: 10.5))
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -685,7 +685,7 @@ private struct ByServiceRow: View {
             ProgressBar(value: ratio, tint: tint, height: 5)
                 .padding(.leading, 16)
             HStack {
-                Text("\(StatsFormatter.compactToken(tokens)) \(tr("tokens", "令牌"))")
+                Text("\(StatsFormatter.compactToken(tokens)) Tokens")
                     .font(.system(size: 10.5))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -793,16 +793,44 @@ enum StatsFormatter {
         return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    /// 18.4M / 248.3k / 1,234 紧凑格式
+    /// 紧凑显示。中文用 万 / 亿,英文用 k / M / B。
+    /// zh:  6772.37 万  /  1.23 亿  /  1,234
+    /// en:  67.7M  /  248.3k  /  1,234
+    @MainActor
     static func compactToken(_ value: Int) -> String {
         let v = Double(value)
-        if v >= 1_000_000 {
-            return String(format: "%.1fM", v / 1_000_000)
+        switch L10n.current {
+        case .zh:
+            if v >= 100_000_000 {
+                return "\(trimTrailingZeros(v / 100_000_000)) 亿"
+            }
+            if v >= 10_000 {
+                return "\(trimTrailingZeros(v / 10_000)) 万"
+            }
+            return token(value)
+        case .en:
+            if v >= 1_000_000_000 {
+                return String(format: "%.2fB", v / 1_000_000_000)
+            }
+            if v >= 1_000_000 {
+                return String(format: "%.2fM", v / 1_000_000)
+            }
+            if v >= 1_000 {
+                return String(format: "%.1fk", v / 1_000)
+            }
+            return "\(value)"
         }
-        if v >= 1_000 {
-            return String(format: "%.1fk", v / 1_000)
+    }
+
+    /// 保留两位小数,去掉末尾多余的 0(如 6772.30 → 6772.3,1234.00 → 1234)。
+    private static func trimTrailingZeros(_ value: Double) -> String {
+        let s = String(format: "%.2f", value)
+        var trimmed = s
+        if trimmed.contains(".") {
+            while trimmed.hasSuffix("0") { trimmed.removeLast() }
+            if trimmed.hasSuffix(".") { trimmed.removeLast() }
         }
-        return "\(value)"
+        return trimmed
     }
 
     private static let dayFormatter: DateFormatter = {

@@ -46,6 +46,16 @@ struct UsageTotals: Sendable, Equatable {
         cacheCreationTokens += bucket.cacheCreationTokens
         costUSD += bucket.costUSD
     }
+
+    /// 含缓存的输入侧 token(input + cache_read + cache_creation)。与 cc-switch / ccusage 的 input 口径一致。
+    var inputWithCacheTokens: Int {
+        inputTokens + cacheReadTokens + cacheCreationTokens
+    }
+
+    /// 全量 token(输入含缓存 + 输出)。与 cc-switch / ccusage 的总量口径一致。
+    var totalTokens: Int {
+        inputWithCacheTokens + outputTokens
+    }
 }
 
 /// Decimal <-> String 编解码，避免 Double 精度漂。
