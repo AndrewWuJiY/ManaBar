@@ -64,15 +64,20 @@ private struct ImportedCodexRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            // 左：别名 + 副标题
+            // 左：别名 + 副标题（隐私模式下名称为空,VStack 只剩 subtitle,
+            // 由外层 HStack(.center) 自动垂直居中）
             VStack(alignment: .leading, spacing: 1) {
-                Text(displayName)
-                    .font(.system(size: 12))
-                    .lineLimit(1)
-                Text(displaySubtitle)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if !displayName.isEmpty {
+                    Text(displayName)
+                        .font(.system(size: 12))
+                        .lineLimit(1)
+                }
+                if !displaySubtitle.isEmpty {
+                    Text(displaySubtitle)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             .frame(width: 78, alignment: .leading)
 
@@ -149,10 +154,16 @@ private struct ImportedCodexRow: View {
     // MARK: Derived
 
     private var displayName: String {
-        account.alias.isEmpty ? (account.email.map { emailUsername($0) } ?? account.id) : account.alias
+        if SettingsStore.shared.privacyMode { return "" }
+        return account.alias.isEmpty ? (account.email.map { emailUsername($0) } ?? account.id) : account.alias
     }
 
     private var displaySubtitle: String {
+        if SettingsStore.shared.privacyMode {
+            // 隐私模式：subtitle 只保留 plan，不显示 email/别名
+            if let plan = account.planType, !plan.isEmpty { return plan.capitalized }
+            return ""
+        }
         var parts: [String] = []
         if let email = account.email, !email.isEmpty { parts.append(email) }
         if let plan = account.planType, !plan.isEmpty { parts.append(plan.capitalized) }

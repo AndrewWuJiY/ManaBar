@@ -172,8 +172,9 @@ struct PopoverRootView: View {
     }
 
     private var codexSubtitle: String {
+        let privacy = SettingsStore.shared.privacyMode
         var parts: [String] = []
-        if let email = appState.codexAccount?.email, !email.isEmpty {
+        if !privacy, let email = appState.codexAccount?.email, !email.isEmpty {
             parts.append(email)
         }
         if let plan = appState.codexAccount?.planType, !plan.isEmpty {
@@ -184,8 +185,9 @@ struct PopoverRootView: View {
     }
 
     private var claudeSubtitle: String {
+        let privacy = SettingsStore.shared.privacyMode
         var parts: [String] = []
-        if let email = appState.claudeAccount?.email, !email.isEmpty {
+        if !privacy, let email = appState.claudeAccount?.email, !email.isEmpty {
             parts.append(email)
         }
         if let plan = appState.claudeAccount?.subscriptionType, !plan.isEmpty {

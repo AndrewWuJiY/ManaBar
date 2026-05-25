@@ -1,60 +1,43 @@
 # cc-bar
 
-> macOS 菜单栏小工具,把 Codex 和 Claude Code 的额度、刷新状态、本地用量统计一眼看清。
-> A macOS menu bar utility that shows your Codex and Claude Code quota, refresh status, and local usage at a glance.
+> macOS 菜单栏小工具 —— 一眼看清 Codex 与 Claude Code 的用量与花费。
 
-![menu bar](docs/screenshots/menubar.png)
-![popover](docs/screenshots/popover.png)
-![stats](docs/screenshots/stats.png)
+<p>
+  <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
+  <img alt="swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg">
+  <img alt="version" src="https://img.shields.io/badge/version-0.2.0-brightgreen.svg">
+</p>
 
-> 截图会在 0.1 正式发布前补齐。
-> Screenshots will be filled in before the 0.1 release.
+<p align="center">
+  <img src="docs/Screenshots/overview.png" width="380" alt="Popover 总览">
+</p>
 
-## 功能 · Features
+## 功能
 
-- 自动识别本机 Codex (`~/.codex/auth.json`) 与 Claude Code (`~/.claude/.credentials.json` 或 macOS Keychain) 登录账号
-- 菜单栏图标 + 5 小时 / 周窗口剩余百分比,服务可独立显隐
-- Popover 展示双服务额度、倒计时、今日 cost(基于本地 JSONL 增量扫描)
-- 主窗口统计 tab:今天 / 昨天 / 本周 / 本月 / 本年 / 7 天 / 30 天 / 全部 / 自定义,按模型拆分 token 与花费
-- 可选桌面悬浮窗,可拖、屏幕边缘 20pt 自动吸附、位置记忆
-- 全局快捷键:⌘1 打开统计 · ⌘, 打开设置 · ⌘R 立即刷新 · ⌘Q 退出
-- 状态指示三态:live / stale / offline 圆点
-- 网络失败时保留上次成功的快照,不清空 UI
+- **用量显示** —— Codex 与 Claude Code 的 5 小时 / 周窗口剩余额度,实时同步
+- **菜单栏 + 悬浮窗** —— 状态栏图标显示剩余百分比;可选桌面悬浮 HUD,可拖动、边缘吸附、置顶不抢焦
+- **多 Codex 账号** —— 支持导入多个 Codex 账号,主副账号在 Popover 同屏展示
+- **Token 与费用统计** —— 按今天 / 昨天 / 本周 / 本月 / 本年 / 7 天 / 30 天 / 全部 / 自定义切换;KPI、堆叠柱状图、按服务占比、按模型明细
+- **丰富的设置** —— 账号开关、菜单栏显示项、悬浮窗、刷新间隔、重置时间显示、中英双语、开机自动启动
 
-## 安装 · Install
+<p align="center">
+  <img src="docs/Screenshots/statistics.png" width="720" alt="用量统计">
+</p>
 
-1. 从 [Releases](https://github.com/nanvon/cc-bar/releases) 下载最新 `CCBar.app.zip`,解压后把 `CCBar.app` 拖到 `/Applications`。
-   Download `CCBar.app.zip` from Releases, unzip, drag `CCBar.app` into `/Applications`.
+## 安装
 
-2. 首次启动会被 macOS Gatekeeper 拦下("无法验证开发者")。**请按这个顺序绕过**:
-   First launch is blocked by Gatekeeper ("cannot verify developer"). **Bypass like this**:
+要求 macOS 14 Sonoma 或更新版本。已通过终端完成 `codex login` 与 `claude` 登录。
 
-   - 在 `应用程序` 里**右键 → 打开**(不是双击)
-   - 弹窗里点**打开**
-   - 之后就可以双击启动了
+1. 到 [Releases](https://github.com/nanvon/cc-bar/releases) 下载最新 `CCBar.app.zip`,解压后把 `CCBar.app` 拖入 `/Applications`。
 
-   或者在终端跑:
-   Or run in Terminal:
+2. 首次启动会被 Gatekeeper 拦下。在「应用程序」里**右键 → 打开**,或在终端执行:
 
    ```bash
    xattr -d com.apple.quarantine /Applications/CCBar.app
    ```
 
-3. 首次启动如果本机没有 Claude 凭据文件,会先弹一个**双语提示**说明接下来 macOS 会请求 Keychain 访问权限,点击「继续」后请选择「**始终允许**」。
-   On first launch, if no local Claude credentials file is present, a **bilingual prompt** appears explaining that macOS will ask for Keychain access — choose **Always Allow**.
+3. 若本机无 `~/.claude/.credentials.json`,会弹出说明后请求 Keychain 授权,请选「**始终允许**」。
 
-## 凭据来源 · Credential Sources
+## 反馈
 
-| 服务 Service | 来源 Source |
-|---|---|
-| Codex | `~/.codex/auth.json` |
-| Claude Code | `~/.claude/.credentials.json`,若不存在则读 macOS Keychain `Claude Code-credentials` |
-
-cc-bar **只读取**这些凭据,不上传、不复制。Quota 查询用各自的官方 API,本地 cost 来自 `~/.claude/projects/**/*.jsonl` 与 `~/.codex/sessions/**/*.jsonl` 的增量扫描。
-
-cc-bar reads these credentials **only locally** — they are never uploaded or copied. Quota queries hit each vendor's official API. Local cost numbers come from incrementally scanning JSONL session logs under each tool's home directory.
-
-## 反馈 · Feedback
-
-bug 或建议请发邮件到 nanvon.hsu@gmail.com,或在 [Issues](https://github.com/nanvon/cc-bar/issues) 留言。
-Bugs or suggestions: nanvon.hsu@gmail.com, or open a GitHub Issue.
+请到 [Issues](https://github.com/nanvon/cc-bar/issues) 留言。

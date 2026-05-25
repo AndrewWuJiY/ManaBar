@@ -256,6 +256,17 @@ struct SettingsRootView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
             }
+            PrefsRow(
+                label: "Privacy mode",
+                chinese: "隐私模式",
+                desc: "Hide email in the popover and account names for other Codex accounts.",
+                chineseDesc: "弹出窗口中隐藏主账号邮箱,并隐藏 Codex 副账号名称"
+            ) {
+                Toggle("", isOn: Binding(get: { settings.privacyMode }, set: { settings.privacyMode = $0 }))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+            }
             PrefsRow(label: "Launch at login", chinese: "开机自动启动") {
                 Toggle("", isOn: Binding(
                     get: { settings.launchAtLogin },
@@ -317,9 +328,7 @@ struct SettingsRootView: View {
 
     private var appVersion: String {
         let info = Bundle.main.infoDictionary
-        let short = info?["CFBundleShortVersionString"] as? String ?? "0.0"
-        let build = info?["CFBundleVersion"] as? String ?? "0"
-        return "\(short) (\(build))"
+        return info?["CFBundleShortVersionString"] as? String ?? "0.0"
     }
 
     private var shortVersion: String {

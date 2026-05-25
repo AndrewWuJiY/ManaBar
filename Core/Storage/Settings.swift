@@ -116,6 +116,9 @@ final class SettingsStore {
     var appLanguage: AppLanguage { didSet { defaults.set(appLanguage.rawValue, forKey: Keys.appLanguage) } }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin) } }
 
+    /// 隐私模式：Popover 中主账号邮箱、Codex 副账号名称均隐藏
+    var privacyMode: Bool { didSet { defaults.set(privacyMode, forKey: Keys.privacyMode) } }
+
     /// 是否已经向用户解释过"接下来会出现 Keychain 授权弹窗"
     var didShowKeychainPrompt: Bool {
         didSet { defaults.set(didShowKeychainPrompt, forKey: Keys.didShowKeychainPrompt) }
@@ -153,6 +156,7 @@ final class SettingsStore {
         appLanguage = AppLanguage(rawValue: langRaw) ?? .system
         let stored = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         launchAtLogin = stored
+        privacyMode = defaults.object(forKey: Keys.privacyMode) as? Bool ?? true
         didShowKeychainPrompt = defaults.object(forKey: Keys.didShowKeychainPrompt) as? Bool ?? false
         didCompleteOnboarding = defaults.object(forKey: Keys.didCompleteOnboarding) as? Bool ?? false
     }
@@ -240,6 +244,7 @@ final class SettingsStore {
         static let showServiceStatus = "ccbar.settings.showServiceStatus"
         static let launchAtLogin = "ccbar.settings.launchAtLogin"
         static let appLanguage = "ccbar.settings.appLanguage"
+        static let privacyMode = "ccbar.settings.privacyMode"
         static let didShowKeychainPrompt = "ccbar.settings.didShowKeychainPrompt"
         static let didCompleteOnboarding = "ccbar.settings.didCompleteOnboarding"
         static let floatingFrameX = "ccbar.settings.floatingFrame.x"
