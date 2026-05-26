@@ -5,7 +5,7 @@
 <p>
   <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
   <img alt="swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg">
-  <img alt="version" src="https://img.shields.io/badge/version-0.2.0-brightgreen.svg">
+  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-brightgreen.svg">
 </p>
 
 <p align="center">
@@ -41,3 +41,11 @@
 ## 反馈
 
 请到 [Issues](https://github.com/nanvon/cc-bar/issues) 留言。
+
+## 致谢
+
+cc-bar 在设计与实现上参考了以下优秀的开源项目,在此特别感谢:
+
+- [cc-switch](https://github.com/farion1231/cc-switch) —— 多 Provider 账号切换器,启发了本项目的多账号管理与导入流程
+- [cockpit-tools](https://github.com/jlcodes99/cockpit-tools) —— 多平台 AI 编码助手仪表盘,在额度与刷新策略上提供了参考
+- [CodexBar](https://github.com/steipete/CodexBar) —— macOS 菜单栏 AI 用量监控,在菜单栏交互与本地解析思路上多有借鉴

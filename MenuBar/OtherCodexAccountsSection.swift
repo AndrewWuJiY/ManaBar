@@ -79,7 +79,7 @@ private struct ImportedCodexRow: View {
                         .lineLimit(1)
                 }
             }
-            .frame(width: 78, alignment: .leading)
+            .frame(width: 52, alignment: .leading)
 
             // 右：5H + WK 两行进度
             if let snap = snapshot {

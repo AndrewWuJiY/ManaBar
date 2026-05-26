@@ -4,9 +4,9 @@ import Observation
 import ServiceManagement
 
 enum QuotaIntervalChoice: String, CaseIterable, Identifiable {
-    case off
-    case s30
     case m1
+    case m2
+    case m3
     case m5
     case m10
 
@@ -14,9 +14,9 @@ enum QuotaIntervalChoice: String, CaseIterable, Identifiable {
 
     var seconds: TimeInterval? {
         switch self {
-        case .off: return nil
-        case .s30: return 30
         case .m1: return 60
+        case .m2: return 2 * 60
+        case .m3: return 3 * 60
         case .m5: return 5 * 60
         case .m10: return 10 * 60
         }
@@ -24,9 +24,9 @@ enum QuotaIntervalChoice: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .off: return "关闭"
-        case .s30: return "30 秒"
         case .m1: return "1 分钟"
+        case .m2: return "2 分钟"
+        case .m3: return "3 分钟"
         case .m5: return "5 分钟"
         case .m10: return "10 分钟"
         }
@@ -34,28 +34,31 @@ enum QuotaIntervalChoice: String, CaseIterable, Identifiable {
 }
 
 enum UsageIntervalChoice: String, CaseIterable, Identifiable {
-    case s15
-    case s30
     case m1
+    case m2
+    case m3
     case m5
+    case m10
 
     var id: String { rawValue }
 
     var seconds: TimeInterval {
         switch self {
-        case .s15: return 15
-        case .s30: return 30
         case .m1: return 60
+        case .m2: return 2 * 60
+        case .m3: return 3 * 60
         case .m5: return 5 * 60
+        case .m10: return 10 * 60
         }
     }
 
     var displayName: String {
         switch self {
-        case .s15: return "15 秒"
-        case .s30: return "30 秒"
         case .m1: return "1 分钟"
+        case .m2: return "2 分钟"
+        case .m3: return "3 分钟"
         case .m5: return "5 分钟"
+        case .m10: return "10 分钟"
         }
     }
 }
@@ -144,10 +147,10 @@ final class SettingsStore {
         floatingShowCodex = defaults.object(forKey: Keys.floatingShowCodex) as? Bool ?? true
         floatingShowClaude = defaults.object(forKey: Keys.floatingShowClaude) as? Bool ?? true
         // 刷新
-        let qiRaw = defaults.string(forKey: Keys.quotaInterval) ?? QuotaIntervalChoice.m5.rawValue
-        quotaInterval = QuotaIntervalChoice(rawValue: qiRaw) ?? .m5
-        let uiRaw = defaults.string(forKey: Keys.usageInterval) ?? UsageIntervalChoice.s30.rawValue
-        usageInterval = UsageIntervalChoice(rawValue: uiRaw) ?? .s30
+        let qiRaw = defaults.string(forKey: Keys.quotaInterval) ?? QuotaIntervalChoice.m2.rawValue
+        quotaInterval = QuotaIntervalChoice(rawValue: qiRaw) ?? .m2
+        let uiRaw = defaults.string(forKey: Keys.usageInterval) ?? UsageIntervalChoice.m2.rawValue
+        usageInterval = UsageIntervalChoice(rawValue: uiRaw) ?? .m2
         let rtdRaw = defaults.string(forKey: Keys.resetTimeDisplay) ?? ResetTimeDisplay.relative.rawValue
         resetTimeDisplay = ResetTimeDisplay(rawValue: rtdRaw) ?? .relative
         showServiceStatus = defaults.object(forKey: Keys.showServiceStatus) as? Bool ?? true

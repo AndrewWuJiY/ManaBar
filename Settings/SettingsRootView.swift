@@ -478,9 +478,9 @@ private struct AccountRow: View {
 extension QuotaIntervalChoice {
     var bilingualDisplayName: String {
         switch self {
-        case .off: return tr("Off", "关闭")
-        case .s30: return tr("Every 30s", "每 30 秒")
         case .m1: return tr("1 minute", "1 分钟")
+        case .m2: return tr("2 minutes", "2 分钟")
+        case .m3: return tr("3 minutes", "3 分钟")
         case .m5: return tr("5 minutes", "5 分钟")
         case .m10: return tr("10 minutes", "10 分钟")
         }
@@ -490,10 +490,11 @@ extension QuotaIntervalChoice {
 extension UsageIntervalChoice {
     var bilingualDisplayName: String {
         switch self {
-        case .s15: return tr("15 seconds", "15 秒")
-        case .s30: return tr("30 seconds", "30 秒")
         case .m1: return tr("1 minute", "1 分钟")
+        case .m2: return tr("2 minutes", "2 分钟")
+        case .m3: return tr("3 minutes", "3 分钟")
         case .m5: return tr("5 minutes", "5 分钟")
+        case .m10: return tr("10 minutes", "10 分钟")
         }
     }
 }
