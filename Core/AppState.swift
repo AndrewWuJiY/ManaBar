@@ -90,18 +90,18 @@ final class AppState {
     }
 
     func refreshNow() async {
-        if codexAccount == nil {
-            await loadCodex()
-        }
-        if claudeAccount == nil {
-            await loadClaude()
-        }
         await refreshQuotas(reason: .userInitiated)
         await usageService.scanNow()
         await refreshServiceStatus()
     }
 
+    /// 每次刷新(手动 / Scheduler 定时)都先重读本地凭据,以便用户在外部
+    /// (如 cc-switch)切换账号后 ccbar 能感知到。loadCodex / loadClaude
+    /// 内部会比较 accountId / email,若身份变化则清掉旧的额度缓存,避免
+    /// 出现"新账号 + 旧额度"的错配。
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {
+        await loadCodex()
+        await loadClaude()
         await loadCodexQuota(reason: reason)
         await loadClaudeQuota(reason: reason)
         await loadAllImportedCodexQuotas(reason: reason)
@@ -395,14 +395,37 @@ final class AppState {
 
     private func loadCodex() async {
         do {
-            self.codexAccount = try await Task.detached(priority: .utility) {
+            let next = try await Task.detached(priority: .utility) {
                 try CodexAuth.load()
             }.value
+            if codexIdentityChanged(previous: codexAccount, next: next) {
+                resetCodexQuotaState()
+            }
+            self.codexAccount = next
             self.codexError = nil
         } catch {
             self.codexAccount = nil
             self.codexError = "\(error)"
         }
+    }
+
+    /// 比较 accountId 优先,缺失时回退到 email。仅当能确认"前后是不同账号"
+    /// 时返回 true;previous 为 nil(首次加载)不算变化,避免误清启动缓存。
+    private func codexIdentityChanged(previous: CodexAccount?, next: CodexAccount) -> Bool {
+        guard let previous else { return false }
+        if let a = previous.accountId, let b = next.accountId, !a.isEmpty, !b.isEmpty {
+            return a != b
+        }
+        return previous.email != next.email
+    }
+
+    private func resetCodexQuotaState() {
+        codexQuota = nil
+        codexQuotaSource = nil
+        codexQuotaError = nil
+        codexRefreshState = QuotaRefreshState()
+        quotaCache.codex = nil
+        saveQuotaCache()
     }
 
     /// 没有本地凭据文件、且尚未提示过时,先用一个模态 alert 告诉用户
@@ -428,14 +451,32 @@ final class AppState {
 
     private func loadClaude() async {
         do {
-            self.claudeAccount = try await Task.detached(priority: .utility) {
+            let next = try await Task.detached(priority: .utility) {
                 try ClaudeAuth.load()
             }.value
+            if claudeIdentityChanged(previous: claudeAccount, next: next) {
+                resetClaudeQuotaState()
+            }
+            self.claudeAccount = next
             self.claudeError = nil
         } catch {
             self.claudeAccount = nil
             self.claudeError = "\(error)"
         }
+    }
+
+    private func claudeIdentityChanged(previous: ClaudeAccount?, next: ClaudeAccount) -> Bool {
+        guard let previous else { return false }
+        return previous.email != next.email
+    }
+
+    private func resetClaudeQuotaState() {
+        claudeQuota = nil
+        claudeQuotaSource = nil
+        claudeQuotaError = nil
+        claudeRefreshState = QuotaRefreshState()
+        quotaCache.claude = nil
+        saveQuotaCache()
     }
 
     private func loadCodexQuota(reason: QuotaRefreshReason) async {
