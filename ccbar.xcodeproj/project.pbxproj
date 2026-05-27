@@ -20,6 +20,7 @@
 		49C1B104000000000001AABB /* ClaudeAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B104000000000001AAAA /* ClaudeAuth.swift */; };
 		49C1B105000000000001AABB /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B105000000000001AAAA /* Settings.swift */; };
 		49C1B106000000000001AABB /* QuotaCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B106000000000001AAAA /* QuotaCache.swift */; };
+		49C1B107000000000001AABB /* ScanCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B107000000000001AAAA /* ScanCache.swift */; };
 		49C1B120000000000001AABB /* QuotaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B120000000000001AAAA /* QuotaModels.swift */; };
 		49C1B121000000000001AABB /* CodexTokenRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B121000000000001AAAA /* CodexTokenRefresher.swift */; };
 		49C1B122000000000001AABB /* CodexQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B122000000000001AAAA /* CodexQuotaClient.swift */; };
@@ -32,7 +33,6 @@
 		49C1B132000000000001AABB /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B132000000000001AAAA /* L10n.swift */; };
 		49C1B140000000000001AABB /* codex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B140000000000001AAAA /* codex.svg */; };
 		49C1B141000000000001AABB /* claude.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B141000000000001AAAA /* claude.svg */; };
-		49C1B107000000000001AABB /* ScanCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B107000000000001AAAA /* ScanCache.swift */; };
 		49C1B150000000000001AABB /* UsageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B150000000000001AAAA /* UsageModels.swift */; };
 		49C1B151000000000001AABB /* Pricing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B151000000000001AAAA /* Pricing.swift */; };
 		49C1B152000000000001AABB /* JSONLLineReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B152000000000001AAAA /* JSONLLineReader.swift */; };
@@ -71,6 +71,7 @@
 		49C1B104000000000001AAAA /* ClaudeAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAuth.swift; sourceTree = "<group>"; };
 		49C1B105000000000001AAAA /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		49C1B106000000000001AAAA /* QuotaCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCache.swift; sourceTree = "<group>"; };
+		49C1B107000000000001AAAA /* ScanCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCache.swift; sourceTree = "<group>"; };
 		49C1B120000000000001AAAA /* QuotaModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaModels.swift; sourceTree = "<group>"; };
 		49C1B121000000000001AAAA /* CodexTokenRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexTokenRefresher.swift; sourceTree = "<group>"; };
 		49C1B122000000000001AAAA /* CodexQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexQuotaClient.swift; sourceTree = "<group>"; };
@@ -83,7 +84,6 @@
 		49C1B132000000000001AAAA /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		49C1B140000000000001AAAA /* codex.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex.svg; sourceTree = "<group>"; };
 		49C1B141000000000001AAAA /* claude.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = claude.svg; sourceTree = "<group>"; };
-		49C1B107000000000001AAAA /* ScanCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCache.swift; sourceTree = "<group>"; };
 		49C1B150000000000001AAAA /* UsageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModels.swift; sourceTree = "<group>"; };
 		49C1B151000000000001AAAA /* Pricing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pricing.swift; sourceTree = "<group>"; };
 		49C1B152000000000001AAAA /* JSONLLineReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLLineReader.swift; sourceTree = "<group>"; };
@@ -156,18 +156,38 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
-		49C1B112000000000001AAAA /* Quota */ = {
+		4931AC512FC02A4200EE598C /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
-				49C1B120000000000001AAAA /* QuotaModels.swift */,
-				49C1B121000000000001AAAA /* CodexTokenRefresher.swift */,
-				49C1B122000000000001AAAA /* CodexQuotaClient.swift */,
-				49C1B123000000000001AAAA /* ClaudeQuotaClient.swift */,
-				49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */,
-				49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */,
-				49C1B126000000000001AAAA /* ServiceStatusClient.swift */,
+				4931AC4F2FC02A4200EE598C /* MenuBarLabel.swift */,
+				49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */,
+				4931AC502FC02A4200EE598C /* PopoverRootView.swift */,
+				49C1B193000000000001AAAA /* OtherCodexAccountsSection.swift */,
 			);
-			path = Quota;
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		4931AC532FC02A4200EE598C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4931AC522FC02A4200EE598C /* Assets.xcassets */,
+				49C1B142000000000001AAAA /* Logos */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4931AC552FC02A4200EE598C /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				4931AC542FC02A4200EE598C /* SettingsRootView.swift */,
+				49C1B194000000000001AAAA /* ImportedCodexAccountsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		4931AC562FC02A4200EE598C /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
 			sourceTree = "<group>";
 		};
 		49C1B110000000000001AAAA /* Credentials */ = {
@@ -193,6 +213,29 @@
 			path = Storage;
 			sourceTree = "<group>";
 		};
+		49C1B112000000000001AAAA /* Quota */ = {
+			isa = PBXGroup;
+			children = (
+				49C1B120000000000001AAAA /* QuotaModels.swift */,
+				49C1B121000000000001AAAA /* CodexTokenRefresher.swift */,
+				49C1B122000000000001AAAA /* CodexQuotaClient.swift */,
+				49C1B123000000000001AAAA /* ClaudeQuotaClient.swift */,
+				49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */,
+				49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */,
+				49C1B126000000000001AAAA /* ServiceStatusClient.swift */,
+			);
+			path = Quota;
+			sourceTree = "<group>";
+		};
+		49C1B142000000000001AAAA /* Logos */ = {
+			isa = PBXGroup;
+			children = (
+				49C1B140000000000001AAAA /* codex.svg */,
+				49C1B141000000000001AAAA /* claude.svg */,
+			);
+			path = Logos;
+			sourceTree = "<group>";
+		};
 		49C1B15F000000000001AAAA /* Usage */ = {
 			isa = PBXGroup;
 			children = (
@@ -205,35 +248,6 @@
 				49C1B156000000000001AAAA /* UsageService.swift */,
 			);
 			path = Usage;
-			sourceTree = "<group>";
-		};
-		4931AC512FC02A4200EE598C /* MenuBar */ = {
-			isa = PBXGroup;
-			children = (
-				4931AC4F2FC02A4200EE598C /* MenuBarLabel.swift */,
-				49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */,
-				4931AC502FC02A4200EE598C /* PopoverRootView.swift */,
-				49C1B193000000000001AAAA /* OtherCodexAccountsSection.swift */,
-			);
-			path = MenuBar;
-			sourceTree = "<group>";
-		};
-		4931AC532FC02A4200EE598C /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				4931AC522FC02A4200EE598C /* Assets.xcassets */,
-				49C1B142000000000001AAAA /* Logos */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		49C1B142000000000001AAAA /* Logos */ = {
-			isa = PBXGroup;
-			children = (
-				49C1B140000000000001AAAA /* codex.svg */,
-				49C1B141000000000001AAAA /* claude.svg */,
-			);
-			path = Logos;
 			sourceTree = "<group>";
 		};
 		49C1B160000000000001AAAA /* Main */ = {
@@ -262,20 +276,6 @@
 				49C1B181000000000001AAAA /* OnboardingView.swift */,
 			);
 			path = Onboarding;
-			sourceTree = "<group>";
-		};
-		4931AC552FC02A4200EE598C /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				4931AC542FC02A4200EE598C /* SettingsRootView.swift */,
-				49C1B194000000000001AAAA /* ImportedCodexAccountsView.swift */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		4931AC562FC02A4200EE598C /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -528,10 +528,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				DEVELOPMENT_TEAM = 324F7B2X9T;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -541,7 +543,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
 				PRODUCT_NAME = CCBar;
 				REGISTER_APP_GROUPS = YES;
@@ -559,10 +561,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				DEVELOPMENT_TEAM = 324F7B2X9T;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -572,7 +576,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
 				PRODUCT_NAME = CCBar;
 				REGISTER_APP_GROUPS = YES;
