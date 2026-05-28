@@ -28,6 +28,7 @@
 		49C1B124000000000001AABB /* ClaudeCLIFallbackQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */; };
 		49C1B125000000000001AABB /* ClaudeTokenRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */; };
 		49C1B126000000000001AABB /* ServiceStatusClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B126000000000001AAAA /* ServiceStatusClient.swift */; };
+		49C1B127000000000001AABB /* ClaudeDelegatedRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B127000000000001AAAA /* ClaudeDelegatedRefresh.swift */; };
 		49C1B130000000000001AABB /* MenuBarLabelFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */; };
 		49C1B131000000000001AABB /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B131000000000001AAAA /* Scheduler.swift */; };
 		49C1B132000000000001AABB /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B132000000000001AAAA /* L10n.swift */; };
@@ -79,6 +80,7 @@
 		49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCLIFallbackQuotaClient.swift; sourceTree = "<group>"; };
 		49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenRefresher.swift; sourceTree = "<group>"; };
 		49C1B126000000000001AAAA /* ServiceStatusClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatusClient.swift; sourceTree = "<group>"; };
+		49C1B127000000000001AAAA /* ClaudeDelegatedRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDelegatedRefresh.swift; sourceTree = "<group>"; };
 		49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelFormatter.swift; sourceTree = "<group>"; };
 		49C1B131000000000001AAAA /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
 		49C1B132000000000001AAAA /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 		49C1B192000000000001AAAA /* ImportedCodexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedCodexStore.swift; sourceTree = "<group>"; };
 		49C1B193000000000001AAAA /* OtherCodexAccountsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtherCodexAccountsSection.swift; sourceTree = "<group>"; };
 		49C1B194000000000001AAAA /* ImportedCodexAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedCodexAccountsView.swift; sourceTree = "<group>"; };
+		49C1B200000000000001AAAA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +127,7 @@
 				4931AC412FC02A4200EE598C /* CCBarApp.swift */,
 				4931AC432FC02A4200EE598C /* Core */,
 				49C1B170000000000001AAAA /* Floating */,
+				49C1B203000000000001AAAA /* Helpers */,
 				4931AC4E2FC02A4200EE598C /* Info.plist */,
 				49C1B160000000000001AAAA /* Main */,
 				4931AC512FC02A4200EE598C /* MenuBar */,
@@ -223,6 +227,7 @@
 				49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */,
 				49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */,
 				49C1B126000000000001AAAA /* ServiceStatusClient.swift */,
+				49C1B127000000000001AAAA /* ClaudeDelegatedRefresh.swift */,
 			);
 			path = Quota;
 			sourceTree = "<group>";
@@ -278,6 +283,22 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
+		49C1B201000000000001AAAA /* CCBarClaudeWatchdog */ = {
+			isa = PBXGroup;
+			children = (
+				49C1B200000000000001AAAA /* main.swift */,
+			);
+			path = CCBarClaudeWatchdog;
+			sourceTree = "<group>";
+		};
+		49C1B203000000000001AAAA /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				49C1B201000000000001AAAA /* CCBarClaudeWatchdog */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -288,6 +309,7 @@
 				4931AC2C2FC029A000EE598C /* Sources */,
 				4931AC2D2FC029A000EE598C /* Frameworks */,
 				4931AC2E2FC029A000EE598C /* Resources */,
+				49C1B202000000000001AABB /* Embed CCBarClaudeWatchdog */,
 			);
 			buildRules = (
 			);
@@ -353,6 +375,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		49C1B202000000000001AABB /* Embed CCBarClaudeWatchdog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Helpers/CCBarClaudeWatchdog/main.swift",
+			);
+			name = "Embed CCBarClaudeWatchdog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers/CCBarClaudeWatchdog",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\n\nSOURCE=\"${SRCROOT}/Helpers/CCBarClaudeWatchdog/main.swift\"\nOUTPUT_DIR=\"${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers\"\nOUTPUT_BIN=\"${OUTPUT_DIR}/CCBarClaudeWatchdog\"\n\nmkdir -p \"${OUTPUT_DIR}\"\n\n# 编译为当前架构。cc-bar 是个人 / 单机分发,native arch 够用;\n# 真要做 universal 在这里加 lipo 即可。\nARCH=\"${NATIVE_ARCH_ACTUAL:-$(uname -m)}\"\nDEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-13.0}\"\n\nxcrun -sdk macosx swiftc -O \\\n  -target \"${ARCH}-apple-macos${DEPLOYMENT_TARGET}\" \\\n  -o \"${OUTPUT_BIN}\" \\\n  \"${SOURCE}\"\n\n# 跟父 target 同一个签名身份,签上;Debug 下 EXPANDED_CODE_SIGN_IDENTITY 可能是 -,\n# 等价 ad-hoc 签名,够用。\nIDENT=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\ncodesign --force --sign \"${IDENT}\" --options runtime --timestamp=none \"${OUTPUT_BIN}\"\n\necho \"embedded watchdog: ${OUTPUT_BIN}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		4931AC2C2FC029A000EE598C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -377,6 +422,7 @@
 				49C1B124000000000001AABB /* ClaudeCLIFallbackQuotaClient.swift in Sources */,
 				49C1B125000000000001AABB /* ClaudeTokenRefresher.swift in Sources */,
 				49C1B126000000000001AABB /* ServiceStatusClient.swift in Sources */,
+				49C1B127000000000001AABB /* ClaudeDelegatedRefresh.swift in Sources */,
 				49C1B130000000000001AABB /* MenuBarLabelFormatter.swift in Sources */,
 				49C1B131000000000001AABB /* Scheduler.swift in Sources */,
 				49C1B132000000000001AABB /* L10n.swift in Sources */,
@@ -442,7 +488,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -505,7 +551,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -532,7 +578,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 324F7B2X9T;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
@@ -543,7 +589,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
 				PRODUCT_NAME = CCBar;
 				REGISTER_APP_GROUPS = YES;
@@ -565,7 +611,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 324F7B2X9T;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
@@ -576,7 +622,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
 				PRODUCT_NAME = CCBar;
 				REGISTER_APP_GROUPS = YES;

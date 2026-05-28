@@ -11,7 +11,6 @@ import AppKit
 struct PopoverRootView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.openWindow) private var openWindow
-    @State private var isRefreshing = false
     @State private var refreshRotation: Double = 0
 
     var body: some View {
@@ -33,11 +32,15 @@ struct PopoverRootView: View {
                 Text(tr("Usage", "用量"))
                     .font(.system(size: 13, weight: .semibold))
 
-                Text(headerSubtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
+                // 用 TimelineView 每秒重新渲染一次,让 "Xs 前已刷新" 实时滚动。
+                // Popover 不可见时 TimelineView 不会被调度,几乎零 CPU 成本。
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(headerSubtitle(now: context.date))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -58,7 +61,8 @@ struct PopoverRootView: View {
                     .animation(.easeInOut(duration: 0.7), value: refreshRotation)
             }
             .buttonStyle(PopoverIconButtonStyle())
-            .disabled(isRefreshing)
+            // 不加 disabled:按钮永远可点,每次点击都有图标转动的视觉反馈;
+            // AppState.refreshNow() 内部已经做了 in-flight 去重,不会重复发请求。
             .help(tr("Refresh now", "立即刷新"))
 
             Button { activateAndOpenMain() } label: {
@@ -90,14 +94,15 @@ struct PopoverRootView: View {
         .padding(.bottom, 12)
     }
 
-    private var headerSubtitle: String {
+    /// `now` 由 header 的 TimelineView 提供,让"Xs 前已刷新"实时滚动。
+    private func headerSubtitle(now: Date) -> String {
         let latest = [
             appState.codexRefreshState.lastSuccessAt,
             appState.claudeRefreshState.lastSuccessAt
         ].compactMap { $0 }.max()
 
         if let latest {
-            let age = Self.relativeAge(from: latest)
+            let age = Self.relativeAge(from: latest, now: now)
             return tr("refreshed \(age) ago", "\(age) 前已刷新")
         }
         if appState.codexQuotaError != nil || appState.claudeQuotaError != nil {
@@ -237,21 +242,14 @@ struct PopoverRootView: View {
 
     // MARK: Refresh
 
+    /// 用户点刷新按钮的处理:
+    /// - **永远**先转一圈图标(无论内部状态),给用户即时视觉反馈
+    /// - 启动一个非阻塞 Task 去做真正的刷新工作;UI 不等
+    /// - 真正的去重 / 协调放在 `AppState.refreshNow()` 内部,这里只负责"启动"
+    /// - 数据更新通过 @Observable 自动驱动 UI 刷新,不需要在这里 await 结果
     private func refresh() {
-        guard !isRefreshing else { return }
-        isRefreshing = true
         refreshRotation += 360
-
-        Task {
-            let startedAt = Date()
-            await appState.refreshNow()
-
-            let elapsed = Date().timeIntervalSince(startedAt)
-            if elapsed < 0.5 {
-                try? await Task.sleep(nanoseconds: UInt64((0.5 - elapsed) * 1_000_000_000))
-            }
-            await MainActor.run { isRefreshing = false }
-        }
+        Task { await appState.refreshNow() }
     }
 
     // MARK: Helpers
@@ -267,8 +265,10 @@ struct PopoverRootView: View {
         return (weekStart, startOfTomorrow)
     }
 
-    static func relativeAge(from date: Date) -> String {
-        let seconds = max(0, Int(Date().timeIntervalSince(date)))
+    /// 计算相对时间字符串。`now` 默认是当前时间;header 用 `TimelineView` 驱动时
+    /// 把 timeline 提供的 `context.date` 传进来,避免和 `Date()` 真实时间细微偏差。
+    static func relativeAge(from date: Date, now: Date = Date()) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(date)))
         if seconds < 60 { return "\(seconds)s" }
         let minutes = seconds / 60
         if minutes < 60 { return "\(minutes)m" }

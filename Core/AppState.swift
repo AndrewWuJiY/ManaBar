@@ -51,6 +51,15 @@ final class AppState {
     private var quotaCache = QuotaCachePayload()
     private var claudeFallbackBackoffUntil: Date?
 
+    /// `refreshNow()` 的去重锁。同一时刻只允许一个真正在跑的整体刷新;
+    /// 期间额外的 `refreshNow()` 调用立即返回(no-op),不再排队。
+    /// UI 的"刷新按钮"依然每点必转图标,只是不会真的发起重复请求。
+    private var refreshInFlight: Task<Void, Never>?
+
+    /// `ClaudeDelegatedRefresh` 完成成功时的通知订阅。
+    /// 保留引用以便释放时取消(目前 AppState 生命周期 = App 生命周期,实际不会释放)。
+    private var delegatedRefreshObserver: NSObjectProtocol?
+
     private let minSuccessInterval: TimeInterval = 60
     private let rateLimitBackoff: TimeInterval = 10 * 60
 
@@ -58,6 +67,7 @@ final class AppState {
         guard !didBootstrap else { return }
         didBootstrap = true
 
+        subscribeToDelegatedRefreshSuccess()
         loadQuotaCache()
         reloadImportedCodexAccounts()
         usageService.bootstrap(appState: self)
@@ -90,9 +100,37 @@ final class AppState {
     }
 
     func refreshNow() async {
-        await refreshQuotas(reason: .userInitiated)
-        await usageService.scanNow()
-        await refreshServiceStatus()
+        // 去重:已有刷新在跑就直接返回,避免用户连点导致多份并发请求。
+        // UI 端不依赖这里的 await 时长,按钮立刻就响应了。
+        if refreshInFlight != nil { return }
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.refreshQuotas(reason: .userInitiated)
+            await self.usageService.scanNow()
+            await self.refreshServiceStatus()
+        }
+        refreshInFlight = task
+        await task.value
+        refreshInFlight = nil
+    }
+
+    /// 订阅 `ClaudeDelegatedRefresh` 后台委托刷新成功的通知。
+    /// 一旦 claude CLI 在后台帮我们刷新了 token 并写回了 keychain,
+    /// 这里会自动触发一次完整刷新,UI 拿到新数据,用户全程无感。
+    private func subscribeToDelegatedRefreshSuccess() {
+        delegatedRefreshObserver = NotificationCenter.default.addObserver(
+            forName: .claudeDelegatedRefreshDidSucceed,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            // queue: .main 保证回调线程,再 Task 进 MainActor 做异步刷新。
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // 用 .periodic 而不是 .userInitiated,避免被当作"用户操作"
+                // 影响速率限制 / 退避策略。
+                await self.refreshQuotas(reason: .periodic)
+            }
+        }
     }
 
     /// 每次刷新(手动 / Scheduler 定时)都先重读本地凭据,以便用户在外部

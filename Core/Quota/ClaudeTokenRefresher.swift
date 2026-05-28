@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let refresherLog = Logger(subsystem: "com.cc-bar", category: "claude-refresh")
 
 enum ClaudeTokenRefresher {
     static let clientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
@@ -168,6 +171,13 @@ enum ClaudeTokenRefresher {
                         expiresAt: storedExpiresAt
                     )
                 }
+                // 5) 软恢复也没救回来:**后台**启动委托刷新,不阻塞本次调用。
+                //    设计上立刻抛 tokenRevoked 让 UI 一秒内收到结果;后台委托刷新
+                //    成功时会通过 NotificationCenter 通知 AppState 自动再触发一次
+                //    刷新,UI 自然更新到新数据。
+                //    这样用户点刷新永远不会等 10 秒,体感"无感后台自愈"。
+                refresherLog.warning("soft-recovery failed, kicking off background delegated refresh")
+                ClaudeDelegatedRefresh.attemptInBackground(source: source)
                 throw QuotaError.tokenRevoked
             }
         }
