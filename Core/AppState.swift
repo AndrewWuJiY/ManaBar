@@ -717,7 +717,6 @@ final class AppState {
             print("[Quota 额度] Claude: source=\(claudeQuotaSource?.rawValue ?? "—") \(format(q))")
             if let opus = q.weeklyOpus { print("       └─ weeklyOpus=\(format(window: opus))") }
             if let sonnet = q.weeklySonnet { print("       └─ weeklySonnet=\(format(window: sonnet))") }
-            if let design = q.weeklyDesign { print("       └─ weeklyDesign=\(format(window: design))") }
         } else {
             print("[Quota 额度] Claude 拉取失败: error=\(claudeQuotaError ?? "unknown")")
         }
@@ -726,8 +725,7 @@ final class AppState {
     private func format(_ q: QuotaSnapshot) -> String {
         let parts = [
             q.fiveHour.map { "5h=\(format(window: $0))" },
-            q.weekly.map { "1w=\(format(window: $0))" },
-            q.weeklyDesign.map { "design=\(format(window: $0))" }
+            q.weekly.map { "1w=\(format(window: $0))" }
         ].compactMap { $0 }
         return parts.joined(separator: " ")
     }

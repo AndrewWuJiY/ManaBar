@@ -142,7 +142,6 @@ struct PopoverRootView: View {
                         error: appState.codexQuotaError,
                         weekSpend: weekSpend(for: .codex),
                         todayCost: appState.codexTodayCost,
-                        showsDesignQuota: false,
                         serviceStatus: SettingsStore.shared.showServiceStatus ? appState.codexServiceStatus : nil
                     )
                 }
@@ -168,7 +167,6 @@ struct PopoverRootView: View {
                         error: appState.claudeQuotaError,
                         weekSpend: weekSpend(for: .claude),
                         todayCost: appState.claudeTodayCost,
-                        showsDesignQuota: true,
                         serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil
                     )
                 }
@@ -290,7 +288,6 @@ private struct ServiceBlockView: View {
     let error: String?
     let weekSpend: Decimal
     let todayCost: Decimal?
-    let showsDesignQuota: Bool
     let serviceStatus: ServiceStatus?
 
     var body: some View {
@@ -298,9 +295,6 @@ private struct ServiceBlockView: View {
             headerRow
             bodyRow
             weeklyRow
-            if showsDesignQuota {
-                designRow
-            }
             if let message = shortError(error) {
                 Text(message)
                     .font(.system(size: 11))
@@ -431,28 +425,6 @@ private struct ServiceBlockView: View {
         }
     }
 
-    private var designRow: some View {
-        HStack(spacing: 10) {
-            Text("Design")
-                .font(.system(size: 8.5, weight: .semibold))
-                .kerning(0)
-                .foregroundStyle(.quaternary)
-                .frame(width: 36, alignment: .leading)
-
-            ProgressBar(value: designRemaining / 100, tint: designColor, height: 2.5)
-
-            Text(designPercentText)
-                .font(.system(size: 10.5, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-
-            Text(formatResetCompact(snapshot?.weeklyDesign?.resetsAt))
-                .font(.system(size: 10.5))
-                .monospacedDigit()
-                .foregroundStyle(.quaternary)
-        }
-    }
-
     private func statInline(value: String, english: String, chinese: String) -> some View {
         HStack(spacing: 4) {
             BilingualInline(english: english, chinese: chinese)
@@ -475,10 +447,6 @@ private struct ServiceBlockView: View {
         snapshot?.weekly?.remainingPercent ?? 0
     }
 
-    private var designRemaining: Double {
-        snapshot?.weeklyDesign?.remainingPercent ?? 0
-    }
-
     private var fiveHourColor: Color {
         guard snapshot?.fiveHour != nil else { return .secondary }
         return statusColor(remainingPercent: fiveHourRemaining, tint: tint)
@@ -489,11 +457,6 @@ private struct ServiceBlockView: View {
         return statusColor(remainingPercent: weeklyRemaining, tint: tint)
     }
 
-    private var designColor: Color {
-        guard snapshot?.weeklyDesign != nil else { return .secondary }
-        return statusColor(remainingPercent: designRemaining, tint: tint)
-    }
-
     private var fiveHourValueText: String {
         guard let window = snapshot?.fiveHour else { return "--" }
         return "\(Int(window.remainingPercent.rounded()))"
@@ -501,11 +464,6 @@ private struct ServiceBlockView: View {
 
     private var weeklyPercentText: String {
         guard let window = snapshot?.weekly else { return "--%" }
-        return "\(Int(window.remainingPercent.rounded()))%"
-    }
-
-    private var designPercentText: String {
-        guard let window = snapshot?.weeklyDesign else { return "--%" }
         return "\(Int(window.remainingPercent.rounded()))%"
     }
 

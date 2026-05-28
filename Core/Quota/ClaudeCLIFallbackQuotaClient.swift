@@ -133,7 +133,6 @@ enum ClaudeCLIFallbackQuotaClient {
             weeklySonnet: makeWindow(percentLeft: sonnetLeft,
                                      resetText: extractReset(after: ["Current week (Sonnet only)", "Current week (Sonnet)"], in: clean),
                                      windowSeconds: 7 * 24 * 60 * 60),
-            weeklyDesign: nil,
             planType: nil,
             fetchedAt: Date()
         ))
