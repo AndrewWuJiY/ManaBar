@@ -9,9 +9,12 @@ struct ScanFileState: Sendable, Equatable, Codable {
 }
 
 struct ScanState: Sendable, Equatable, Codable {
-    /// v3: 价格表对齐 cc-switch / CodexBar；触发一次全量重扫以重算历史桶。
-    static let currentVersion: Int = 3
+    /// version 管「结构变更」（字段增减导致解码不兼容时 bump）；价格变更由 pricingFingerprint 接管。
+    /// v4: 引入 pricingFingerprint，价格表变化自动触发全量重扫，不再依赖手动 bump。
+    static let currentVersion: Int = 4
     var version: Int = ScanState.currentVersion
+    /// 写盘时记录的价格表指纹；load 时与当前 `Pricing.fingerprint` 不一致即视为缓存失效、全量重扫重算。
+    var pricingFingerprint: String = ""
     var claude: [String: ScanFileState] = [:]
     var codex: [String: ScanFileState] = [:]
     /// 跨文件的 Claude message.id 去重集合（同一条 assistant 消息可能被 sidechain / subagent 在多个 jsonl 里重复引用）。
@@ -26,7 +29,8 @@ enum ScanCache {
         let url = cacheFileURL()
         guard let data = try? Data(contentsOf: url),
               let state = try? JSONDecoder().decode(ScanState.self, from: data),
-              state.version == ScanState.currentVersion
+              state.version == ScanState.currentVersion,
+              state.pricingFingerprint == Pricing.fingerprint
         else {
             return ScanState()
         }
@@ -55,9 +59,12 @@ enum ScanCache {
 
 /// 聚合结果磁盘缓存，启动后立刻 UI 有数。
 struct UsageRollupPayload: Sendable, Codable {
-    /// v3: 价格表对齐 cc-switch / CodexBar 实测值（旧 v2 用错价存了桶，需丢弃）。
-    static let currentVersion: Int = 3
+    /// version 管「结构变更」；价格变更由 pricingFingerprint 接管。
+    /// v4: 引入 pricingFingerprint，价格表变化自动触发重算，丢弃用旧价存的桶。
+    static let currentVersion: Int = 4
     var version: Int = UsageRollupPayload.currentVersion
+    /// 写盘时记录的价格表指纹；load 时与当前 `Pricing.fingerprint` 不一致即丢弃，全量重扫重建。
+    var pricingFingerprint: String = ""
     var buckets: [UsageBucket] = []
     var updatedAt: Date = Date()
 }
@@ -70,7 +77,8 @@ enum UsageRollupCache {
         let url = cacheFileURL()
         guard let data = try? Data(contentsOf: url),
               let payload = try? JSONDecoder().decode(UsageRollupPayload.self, from: data),
-              payload.version == UsageRollupPayload.currentVersion
+              payload.version == UsageRollupPayload.currentVersion,
+              payload.pricingFingerprint == Pricing.fingerprint
         else {
             return UsageRollupPayload()
         }

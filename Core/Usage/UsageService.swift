@@ -46,11 +46,16 @@ final class UsageService {
         // 持久化
         let buckets = aggregator.snapshot()
         let newScanState = ScanState(
+            pricingFingerprint: Pricing.fingerprint,
             claude: claude.newState,
             codex: codex.newState,
             claudeSeenMessageIds: claude.newSeenIds
         )
-        let rollup = UsageRollupPayload(buckets: buckets, updatedAt: Date())
+        let rollup = UsageRollupPayload(
+            pricingFingerprint: Pricing.fingerprint,
+            buckets: buckets,
+            updatedAt: Date()
+        )
         await Task.detached(priority: .utility) {
             do {
                 try ScanCache.save(newScanState)

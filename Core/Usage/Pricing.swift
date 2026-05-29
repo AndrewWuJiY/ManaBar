@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// 模型价格（USD / 百万 token）。命中不到的模型 cost 计 0，token 仍记录。
 struct ModelPrice: Sendable {
@@ -93,4 +94,16 @@ enum Pricing {
     static func hasPrice(model: String) -> Bool {
         table[normalize(model: model)] != nil
     }
+
+    /// 价格表内容指纹（SHA-256，确定性，跨进程稳定）。
+    /// 扫描状态 / 汇总缓存持久化它；表一变（新增模型、改价、修正数值）→ 指纹变 →
+    /// 缓存自动失效并全量重扫重算历史桶，无需手动 bump 版本号，避免「改了价却忘了重算」。
+    static let fingerprint: String = {
+        let body = table.keys.sorted().map { key -> String in
+            let p = table[key]!
+            return "\(key):\(p.input)/\(p.output)/\(p.cacheRead)/\(p.cacheCreation)"
+        }.joined(separator: ";")
+        let digest = SHA256.hash(data: Data(body.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }()
 }
