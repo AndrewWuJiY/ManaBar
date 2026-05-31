@@ -22,9 +22,10 @@ func statusColor(remainingPercent: Double?, tint: Color) -> Color {
     return quotaNormalColor
 }
 
+// normal 档统一用石墨灰(中性灰),不随服务识别色变化。
 private let quotaNormalColor = quotaAdaptiveColor(
-    light: (red: 100, green: 116, blue: 139), // #64748B
-    dark: (red: 167, green: 179, blue: 194)   // #A7B3C2
+    light: (red: 108, green: 108, blue: 112), // #6C6C70
+    dark: (red: 152, green: 152, blue: 157)   // #98989D
 )
 
 private let quotaWarningColor = quotaAdaptiveColor(
