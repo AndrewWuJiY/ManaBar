@@ -10,25 +10,53 @@ import AppKit
 
 // MARK: - Status color
 
-/// 按剩余百分比解析 4 档交通灯状态色:>50% → green / 20~50% → yellow / <20% → orange / <=0 → red。
+/// 按剩余百分比解析 4 档状态色:>50% → normal / 20~50% → warning / <20% → low / <=0 → empty。
 ///
 /// 见 docs/03-设计风格.md §4.3。Popover / Floating / Stats KPI 全部走这里。
 /// `tint`(服务识别色)当前不参与额度着色,保留参数以备将来切回「服务色打底」方案。
 func statusColor(remainingPercent: Double?, tint: Color) -> Color {
     guard let value = remainingPercent else { return .secondary }
-    if value <= 0 { return .red }
-    if value < 20 { return .orange }
-    if value <= 50 { return quotaWarningYellow }
-    return .green
+    if value <= 0 { return quotaEmptyColor }
+    if value < 20 { return quotaLowColor }
+    if value <= 50 { return quotaWarningColor }
+    return quotaNormalColor
 }
 
-/// 20%~50% 档位使用比系统黄更深的浅色琥珀,避免浅色模式下小号数字发虚。
-private let quotaWarningYellow = Color(nsColor: NSColor(name: nil) { appearance in
-    let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-    return isDark
-        ? .systemYellow
-        : NSColor(calibratedRed: 0.604, green: 0.392, blue: 0, alpha: 1) // #9A6400
-})
+private let quotaNormalColor = quotaAdaptiveColor(
+    light: (red: 100, green: 116, blue: 139), // #64748B
+    dark: (red: 167, green: 179, blue: 194)   // #A7B3C2
+)
+
+private let quotaWarningColor = quotaAdaptiveColor(
+    light: (red: 246, green: 195, blue: 67),  // #F6C343
+    dark: (red: 255, green: 226, blue: 122)   // #FFE27A
+)
+
+private let quotaLowColor = quotaAdaptiveColor(
+    light: (red: 255, green: 122, blue: 47),  // #FF7A2F
+    dark: (red: 255, green: 161, blue: 95)    // #FFA15F
+)
+
+private let quotaEmptyColor = quotaAdaptiveColor(
+    light: (red: 255, green: 77, blue: 109),  // #FF4D6D
+    dark: (red: 255, green: 122, blue: 144)   // #FF7A90
+)
+
+private func quotaAdaptiveColor(
+    light: (red: CGFloat, green: CGFloat, blue: CGFloat),
+    dark: (red: CGFloat, green: CGFloat, blue: CGFloat)
+) -> Color {
+    Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let rgb = isDark ? dark : light
+        return NSColor(
+            calibratedRed: rgb.red / 255,
+            green: rgb.green / 255,
+            blue: rgb.blue / 255,
+            alpha: 1
+        )
+    })
+}
 
 // MARK: - Reset time (hover 切换格式)
 
