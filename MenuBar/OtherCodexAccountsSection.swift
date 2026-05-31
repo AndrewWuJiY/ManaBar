@@ -116,12 +116,11 @@ private struct ImportedCodexRow: View {
             Text(percentText(window: window))
                 .font(.system(size: 10, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(rowColor(window: window))
                 .frame(width: 30, alignment: .trailing)
 
-            Text(formatResetCompact(window?.resetsAt))
+            ResetTimeText(resetsAt: window?.resetsAt)
                 .font(.system(size: 10))
-                .monospacedDigit()
                 .foregroundStyle(.quaternary)
                 .frame(width: 70, alignment: .trailing)
         }

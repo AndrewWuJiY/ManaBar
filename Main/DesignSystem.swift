@@ -10,14 +10,47 @@ import AppKit
 
 // MARK: - Status color
 
-/// 按剩余百分比解析状态色:>=20% → 服务色 / <20% → orange / <=0 → red。
+/// 按剩余百分比解析 4 档交通灯状态色:>50% → green / 20~50% → yellow / <20% → orange / <=0 → red。
 ///
 /// 见 docs/03-设计风格.md §4.3。Popover / Floating / Stats KPI 全部走这里。
+/// `tint`(服务识别色)当前不参与额度着色,保留参数以备将来切回「服务色打底」方案。
 func statusColor(remainingPercent: Double?, tint: Color) -> Color {
     guard let value = remainingPercent else { return .secondary }
     if value <= 0 { return .red }
     if value < 20 { return .orange }
-    return tint
+    if value <= 50 { return quotaWarningYellow }
+    return .green
+}
+
+/// 20%~50% 档位使用比系统黄更深的浅色琥珀,避免浅色模式下小号数字发虚。
+private let quotaWarningYellow = Color(nsColor: NSColor(name: nil) { appearance in
+    let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    return isDark
+        ? .systemYellow
+        : NSColor(calibratedRed: 0.604, green: 0.392, blue: 0, alpha: 1) // #9A6400
+})
+
+// MARK: - Reset time (hover 切换格式)
+
+/// 重置时间文案,鼠标悬浮时切换显示「相反格式」(相对↔绝对)。
+///
+/// 菜单栏 App 处于 `.accessory` 非激活态,系统 `.help()` tooltip 不会触发,
+/// 因此用 `onHover` 直接切换文案来实现「悬浮看另一种格式」。
+/// `font` / `foregroundStyle` 等由调用方在外层指定。
+struct ResetTimeText: View {
+    let resetsAt: Date?
+    @State private var hovering = false
+
+    var body: some View {
+        Text(hovering ? formatResetAltCompact(resetsAt) : formatResetCompact(resetsAt))
+            .monospacedDigit()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .padding(.horizontal, -8)
+            .padding(.vertical, -4)
+    }
 }
 
 // MARK: - Panel background / stroke (浅深色对照)

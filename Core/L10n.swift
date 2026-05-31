@@ -59,22 +59,7 @@ func formatResetHint(_ resetsAt: Date?, now: Date = Date()) -> String {
         let stamp = formatter.string(from: resetsAt)
         return tr("resets at \(stamp)", "\(stamp) 重置")
     case .relative:
-        let seconds = max(0, Int(resetsAt.timeIntervalSince(now)))
-        if seconds < 60 { return tr("resets in <1m", "<1m 后重置") }
-        let minutes = seconds / 60
-        if minutes < 60 { return tr("resets in \(minutes)m", "\(minutes)m 后重置") }
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        if hours < 24 {
-            return remainingMinutes > 0
-                ? tr("resets in \(hours)h \(remainingMinutes)m", "\(hours)h \(remainingMinutes)m 后重置")
-                : tr("resets in \(hours)h", "\(hours)h 后重置")
-        }
-        let days = hours / 24
-        let remainingHours = hours % 24
-        return remainingHours > 0
-            ? tr("resets in \(days)d \(remainingHours)h", "\(days)d \(remainingHours)h 后重置")
-            : tr("resets in \(days)d", "\(days)d 后重置")
+        return relativeResetHint(resetsAt, now: now)
     }
 }
 
@@ -90,17 +75,63 @@ func formatResetCompact(_ resetsAt: Date?, now: Date = Date()) -> String {
         formatter.dateFormat = "MM-dd HH:mm"
         return formatter.string(from: resetsAt)
     case .relative:
-        let seconds = max(0, Int(resetsAt.timeIntervalSince(now)))
-        if seconds < 60 { return "<1m" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m" }
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        if hours < 24 {
-            return remainingMinutes > 0 ? "\(hours)h\(remainingMinutes)m" : "\(hours)h"
-        }
-        let days = hours / 24
-        let remainingHours = hours % 24
-        return remainingHours > 0 ? "\(days)d\(remainingHours)h" : "\(days)d"
+        return compactRelativeReset(resetsAt, now: now)
     }
+}
+
+/// 鼠标悬浮重置时间时显示的「相反格式」(紧凑形式,用于行内切换显示)。
+/// 当前设置 relative → 绝对时刻(当天 HH:mm,跨天 MM-dd HH:mm);
+/// 当前设置 absolute → 相对时长(如 "4h37m")。
+@MainActor
+func formatResetAltCompact(_ resetsAt: Date?, now: Date = Date()) -> String {
+    guard let resetsAt else { return "—" }
+    switch SettingsStore.shared.resetTimeDisplay {
+    case .relative:
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = Calendar.current.isDate(resetsAt, inSameDayAs: now)
+            ? "HH:mm" : "MM-dd HH:mm"
+        return formatter.string(from: resetsAt)
+    case .absolute:
+        return compactRelativeReset(resetsAt, now: now)
+    }
+}
+
+/// 紧凑相对时长,如 "4h37m" / "5d3h" / "<1m"(无空格无后缀)。
+/// 供 formatResetCompact 与 formatResetAltCompact 共享。
+@MainActor
+private func compactRelativeReset(_ resetsAt: Date, now: Date) -> String {
+    let seconds = max(0, Int(resetsAt.timeIntervalSince(now)))
+    if seconds < 60 { return "<1m" }
+    let minutes = seconds / 60
+    if minutes < 60 { return "\(minutes)m" }
+    let hours = minutes / 60
+    let remainingMinutes = minutes % 60
+    if hours < 24 {
+        return remainingMinutes > 0 ? "\(hours)h\(remainingMinutes)m" : "\(hours)h"
+    }
+    let days = hours / 24
+    let remainingHours = hours % 24
+    return remainingHours > 0 ? "\(days)d\(remainingHours)h" : "\(days)d"
+}
+
+/// 相对时长文案,如 "4h 37m 后重置" / "resets in 4h 37m"。供 formatResetHint 使用。
+@MainActor
+private func relativeResetHint(_ resetsAt: Date, now: Date) -> String {
+    let seconds = max(0, Int(resetsAt.timeIntervalSince(now)))
+    if seconds < 60 { return tr("resets in <1m", "<1m 后重置") }
+    let minutes = seconds / 60
+    if minutes < 60 { return tr("resets in \(minutes)m", "\(minutes)m 后重置") }
+    let hours = minutes / 60
+    let remainingMinutes = minutes % 60
+    if hours < 24 {
+        return remainingMinutes > 0
+            ? tr("resets in \(hours)h \(remainingMinutes)m", "\(hours)h \(remainingMinutes)m 后重置")
+            : tr("resets in \(hours)h", "\(hours)h 后重置")
+    }
+    let days = hours / 24
+    let remainingHours = hours % 24
+    return remainingHours > 0
+        ? tr("resets in \(days)d \(remainingHours)h", "\(days)d \(remainingHours)h 后重置")
+        : tr("resets in \(days)d", "\(days)d 后重置")
 }

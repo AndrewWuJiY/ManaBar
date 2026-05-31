@@ -372,9 +372,8 @@ private struct ServiceBlockView: View {
 
                 VStack(spacing: 1) {
                     HStack(spacing: 0) {
-                        Text(formatResetCompact(snapshot?.fiveHour?.resetsAt))
+                        ResetTimeText(resetsAt: snapshot?.fiveHour?.resetsAt)
                             .font(.system(size: 11, weight: .medium))
-                            .monospacedDigit()
                             .foregroundStyle(.primary)
                             .lineLimit(1)
 
@@ -416,11 +415,10 @@ private struct ServiceBlockView: View {
             Text(weeklyPercentText)
                 .font(.system(size: 10.5, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(weeklyColor)
 
-            Text(formatResetCompact(snapshot?.weekly?.resetsAt))
+            ResetTimeText(resetsAt: snapshot?.weekly?.resetsAt)
                 .font(.system(size: 10.5))
-                .monospacedDigit()
                 .foregroundStyle(.quaternary)
         }
     }
