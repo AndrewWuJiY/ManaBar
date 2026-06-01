@@ -27,15 +27,35 @@ enum CodexTokenRefresher {
         refreshToken: String?,
         writeBack: WriteBack = .codexAuthJSON
     ) async -> Result<String, QuotaError> {
+        let refreshed = await ensureFreshTokens(
+            currentAccessToken: currentAccessToken,
+            refreshToken: refreshToken,
+            idToken: nil,
+            writeBack: writeBack
+        )
+        return refreshed.map { $0.accessToken }
+    }
+
+    /// 若 access_token 即将过期则续期,并返回当前内存应采用的 token 三件套。
+    nonisolated static func ensureFreshTokens(
+        currentAccessToken: String,
+        refreshToken: String?,
+        idToken: String?,
+        writeBack: WriteBack = .codexAuthJSON
+    ) async -> Result<Refreshed, QuotaError> {
         if !isExpired(accessToken: currentAccessToken) {
-            return .success(currentAccessToken)
+            return .success(Refreshed(
+                accessToken: currentAccessToken,
+                refreshToken: refreshToken ?? "",
+                idToken: idToken
+            ))
         }
         guard let refreshToken, !refreshToken.isEmpty else {
             return .failure(.tokenRefreshFailed("no refresh_token"))
         }
         do {
             let r = try await refresh(using: refreshToken, writeBack: writeBack)
-            return .success(r.accessToken)
+            return .success(r)
         } catch let err as QuotaError {
             return .failure(err)
         } catch {

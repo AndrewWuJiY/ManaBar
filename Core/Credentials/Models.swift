@@ -9,12 +9,14 @@ struct CodexAccount: Sendable, Equatable {
     var email: String?
     var planType: String?
     var accountId: String?
+    var chatgptUserId: String?
     var lastRefresh: Date?
     var expiredGuess: Bool
     var rawClaimKeys: [String]
     /// 仅内存使用，不打印 / 不持久化到 UserDefaults
     var accessToken: String?
     var refreshToken: String?
+    var idToken: String?
 }
 
 struct ClaudeAccount: Sendable, Equatable {

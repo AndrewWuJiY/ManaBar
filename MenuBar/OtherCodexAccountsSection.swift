@@ -56,10 +56,10 @@ private struct ImportedCodexRow: View {
     @Environment(AppState.self) private var appState
     let account: ImportedCodexAccount
 
-    private var snapshot: QuotaSnapshot? { appState.importedCodexQuotas[account.id] }
-    private var error: String? { appState.importedCodexErrors[account.id] }
+    private var snapshot: QuotaSnapshot? { appState.importedCodexQuota(for: account) }
+    private var error: String? { appState.importedCodexError(for: account) }
     private var refreshState: QuotaRefreshState {
-        appState.importedCodexRefreshStates[account.id] ?? QuotaRefreshState()
+        appState.importedCodexRefreshState(for: account)
     }
 
     var body: some View {

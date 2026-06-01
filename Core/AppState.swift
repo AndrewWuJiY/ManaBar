@@ -323,6 +323,21 @@ final class AppState {
         reloadImportedCodexAccounts()
     }
 
+    func importedCodexQuota(for account: ImportedCodexAccount) -> QuotaSnapshot? {
+        if importedCodexAccountMirrorsPrimary(account) { return codexQuota }
+        return importedCodexQuotas[account.id]
+    }
+
+    func importedCodexError(for account: ImportedCodexAccount) -> String? {
+        if importedCodexAccountMirrorsPrimary(account) { return codexQuotaError }
+        return importedCodexErrors[account.id]
+    }
+
+    func importedCodexRefreshState(for account: ImportedCodexAccount) -> QuotaRefreshState {
+        if importedCodexAccountMirrorsPrimary(account) { return codexRefreshState }
+        return importedCodexRefreshStates[account.id] ?? QuotaRefreshState()
+    }
+
     /// 对所有 `visibleInPopover` 为 true 的导入账号并发拉一遍配额,并发上限 3。
     private func loadAllImportedCodexQuotas(reason: QuotaRefreshReason) async {
         let visible = importedCodexAccounts.filter(\.visibleInPopover)
@@ -344,6 +359,12 @@ final class AppState {
     }
 
     private func loadImportedCodexQuota(account: ImportedCodexAccount, reason: QuotaRefreshReason) async {
+        if importedCodexAccountMirrorsPrimary(account) {
+            mirrorPrimaryCodexQuota(toImportedId: account.id)
+            syncPrimaryCodexTokensToImported(id: account.id)
+            return
+        }
+
         guard beginImportedCodexRefresh(id: account.id, reason: reason) else { return }
         defer { importedCodexRefreshStates[account.id]?.inFlight = false }
 
@@ -371,6 +392,63 @@ final class AppState {
         case .failure(let err):
             markImportedCodexFailure(id: account.id, message: err.description, error: err)
         }
+    }
+
+    private func importedCodexAccountMirrorsPrimary(_ account: ImportedCodexAccount) -> Bool {
+        guard let primary = codexAccount,
+              let primaryAccountId = nonEmpty(primary.accountId),
+              let importedAccountId = nonEmpty(account.chatgptAccountId),
+              primaryAccountId == importedAccountId
+        else { return false }
+
+        let primaryUserId = nonEmpty(primary.chatgptUserId)
+        let importedUserId = importedCodexUserId(from: account)
+        if let primaryUserId, let importedUserId {
+            return primaryUserId == importedUserId
+        }
+        return true
+    }
+
+    private func importedCodexUserId(from account: ImportedCodexAccount) -> String? {
+        guard let colon = account.id.firstIndex(of: ":") else { return nil }
+        let tail = String(account.id[account.id.index(after: colon)...])
+        return nonEmpty(tail)
+    }
+
+    private func mirrorPrimaryCodexQuota(toImportedId id: String) {
+        importedCodexQuotas[id] = codexQuota
+        importedCodexSources[id] = codexQuotaSource
+        importedCodexErrors[id] = codexQuotaError
+        importedCodexRefreshStates[id] = codexRefreshState
+
+        var cache = quotaCache.importedCodex ?? [:]
+        if cache.removeValue(forKey: id) != nil {
+            quotaCache.importedCodex = cache.isEmpty ? nil : cache
+            saveQuotaCache()
+        }
+    }
+
+    private func syncPrimaryCodexTokensToImported(id: String) {
+        guard let account = codexAccount,
+              let accessToken = nonEmpty(account.accessToken)
+        else { return }
+        let tokens = ImportedCodexTokens(
+            accessToken: accessToken,
+            refreshToken: nonEmpty(account.refreshToken),
+            idToken: nonEmpty(account.idToken)
+        )
+        do {
+            try ImportedCodexStore.saveTokens(tokens, accountId: id)
+        } catch {
+            print("[imported-codex] sync primary tokens failed: \(error)")
+        }
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 
     private func beginImportedCodexRefresh(id: String, reason: QuotaRefreshReason) -> Bool {
@@ -529,18 +607,19 @@ final class AppState {
             markCodexFailure(QuotaError.missingToken.description)
             return
         }
-        let refreshed = await CodexTokenRefresher.ensureFreshAccessToken(
+        let refreshed = await CodexTokenRefresher.ensureFreshTokens(
             currentAccessToken: token,
-            refreshToken: account.refreshToken
+            refreshToken: account.refreshToken,
+            idToken: account.idToken
         )
         let activeToken: String
         switch refreshed {
         case .success(let t):
-            activeToken = t
-            if t != token {
-                account.accessToken = t
-                codexAccount = account
-            }
+            activeToken = t.accessToken
+            account.accessToken = t.accessToken
+            account.refreshToken = nonEmpty(t.refreshToken)
+            account.idToken = t.idToken
+            codexAccount = account
         case .failure(let err):
             markCodexFailure(err.description)
             return

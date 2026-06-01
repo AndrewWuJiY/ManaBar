@@ -14,13 +14,14 @@ enum CodexAuth {
         let idToken = tokens["id_token"] as? String
         let accessToken = tokens["access_token"] as? String
         let refreshToken = tokens["refresh_token"] as? String
-        let accountId = tokens["account_id"] as? String
         let lastRefresh = parseDate(root["last_refresh"])
+        let idClaims = idToken.flatMap { JWT.decodePayload($0) }
+        let accessClaims = accessToken.flatMap { JWT.decodePayload($0) }
 
         var email: String?
         var planType: String?
         var claimKeys: [String] = []
-        if let idToken, let claims = JWT.decodePayload(idToken) {
+        if let claims = idClaims {
             claimKeys = Array(claims.keys).sorted()
             email = claims["email"] as? String
             if let auth = claims["https://api.openai.com/auth"] as? [String: Any] {
@@ -30,6 +31,15 @@ enum CodexAuth {
                 planType = claims["chatgpt_plan_type"] as? String
             }
         }
+        if planType == nil, let claims = accessClaims,
+           let auth = claims["https://api.openai.com/auth"] as? [String: Any] {
+            planType = auth["chatgpt_plan_type"] as? String
+        }
+        let accountId = nonEmpty(tokens["account_id"] as? String)
+            ?? authClaim("chatgpt_account_id", from: accessClaims)
+            ?? authClaim("chatgpt_account_id", from: idClaims)
+        let chatgptUserId = authClaim("chatgpt_user_id", from: accessClaims)
+            ?? authClaim("chatgpt_user_id", from: idClaims)
 
         let expiredGuess: Bool = {
             guard let lastRefresh else { return true }
@@ -40,11 +50,13 @@ enum CodexAuth {
             email: email,
             planType: planType,
             accountId: accountId,
+            chatgptUserId: chatgptUserId,
             lastRefresh: lastRefresh,
             expiredGuess: expiredGuess,
             rawClaimKeys: claimKeys,
             accessToken: accessToken,
-            refreshToken: refreshToken
+            refreshToken: refreshToken,
+            idToken: idToken
         )
     }
 
@@ -66,5 +78,17 @@ enum CodexAuth {
         }
         if let n = any as? Double { return Date(timeIntervalSince1970: n) }
         return nil
+    }
+
+    nonisolated private static func authClaim(_ key: String, from claims: [String: Any]?) -> String? {
+        guard let auth = claims?["https://api.openai.com/auth"] as? [String: Any] else { return nil }
+        return nonEmpty(auth[key] as? String)
+    }
+
+    nonisolated private static func nonEmpty(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 }
