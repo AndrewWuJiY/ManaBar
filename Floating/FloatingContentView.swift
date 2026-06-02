@@ -12,16 +12,6 @@ struct FloatingContentView: View {
     let settings: SettingsStore
 
     var body: some View {
-        // `.accessory` 菜单栏 App 非激活态下,后台 quota 刷新的 @Observable 变更
-        // 不会立即重绘悬浮窗(要等鼠标事件)。用周期 TimelineView 强制重算,
-        // 让百分比 / 状态色在后台刷新后及时更新。
-        TimelineView(.periodic(from: .now, by: 2)) { _ in
-            floatingLayout
-        }
-    }
-
-    @ViewBuilder
-    private var floatingLayout: some View {
         let showCodex = settings.effectiveFloatingShowCodex
         let showClaude = settings.effectiveFloatingShowClaude
 

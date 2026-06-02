@@ -71,14 +71,22 @@ struct ResetTimeText: View {
     @State private var hovering = false
 
     var body: some View {
-        Text(hovering ? formatResetAltCompact(resetsAt) : formatResetCompact(resetsAt))
-            .monospacedDigit()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .onHover { hovering = $0 }
-            .padding(.horizontal, -8)
-            .padding(.vertical, -4)
+        // 相对倒计时是按「距现在还有多久」实时算的,本身没有任何 @Observable 输入,
+        // 不会随时间自动重绘(.accessory 非激活态尤甚),否则文案会冻在渲染那一刻、
+        // 要鼠标移入才跳。用周期 TimelineView 每分钟推进一次,并把 context.date
+        // 作为 now 传入,保证倒计时自己走动。绝对格式不依赖 now,一并重算无副作用。
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            Text(hovering
+                 ? formatResetAltCompact(resetsAt, now: context.date)
+                 : formatResetCompact(resetsAt, now: context.date))
+                .monospacedDigit()
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 }
+                .padding(.horizontal, -8)
+                .padding(.vertical, -4)
+        }
     }
 }
 
