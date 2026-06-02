@@ -20,6 +20,7 @@ struct FloatingContentView: View {
         }
     }
 
+    @ViewBuilder
     private var floatingLayout: some View {
         let showCodex = settings.effectiveFloatingShowCodex
         let showClaude = settings.effectiveFloatingShowClaude
