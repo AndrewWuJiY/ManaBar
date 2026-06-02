@@ -147,6 +147,16 @@ struct StatsView: View {
     @State private var customTo: Date = Calendar.current.startOfDay(for: Date())
 
     var body: some View {
+        // `.accessory` 菜单栏 App 在非激活态下,后台刷新产生的 @Observable 变更
+        // 不会立即重绘已打开的窗口(要等鼠标事件才 flush)。用周期 TimelineView
+        // 强制重算,与 PopoverRootView header 同一套做法,让用量 / 限额在后台
+        // 自动刷新后及时更新,而不是要等鼠标移入。
+        TimelineView(.periodic(from: .now, by: 2)) { _ in
+            statsLayout
+        }
+    }
+
+    private var statsLayout: some View {
         HStack(spacing: 0) {
             sidebar
                 .frame(width: 200)
