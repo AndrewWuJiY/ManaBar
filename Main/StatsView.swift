@@ -135,12 +135,18 @@ enum StatsServiceFilter: Hashable, CaseIterable {
     }
 }
 
+enum StatsViewMode: Hashable {
+    case overview
+    case timeline
+}
+
 // MARK: - StatsView
 
 struct StatsView: View {
     @Environment(AppState.self) private var appState
     @State private var range: StatsRange = .today
     @State private var serviceFilter: StatsServiceFilter = .all
+    @State private var viewMode: StatsViewMode = .overview
     @State private var customFrom: Date = Calendar.current.startOfDay(
         for: Date().addingTimeInterval(-7 * 86400)
     )
@@ -154,26 +160,55 @@ struct StatsView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    topBar
-                    if range == .custom { customRangeRow }
-
-                    kpiRow.padding(.top, 6)
-
-                    dailyUsagePanel
-
-                    HStack(alignment: .top, spacing: 12) {
-                        byServicePanel
-                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
-                        currentLimitsPanel
-                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
-                    }
-
-                    byModelPanel
-                }
-                .padding(20)
+                mainContent
             }
         }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        switch viewMode {
+        case .overview:
+            overviewContent
+        case .timeline:
+            timelineContent
+        }
+    }
+
+    private var overviewContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            topBar
+            if range == .custom { customRangeRow }
+
+            kpiRow.padding(.top, 6)
+
+            dailyUsagePanel
+
+            HStack(alignment: .top, spacing: 12) {
+                byServicePanel
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
+                currentLimitsPanel
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
+            }
+
+            byModelPanel
+        }
+        .padding(20)
+    }
+
+    private var timelineContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            timelineHeader
+            if timelineSections.isEmpty {
+                placeholderHeight(220, message: tr("No accounts", "暂无账号"))
+                    .ccPanel(cornerRadius: 12)
+            } else {
+                ForEach(timelineSections) { section in
+                    QuotaTimelineAccountPanel(section: section)
+                }
+            }
+        }
+        .padding(20)
     }
 
     // MARK: Sidebar
@@ -194,10 +229,22 @@ struct StatsView: View {
             }
 
             sidebarGroup(title: "View", chinese: "视图") {
-                sidebarItem(english: "Overview", chinese: "概览", icon: "rectangle.split.2x2", active: true) {}
-                sidebarItem(english: "Timeline", chinese: "时间线", icon: "chart.line.uptrend.xyaxis", active: false) {}
-                    .disabled(true)
-                    .opacity(0.5)
+                sidebarItem(
+                    english: "Overview",
+                    chinese: "概览",
+                    icon: "rectangle.split.2x2",
+                    active: viewMode == .overview
+                ) {
+                    viewMode = .overview
+                }
+                sidebarItem(
+                    english: "Timeline",
+                    chinese: "时间线",
+                    icon: "chart.line.uptrend.xyaxis",
+                    active: viewMode == .timeline
+                ) {
+                    viewMode = .timeline
+                }
                 sidebarItem(english: "Breakdown", chinese: "明细", icon: "list.bullet", active: false) {}
                     .disabled(true)
                     .opacity(0.5)
@@ -433,6 +480,109 @@ struct StatsView: View {
                 }
             }
         }
+    }
+
+    // MARK: Timeline
+
+    private var timelineHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(tr("Today 5H Quota", "今日 5H 额度"))
+                    .font(.system(size: 18, weight: .semibold))
+                Text(tr("Only quota changes are shown.", "仅展示额度发生变化的时间点。"))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(StatsFormatter.day(Date()))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var timelineSections: [QuotaTimelineSection] {
+        var sections: [QuotaTimelineSection] = []
+
+        if serviceFilter != .claude {
+            let key = QuotaHistoryAccountKey.codexPrimary(accountId: appState.codexAccount?.accountId)
+            if shouldShowTimelineSection(key: key, snapshot: appState.codexQuota, accountExists: appState.codexAccount != nil) {
+                sections.append(timelineSection(
+                    key: key,
+                    title: tr("Codex · Primary", "Codex · 主账号"),
+                    tint: .codexAccent,
+                    snapshot: appState.codexQuota
+                ))
+            }
+
+            for (idx, account) in appState.importedCodexAccounts.enumerated() {
+                let key = QuotaHistoryAccountKey.codexImported(id: account.id)
+                sections.append(timelineSection(
+                    key: key,
+                    title: importedCodexTimelineTitle(account, index: idx),
+                    tint: .codexAccent,
+                    snapshot: appState.importedCodexQuota(for: account)
+                ))
+            }
+        }
+
+        if serviceFilter != .codex {
+            let key = QuotaHistoryAccountKey.claudePrimary()
+            if shouldShowTimelineSection(key: key, snapshot: appState.claudeQuota, accountExists: appState.claudeAccount != nil) {
+                sections.append(timelineSection(
+                    key: key,
+                    title: "Claude Code",
+                    tint: .claudeAccent,
+                    snapshot: appState.claudeQuota
+                ))
+            }
+        }
+
+        return sections
+    }
+
+    private func timelineSection(
+        key: String,
+        title: String,
+        tint: Color,
+        snapshot: QuotaSnapshot?
+    ) -> QuotaTimelineSection {
+        let events = timelineEvents(for: key)
+        let sample = appState.quotaHistory.lastSamples[key]
+        return QuotaTimelineSection(
+            accountKey: key,
+            title: title,
+            tint: tint,
+            currentRemaining: sample?.remainingPercent ?? roundedRemaining(snapshot),
+            totalDelta: events.reduce(0) { $0 + $1.deltaPercent },
+            latestEventAt: events.last?.sampledAt,
+            events: events
+        )
+    }
+
+    private func shouldShowTimelineSection(key: String, snapshot: QuotaSnapshot?, accountExists: Bool) -> Bool {
+        accountExists || snapshot != nil || appState.quotaHistory.lastSamples[key] != nil || !timelineEvents(for: key).isEmpty
+    }
+
+    private func timelineEvents(for key: String) -> [QuotaChangeEvent] {
+        appState.quotaHistory.events
+            .filter { $0.accountKey == key }
+            .sorted { $0.sampledAt < $1.sampledAt }
+    }
+
+    private func roundedRemaining(_ snapshot: QuotaSnapshot?) -> Int? {
+        guard let remaining = snapshot?.fiveHour?.remainingPercent else { return nil }
+        return max(0, min(100, Int(remaining.rounded())))
+    }
+
+    private func importedCodexTimelineTitle(_ account: ImportedCodexAccount, index: Int) -> String {
+        if SettingsStore.shared.privacyMode {
+            return tr("Codex · Account \(index + 1)", "Codex · 账号 \(index + 1)")
+        }
+        if !account.alias.isEmpty { return "Codex · \(account.alias)" }
+        if let email = account.email, !email.isEmpty {
+            return "Codex · \(email.components(separatedBy: "@").first ?? email)"
+        }
+        return "Codex · \(account.id)"
     }
 
     private func modelGroup(title: String, tint: Color, rows: [ModelRow]) -> some View {
@@ -756,6 +906,182 @@ private struct LimitRingRow: View {
     }
 }
 
+// MARK: - Quota timeline
+
+private struct QuotaTimelineAccountPanel: View {
+    let section: QuotaTimelineSection
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            if section.events.isEmpty {
+                Text(tr("No changes today", "今天暂无变动"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 120)
+            } else {
+                QuotaTimelineChart(events: section.events, tint: section.tint)
+                    .frame(height: 180)
+                QuotaTimelineTable(events: section.events)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ccPanel(cornerRadius: 12)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(spacing: 7) {
+                ServiceMark(color: section.tint, size: 8)
+                Text(section.title)
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            Spacer()
+            timelineMetric(label: tr("Current", "当前"), value: currentText)
+            timelineMetric(label: tr("Today", "今日"), value: StatsFormatter.quotaDelta(section.totalDelta))
+            timelineMetric(label: tr("Latest", "最近"), value: latestText)
+        }
+    }
+
+    private func timelineMetric(label: String, value: String) -> some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            Text(label)
+                .font(.system(size: 9.5))
+                .foregroundStyle(.tertiary)
+            Text(value)
+                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var currentText: String {
+        guard let value = section.currentRemaining else { return "--" }
+        return "\(value)%"
+    }
+
+    private var latestText: String {
+        guard let date = section.latestEventAt else { return "--" }
+        return StatsFormatter.time(date)
+    }
+}
+
+private struct QuotaTimelineChart: View {
+    let events: [QuotaChangeEvent]
+    let tint: Color
+
+    var body: some View {
+        Chart(events) { event in
+            LineMark(
+                x: .value("Time", event.sampledAt),
+                y: .value("Remaining", event.afterRemainingPercent)
+            )
+            .foregroundStyle(tint)
+            .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+
+            PointMark(
+                x: .value("Time", event.sampledAt),
+                y: .value("Remaining", event.afterRemainingPercent)
+            )
+            .foregroundStyle(statusColor(remainingPercent: Double(event.afterRemainingPercent), tint: tint))
+            .symbolSize(34)
+        }
+        .chartYScale(domain: 0...100)
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                AxisGridLine()
+                    .foregroundStyle(.quaternary)
+                AxisValueLabel(format: .dateTime.hour().minute())
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: [0, 20, 50, 80, 100]) { value in
+                AxisGridLine()
+                    .foregroundStyle(.quaternary)
+                AxisValueLabel {
+                    if let intValue = value.as(Int.self) {
+                        Text("\(intValue)%")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct QuotaTimelineTable: View {
+    let events: [QuotaChangeEvent]
+
+    private var rows: [QuotaChangeEvent] {
+        events.sorted { $0.sampledAt > $1.sampledAt }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            headerRow
+            ForEach(rows) { event in
+                Divider()
+                row(event)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.secondary.opacity(0.14), lineWidth: 0.5)
+        )
+    }
+
+    private var headerRow: some View {
+        HStack {
+            tableHeader("Time", "时间", width: 82, alignment: .leading)
+            tableHeader("Change", "变动值", width: 82, alignment: .trailing)
+            tableHeader("After", "变动后剩余", width: 104, alignment: .trailing)
+            tableHeader("Reset", "重置时间", width: 96, alignment: .trailing)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.secondary.opacity(0.06))
+    }
+
+    private func row(_ event: QuotaChangeEvent) -> some View {
+        HStack {
+            tableText(StatsFormatter.time(event.sampledAt), width: 82, alignment: .leading)
+            tableText(StatsFormatter.quotaDelta(event.deltaPercent), width: 82, alignment: .trailing)
+                .foregroundStyle(event.deltaPercent < 0 ? Color.red : Color.green)
+            tableText("\(event.afterRemainingPercent)%", width: 104, alignment: .trailing)
+                .foregroundStyle(statusColor(remainingPercent: Double(event.afterRemainingPercent), tint: .secondary))
+            tableText(StatsFormatter.resetTime(event.resetsAt), width: 96, alignment: .trailing)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+    }
+
+    private func tableHeader(
+        _ english: String,
+        _ chinese: String,
+        width: CGFloat,
+        alignment: Alignment
+    ) -> some View {
+        Text(tr(english, chinese))
+            .font(.system(size: 10.5, weight: .semibold))
+            .foregroundStyle(.tertiary)
+            .frame(width: width, alignment: alignment)
+    }
+
+    private func tableText(_ text: String, width: CGFloat, alignment: Alignment) -> some View {
+        Text(text)
+            .font(.system(size: 11.5, design: .monospaced))
+            .foregroundStyle(.secondary)
+            .frame(width: width, alignment: alignment)
+    }
+}
+
 // MARK: - Daily / Model row models
 
 private struct DailySample: Identifiable {
@@ -769,6 +1095,17 @@ private struct ModelRow: Identifiable {
     var id: String { model }
     let model: String
     let totals: UsageTotals
+}
+
+private struct QuotaTimelineSection: Identifiable {
+    var id: String { accountKey }
+    let accountKey: String
+    let title: String
+    let tint: Color
+    let currentRemaining: Int?
+    let totalDelta: Int
+    let latestEventAt: Date?
+    let events: [QuotaChangeEvent]
 }
 
 // MARK: - Formatter
@@ -842,6 +1179,27 @@ enum StatsFormatter {
 
     static func day(_ date: Date) -> String {
         dayFormatter.string(from: date)
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    static func time(_ date: Date) -> String {
+        timeFormatter.string(from: date)
+    }
+
+    static func resetTime(_ date: Date?) -> String {
+        guard let date else { return "--" }
+        return time(date)
+    }
+
+    static func quotaDelta(_ value: Int) -> String {
+        if value > 0 { return "+\(value)%" }
+        return "\(value)%"
     }
 }
 

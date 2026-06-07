@@ -37,6 +37,7 @@ final class AppState {
     var claudeQuotaSource: QuotaSnapshotSource?
     var codexRefreshState = QuotaRefreshState()
     var claudeRefreshState = QuotaRefreshState()
+    var quotaHistory = QuotaHistoryPayload()
 
     var codexTodayCost: Decimal?
     var claudeTodayCost: Decimal?
@@ -69,6 +70,7 @@ final class AppState {
 
         subscribeToDelegatedRefreshSuccess()
         loadQuotaCache()
+        loadQuotaHistory()
         reloadImportedCodexAccounts()
         usageService.bootstrap(appState: self)
         await loadCodex()
@@ -225,6 +227,11 @@ final class AppState {
             state.source = .cache
             importedCodexRefreshStates[id] = state
         }
+    }
+
+    private func loadQuotaHistory() {
+        quotaHistory = QuotaHistoryStore.load()
+        saveQuotaHistory()
     }
 
     // MARK: - Imported Codex accounts
@@ -421,6 +428,14 @@ final class AppState {
         importedCodexErrors[id] = codexQuotaError
         importedCodexRefreshStates[id] = codexRefreshState
 
+        if let snapshot = codexQuota, codexQuotaSource == .api {
+            recordImportedCodexQuotaHistory(
+                id: id,
+                snapshot: snapshot,
+                sampledAt: codexRefreshState.lastSuccessAt ?? Date()
+            )
+        }
+
         var cache = quotaCache.importedCodex ?? [:]
         if cache.removeValue(forKey: id) != nil {
             quotaCache.importedCodex = cache.isEmpty ? nil : cache
@@ -489,6 +504,7 @@ final class AppState {
         cache[id] = QuotaCacheRecord(snapshot: snapshot, source: source, updatedAt: updatedAt)
         quotaCache.importedCodex = cache
         saveQuotaCache()
+        recordImportedCodexQuotaHistory(id: id, snapshot: snapshot, sampledAt: updatedAt)
     }
 
     private func markImportedCodexFailure(id: String, message: String, error: QuotaError? = nil) {
@@ -506,6 +522,64 @@ final class AppState {
             try QuotaCache.save(quotaCache)
         } catch {
             print("[QuotaCache 额度缓存] 写盘失败 save failed: \(error)")
+        }
+    }
+
+    private func recordCodexQuotaHistory(snapshot: QuotaSnapshot, sampledAt: Date) {
+        recordQuotaHistory(
+            accountKey: QuotaHistoryAccountKey.codexPrimary(accountId: codexAccount?.accountId),
+            app: .codex,
+            kind: .codexPrimary,
+            snapshot: snapshot,
+            sampledAt: sampledAt
+        )
+    }
+
+    private func recordClaudeQuotaHistory(snapshot: QuotaSnapshot, sampledAt: Date) {
+        recordQuotaHistory(
+            accountKey: QuotaHistoryAccountKey.claudePrimary(),
+            app: .claude,
+            kind: .claudePrimary,
+            snapshot: snapshot,
+            sampledAt: sampledAt
+        )
+    }
+
+    private func recordImportedCodexQuotaHistory(id: String, snapshot: QuotaSnapshot, sampledAt: Date) {
+        recordQuotaHistory(
+            accountKey: QuotaHistoryAccountKey.codexImported(id: id),
+            app: .codex,
+            kind: .codexImported,
+            snapshot: snapshot,
+            sampledAt: sampledAt
+        )
+    }
+
+    private func recordQuotaHistory(
+        accountKey: String,
+        app: QuotaApp,
+        kind: QuotaHistoryAccountKind,
+        snapshot: QuotaSnapshot,
+        sampledAt: Date
+    ) {
+        let next = QuotaHistoryStore.record(
+            payload: quotaHistory,
+            accountKey: accountKey,
+            app: app,
+            kind: kind,
+            snapshot: snapshot,
+            sampledAt: sampledAt
+        )
+        guard next != quotaHistory else { return }
+        quotaHistory = next
+        saveQuotaHistory()
+    }
+
+    private func saveQuotaHistory() {
+        do {
+            try QuotaHistoryStore.save(quotaHistory)
+        } catch {
+            print("[QuotaHistory 额度历史] 写盘失败 save failed: \(error)")
         }
     }
 
@@ -736,6 +810,7 @@ final class AppState {
         codexRefreshState.source = source
         quotaCache.codex = QuotaCacheRecord(snapshot: snapshot, source: source, updatedAt: updatedAt)
         saveQuotaCache()
+        recordCodexQuotaHistory(snapshot: snapshot, sampledAt: updatedAt)
     }
 
     private func storeClaude(snapshot: QuotaSnapshot, source: QuotaSnapshotSource) {
@@ -751,6 +826,7 @@ final class AppState {
         claudeRefreshState.source = source
         quotaCache.claude = QuotaCacheRecord(snapshot: snapshot, source: source, updatedAt: updatedAt)
         saveQuotaCache()
+        recordClaudeQuotaHistory(snapshot: snapshot, sampledAt: updatedAt)
     }
 
     private func markCodexFailure(_ message: String, error: QuotaError? = nil) {
