@@ -25,7 +25,7 @@
 ## 界面
 
 <p align="center">
-  <img src="docs/Screenshots/stats-overview.png" width="860" alt="用量统计 · 概览"><br>
+  <img src="docs/Screenshots/overview.png" width="860" alt="用量统计 · 概览"><br>
   <sub>用量统计 · 概览</sub>
 </p>
 
