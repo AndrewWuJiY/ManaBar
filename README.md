@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/Screenshots/overview.png" width="380" alt="Popover 总览">
+  <img src="docs/Screenshots/popover.png" width="380" alt="ManaBar Popover 总览">
 </p>
 
 ## 功能
@@ -22,8 +22,26 @@
 - **Token 与费用统计** —— 按今天 / 昨天 / 本周 / 本月 / 本年 / 7 天 / 30 天 / 全部 / 自定义切换;KPI、堆叠柱状图、按服务占比、按模型明细
 - **丰富的设置** —— 账号开关、菜单栏显示项、悬浮窗、刷新间隔、重置时间显示、中英双语、开机自动启动
 
+## 界面
+
 <p align="center">
-  <img src="docs/Screenshots/statistics.png" width="720" alt="用量统计">
+  <img src="docs/Screenshots/overview.png" width="860" alt="用量统计 · 概览"><br>
+  <sub>用量统计 · 概览</sub>
+</p>
+
+<p align="center">
+  <img src="docs/Screenshots/timeline.png" width="860" alt="用量统计 · 时间线"><br>
+  <sub>用量统计 · 时间线(5H 额度变化)</sub>
+</p>
+
+<p align="center">
+  <img src="docs/Screenshots/breakdown.png" width="860" alt="用量统计 · 明细"><br>
+  <sub>用量统计 · 明细(可排序 + 导出 CSV)</sub>
+</p>
+
+<p align="center">
+  <img src="docs/Screenshots/floating.png" width="300" alt="桌面悬浮窗 HUD"><br>
+  <sub>桌面悬浮窗 HUD</sub>
 </p>
 
 ## 安装
@@ -46,7 +64,9 @@
 
 ## 致谢
 
-ManaBar 在设计与实现上参考了以下优秀的开源项目,在此特别感谢:
+ManaBar 在 [cc-bar](https://github.com/nanvon/cc-bar) 的基础上二次开发,在此特别感谢原项目作者。
+
+同时在设计与实现上参考了以下优秀的开源项目:
 
 - [cc-switch](https://github.com/farion1231/cc-switch) —— 多 Provider 账号切换器,启发了本项目的多账号管理与导入流程
 - [cockpit-tools](https://github.com/jlcodes99/cockpit-tools) —— 多平台 AI 编码助手仪表盘,在额度与刷新策略上提供了参考
