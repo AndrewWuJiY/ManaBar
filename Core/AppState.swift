@@ -136,7 +136,7 @@ final class AppState {
     }
 
     /// 每次刷新(手动 / Scheduler 定时)都先重读本地凭据,以便用户在外部
-    /// (如 cc-switch)切换账号后 ccbar 能感知到。loadCodex / loadClaude
+    /// (如 cc-switch)切换账号后 ManaBar 能感知到。loadCodex / loadClaude
     /// 内部会比较 accountId / email,若身份变化则清掉旧的额度缓存,避免
     /// 出现"新账号 + 旧额度"的错配。
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {

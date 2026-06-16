@@ -6,7 +6,7 @@ import os
 /// 过滤示例:`subsystem:com.cc-bar process:CCBar category:delegated-refresh`
 private let log = Logger(subsystem: "com.cc-bar", category: "delegated-refresh")
 
-/// 当 cc-bar 自家的 OAuth refresh 拿到 `invalid_grant`(refresh_token 被服务端拒)时,
+/// 当 ManaBar 自家的 OAuth refresh 拿到 `invalid_grant`(refresh_token 被服务端拒)时,
 /// 直接唤起本机 `claude` CLI 跑一次 `/status`,让 CLI 用自己受信任的会话身份重新刷新
 /// 并把新凭据写回 keychain / credentials.json,本进程随后重读即可恢复。
 ///
@@ -44,7 +44,7 @@ enum ClaudeDelegatedRefresh {
     }
 
     /// 后台启动委托刷新,**不等待结果**。专门给"不应阻塞 UI 的刷新调用方"用——
-    /// 比如用户点了刷新按钮、cc-bar 自家 OAuth 刚抛 tokenRevoked 这种场景。
+    /// 比如用户点了刷新按钮、ManaBar 自家 OAuth 刚抛 tokenRevoked 这种场景。
     ///
     /// 行为:
     /// - 启动后立刻返回,调用方继续走自己的失败路径(把 tokenRevoked 抛给 UI)
@@ -248,7 +248,7 @@ enum ClaudeCLIResolver {
 /// 给 claude CLI 一个**受控、空白的工作目录**。
 ///
 /// 为什么需要:claude CLI 启动时会扫描 `cwd` 寻找 git 仓库 / 项目结构(读 `.git/`、
-/// 父目录的 `package.json` 等)。如果它继承 cc-bar 的 cwd(通常是 `$HOME` 或 `/`),
+/// 父目录的 `package.json` 等)。如果它继承 ManaBar 的 cwd(通常是 `$HOME` 或 `/`),
 /// 就会一路扫到用户的桌面 / 文稿 / 下载,触发一堆 TCC 弹窗。
 ///
 /// 解决:准备一个完全空的目录 `~/Library/Application Support/CCBar/ClaudeProbe/`,
@@ -295,7 +295,7 @@ enum ClaudeProbeWorkspace {
 // MARK: - Watchdog Helper Resolver
 
 /// 找到内嵌的 `ManaBarClaudeWatchdog`。
-/// 发布构建里它在 `CCBar.app/Contents/Helpers/ManaBarClaudeWatchdog`;
+/// 发布构建里它在 `ManaBar.app/Contents/Helpers/ManaBarClaudeWatchdog`;
 /// Debug 跑(尤其 Xcode Run)的话 bundle 里可能没有,这种情况下返回 nil,
 /// 让调用方降级到直接起 claude(开发期容忍一下 TCC 弹窗)。
 enum ClaudeWatchdogResolver {
@@ -321,7 +321,7 @@ enum ClaudeWatchdogResolver {
 /// 我们不需要解析输出,目的只是"让 CLI 跑一次,顺便触发它内部的 token refresh"。
 ///
 /// 关键:如果发现内嵌的 `ManaBarClaudeWatchdog`,启动 claude 时走 watchdog 套娃,
-/// 这样 macOS TCC 把潜在的文件访问归到 watchdog 而不是 cc-bar 本体。
+/// 这样 macOS TCC 把潜在的文件访问归到 watchdog 而不是 ManaBar 本体。
 enum ClaudePTYTouch {
     enum Error: Swift.Error, CustomStringConvertible {
         case openptyFailed(Int32)
@@ -365,7 +365,7 @@ enum ClaudePTYTouch {
         proc.standardError = secondaryHandle
 
         // 如果发现 watchdog,就走 watchdog 套娃启动 claude。
-        // TCC 弹窗会归到 watchdog,不再污染 cc-bar 主体的权限画像。
+        // TCC 弹窗会归到 watchdog,不再污染 ManaBar 主体的权限画像。
         if let watchdog = ClaudeWatchdogResolver.resolve() {
             proc.executableURL = URL(fileURLWithPath: watchdog)
             proc.arguments = ["--", binary]

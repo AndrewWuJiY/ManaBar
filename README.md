@@ -1,6 +1,8 @@
-# ManaBar (原 cc-bar)
+# ManaBar
 
 > ManaBar —— macOS 菜单栏小工具 —— 一眼看清 Codex 与 Claude Code 的用量与花费。
+
+> 作者:[XiaoWuu](https://github.com/AndrewWuJiY) · 项目主页:https://github.com/AndrewWuJiY/ManaBar · 许可:MIT
 
 <p>
   <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
@@ -28,7 +30,7 @@
 
 要求 macOS 14 Sonoma 或更新版本。已通过终端完成 `codex login` 与 `claude` 登录。
 
-1. 到 [Releases](https://github.com/nanvon/cc-bar/releases) 下载最新 `ManaBar.app.zip`,解压后把 `ManaBar.app` 拖入 `/Applications`。
+1. 到 [Releases](https://github.com/AndrewWuJiY/ManaBar/releases) 下载最新 `ManaBar.app.zip`,解压后把 `ManaBar.app` 拖入 `/Applications`。
 
 2. 首次启动会被 Gatekeeper 拦下。在「应用程序」里**右键 → 打开**,或在终端执行:
 
@@ -40,12 +42,16 @@
 
 ## 反馈
 
-请到 [Issues](https://github.com/nanvon/cc-bar/issues) 留言。
+请到 [Issues](https://github.com/AndrewWuJiY/ManaBar/issues) 留言。
 
 ## 致谢
 
-cc-bar 在设计与实现上参考了以下优秀的开源项目,在此特别感谢:
+ManaBar 在设计与实现上参考了以下优秀的开源项目,在此特别感谢:
 
 - [cc-switch](https://github.com/farion1231/cc-switch) —— 多 Provider 账号切换器,启发了本项目的多账号管理与导入流程
 - [cockpit-tools](https://github.com/jlcodes99/cockpit-tools) —— 多平台 AI 编码助手仪表盘,在额度与刷新策略上提供了参考
 - [CodexBar](https://github.com/steipete/CodexBar) —— macOS 菜单栏 AI 用量监控,在菜单栏交互与本地解析思路上多有借鉴
+
+## 许可
+
+本项目基于 [MIT License](LICENSE) 开源,© 2026 XiaoWuu。

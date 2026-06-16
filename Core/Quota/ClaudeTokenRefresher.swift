@@ -6,7 +6,7 @@ private let refresherLog = Logger(subsystem: "com.cc-bar", category: "claude-ref
 enum ClaudeTokenRefresher {
     static let clientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
     static let tokenEndpoint = URL(string: "https://platform.claude.com/v1/oauth/token")!
-    /// access_token 临期判定 skew。cc-bar 是只读监控,不需要太激进的提前刷新——
+    /// access_token 临期判定 skew。ManaBar 是只读监控,不需要太激进的提前刷新——
     /// 让出主动权给 Claude Code CLI / Desktop 等"重客户端",避免和它们争抢
     /// 一次性的 refresh_token。原值 300s 太激进,会频繁触发竞态;30s 已经足够
     /// 覆盖网络往返开销。
