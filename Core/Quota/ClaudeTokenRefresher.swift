@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let refresherLog = Logger(subsystem: "com.cc-bar", category: "claude-refresh")
+private let refresherLog = Logger(subsystem: "com.andrewwujiy.manabar", category: "claude-refresh")
 
 enum ClaudeTokenRefresher {
     static let clientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"

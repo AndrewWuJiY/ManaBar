@@ -158,6 +158,8 @@ final class SettingsStore {
 
     private init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        // 一次性迁移旧 CCBar 数据/设置(必须在读取任何 key 之前,也早于文件存储读取)
+        LegacyMigration.runIfNeeded(defaults: defaults)
         // 账号
         showCodex = defaults.object(forKey: Keys.showCodex) as? Bool ?? true
         showClaude = defaults.object(forKey: Keys.showClaude) as? Bool ?? true
@@ -277,28 +279,87 @@ final class SettingsStore {
     }
 
     private enum Keys {
-        static let showCodex = "ccbar.settings.showCodex"
-        static let showClaude = "ccbar.settings.showClaude"
-        static let menuBarShowCodex = "ccbar.settings.menuBarShowCodex"
-        static let menuBarShowClaude = "ccbar.settings.menuBarShowClaude"
-        static let menuBarWindow = "ccbar.settings.menuBarWindow"
-        static let floatingEnabled = "ccbar.settings.floatingEnabled"
-        static let floatingShowCodex = "ccbar.settings.floatingShowCodex"
-        static let floatingShowClaude = "ccbar.settings.floatingShowClaude"
-        static let floatingShowReset = "ccbar.settings.floatingShowReset"
-        static let quotaInterval = "ccbar.settings.quotaInterval"
-        static let usageInterval = "ccbar.settings.usageInterval"
-        static let resetTimeDisplay = "ccbar.settings.resetTimeDisplay"
-        static let showServiceStatus = "ccbar.settings.showServiceStatus"
-        static let appAppearance = "ccbar.settings.appAppearance"
-        static let launchAtLogin = "ccbar.settings.launchAtLogin"
-        static let appLanguage = "ccbar.settings.appLanguage"
-        static let privacyMode = "ccbar.settings.privacyMode"
-        static let didShowKeychainPrompt = "ccbar.settings.didShowKeychainPrompt"
-        static let didCompleteOnboarding = "ccbar.settings.didCompleteOnboarding"
-        static let floatingFrameX = "ccbar.settings.floatingFrame.x"
-        static let floatingFrameY = "ccbar.settings.floatingFrame.y"
-        static let floatingFrameW = "ccbar.settings.floatingFrame.w"
-        static let floatingFrameH = "ccbar.settings.floatingFrame.h"
+        static let showCodex = "manabar.settings.showCodex"
+        static let showClaude = "manabar.settings.showClaude"
+        static let menuBarShowCodex = "manabar.settings.menuBarShowCodex"
+        static let menuBarShowClaude = "manabar.settings.menuBarShowClaude"
+        static let menuBarWindow = "manabar.settings.menuBarWindow"
+        static let floatingEnabled = "manabar.settings.floatingEnabled"
+        static let floatingShowCodex = "manabar.settings.floatingShowCodex"
+        static let floatingShowClaude = "manabar.settings.floatingShowClaude"
+        static let floatingShowReset = "manabar.settings.floatingShowReset"
+        static let quotaInterval = "manabar.settings.quotaInterval"
+        static let usageInterval = "manabar.settings.usageInterval"
+        static let resetTimeDisplay = "manabar.settings.resetTimeDisplay"
+        static let showServiceStatus = "manabar.settings.showServiceStatus"
+        static let appAppearance = "manabar.settings.appAppearance"
+        static let launchAtLogin = "manabar.settings.launchAtLogin"
+        static let appLanguage = "manabar.settings.appLanguage"
+        static let privacyMode = "manabar.settings.privacyMode"
+        static let didShowKeychainPrompt = "manabar.settings.didShowKeychainPrompt"
+        static let didCompleteOnboarding = "manabar.settings.didCompleteOnboarding"
+        static let floatingFrameX = "manabar.settings.floatingFrame.x"
+        static let floatingFrameY = "manabar.settings.floatingFrame.y"
+        static let floatingFrameW = "manabar.settings.floatingFrame.w"
+        static let floatingFrameH = "manabar.settings.floatingFrame.h"
+    }
+}
+
+// MARK: - Legacy migration (CCBar → ManaBar)
+//
+// 2026-06 改名 + 换 Bundle ID 后,旧版数据落在 `~/Library/Application Support/CCBar/`
+// 和旧 UserDefaults 域 `com.nanvon.ccbar`(键前缀 `ccbar.settings.`)。这里在首启时做
+// 一次性、幂等的迁移,让用户无感升级。
+//
+// 不迁移钥匙串:导入 Codex token 的服务名故意保留 `com.cc-bar.codex.imported`(见
+// ImportedCodexStore);换签名身份后若系统拒绝访问,用户重导一次即可。
+enum LegacyMigration {
+    private static let oldSupportDir = "CCBar"
+    private static let newSupportDir = "ManaBar"
+    private static let oldDefaultsSuite = "com.nanvon.ccbar"
+    private static let oldKeyPrefix = "ccbar.settings."
+    private static let newKeyPrefix = "manabar.settings."
+    private static let migratedFlagKey = "manabar.settings._migratedFromCCBar"
+
+    static func runIfNeeded(defaults: UserDefaults) {
+        guard !defaults.bool(forKey: migratedFlagKey) else { return }
+        migrateSupportFolder()
+        migrateDefaults(into: defaults)
+        defaults.set(true, forKey: migratedFlagKey)
+    }
+
+    /// 旧数据目录整目录拷到新目录(仅当新目录尚不存在或为空时)。
+    private static func migrateSupportFolder() {
+        let fm = FileManager.default
+        let support = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fm.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Application Support", isDirectory: true)
+        let oldDir = support.appendingPathComponent(oldSupportDir, isDirectory: true)
+        let newDir = support.appendingPathComponent(newSupportDir, isDirectory: true)
+
+        guard fm.fileExists(atPath: oldDir.path) else { return }
+        let existing = (try? fm.contentsOfDirectory(atPath: newDir.path)) ?? []
+        guard existing.isEmpty else { return }   // 新目录已有内容 → 视为迁移过,不覆盖
+
+        try? fm.createDirectory(at: newDir, withIntermediateDirectories: true)
+        let items = (try? fm.contentsOfDirectory(at: oldDir, includingPropertiesForKeys: nil)) ?? []
+        for item in items {
+            let dest = newDir.appendingPathComponent(item.lastPathComponent)
+            if !fm.fileExists(atPath: dest.path) {
+                try? fm.copyItem(at: item, to: dest)
+            }
+        }
+    }
+
+    /// 旧 UserDefaults 域里的 `ccbar.settings.*` 拷成新版的 `manabar.settings.*`。
+    /// 仅在新键尚未存在时写入,避免覆盖用户在新版里已经改过的设置。
+    private static func migrateDefaults(into defaults: UserDefaults) {
+        guard let oldDomain = defaults.persistentDomain(forName: oldDefaultsSuite) else { return }
+        for (key, value) in oldDomain where key.hasPrefix(oldKeyPrefix) {
+            let newKey = newKeyPrefix + key.dropFirst(oldKeyPrefix.count)
+            if defaults.object(forKey: newKey) == nil {
+                defaults.set(value, forKey: newKey)
+            }
+        }
     }
 }

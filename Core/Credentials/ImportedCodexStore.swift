@@ -4,7 +4,7 @@ import Security
 // MARK: - ImportedCodexStore
 //
 // 持久化"其他 Codex 账号"。
-// - 元数据 → Application Support/CCBar/imported_codex_accounts.json (原子写,版本号兜底)。
+// - 元数据 → Application Support/ManaBar/imported_codex_accounts.json (原子写,版本号兜底)。
 // - Token 三件套 → macOS Keychain,service = ImportedCodexStore.keychainService,
 //   account = account_id;value 为 JSON {access,refresh,id}。
 // 用 SecItem 直接读写本进程自己的 Keychain 条目,不弹用户授权(与读 Claude/Codex CLI 凭据的
@@ -17,9 +17,11 @@ struct ImportedCodexTokens: Sendable, Equatable, Codable {
 }
 
 enum ImportedCodexStore {
+    /// 钥匙串服务名**故意保留旧值**(不随 ManaBar 改名)。它对用户不可见,
+    /// 而改名会让已存的导入 Codex token 全部读不出、必须重导;保留可最大化存活率。
     nonisolated static let keychainService = "com.cc-bar.codex.imported"
     nonisolated private static let fileName = "imported_codex_accounts.json"
-    nonisolated private static let bundleDirectory = "CCBar"
+    nonisolated private static let bundleDirectory = "ManaBar"
 
     // MARK: - 元数据 (JSON)
 

@@ -65,7 +65,7 @@ enum QuotaHistoryStore {
     nonisolated private static let fileName = "quota-history.json"
     /// v1 旧文件名(只存当天)。升级时一次性迁移其内容。
     nonisolated private static let legacyFileName = "quota-history-today.json"
-    nonisolated private static let bundleDirectory = "CCBar"
+    nonisolated private static let bundleDirectory = "ManaBar"
     /// 跨天保留窗口(天)。超过的事件在 prune 时丢弃,避免文件无限增长。
     nonisolated static let retentionDays = 90
 

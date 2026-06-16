@@ -23,7 +23,7 @@ struct ScanState: Sendable, Equatable, Codable {
 
 enum ScanCache {
     nonisolated private static let fileName = "scan-state.json"
-    nonisolated private static let bundleDirectory = "CCBar"
+    nonisolated private static let bundleDirectory = "ManaBar"
 
     nonisolated static func load() -> ScanState {
         let url = cacheFileURL()
@@ -71,7 +71,7 @@ struct UsageRollupPayload: Sendable, Codable {
 
 enum UsageRollupCache {
     nonisolated private static let fileName = "usage-rollup.json"
-    nonisolated private static let bundleDirectory = "CCBar"
+    nonisolated private static let bundleDirectory = "ManaBar"
 
     nonisolated static func load() -> UsageRollupPayload {
         let url = cacheFileURL()

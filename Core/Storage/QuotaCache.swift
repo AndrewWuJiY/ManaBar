@@ -17,7 +17,7 @@ struct QuotaCachePayload: Sendable, Equatable, Codable {
 
 enum QuotaCache {
     nonisolated private static let fileName = "quota-cache.json"
-    nonisolated private static let bundleDirectory = "CCBar"
+    nonisolated private static let bundleDirectory = "ManaBar"
 
     nonisolated static func load() -> QuotaCachePayload {
         let url = cacheFileURL()

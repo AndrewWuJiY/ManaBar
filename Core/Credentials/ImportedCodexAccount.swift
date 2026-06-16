@@ -7,7 +7,7 @@ import SwiftUI
 // 与默认账号(实时读 ~/.codex/auth.json)解耦,允许重复(同一账号同时出现在默认槽位和此处)。
 // 设计见 docs/技术实现.md "导入账号" 一节。
 
-/// 元数据,持久化到 Application Support/CCBar/imported_codex_accounts.json。
+/// 元数据,持久化到 Application Support/ManaBar/imported_codex_accounts.json。
 /// Token 三件套不在这里,走 Keychain (见 ImportedCodexStore)。
 struct ImportedCodexAccount: Sendable, Equatable, Codable, Identifiable {
     /// 复合身份:`{chatgpt_account_id}:{chatgpt_user_id}`。

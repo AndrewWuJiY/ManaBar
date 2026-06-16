@@ -3,8 +3,8 @@ import Foundation
 import os
 
 /// 日志专用 logger。subsystem 用 bundle id 风格,category 单独成段方便在 Console.app 过滤。
-/// 过滤示例:`subsystem:com.cc-bar process:CCBar category:delegated-refresh`
-private let log = Logger(subsystem: "com.cc-bar", category: "delegated-refresh")
+/// 过滤示例:`subsystem:com.andrewwujiy.manabar process:ManaBar category:delegated-refresh`
+private let log = Logger(subsystem: "com.andrewwujiy.manabar", category: "delegated-refresh")
 
 /// 当 ManaBar 自家的 OAuth refresh 拿到 `invalid_grant`(refresh_token 被服务端拒)时,
 /// 直接唤起本机 `claude` CLI 跑一次 `/status`,让 CLI 用自己受信任的会话身份重新刷新
@@ -251,7 +251,7 @@ enum ClaudeCLIResolver {
 /// 父目录的 `package.json` 等)。如果它继承 ManaBar 的 cwd(通常是 `$HOME` 或 `/`),
 /// 就会一路扫到用户的桌面 / 文稿 / 下载,触发一堆 TCC 弹窗。
 ///
-/// 解决:准备一个完全空的目录 `~/Library/Application Support/CCBar/ClaudeProbe/`,
+/// 解决:准备一个完全空的目录 `~/Library/Application Support/ManaBar/ClaudeProbe/`,
 /// 在里面放一个 `.claude/settings.local.json` 关掉 deep-link 注册等额外副作用,
 /// 把它作为 claude 的 cwd。这样它扫描出来啥都没有,不会摸到用户数据。
 enum ClaudeProbeWorkspace {
@@ -270,7 +270,7 @@ enum ClaudeProbeWorkspace {
         let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fm.temporaryDirectory
         return base
-            .appendingPathComponent("CCBar", isDirectory: true)
+            .appendingPathComponent("ManaBar", isDirectory: true)
             .appendingPathComponent("ClaudeProbe", isDirectory: true)
     }
 
