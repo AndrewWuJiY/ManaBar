@@ -4,13 +4,13 @@
 
 ## 项目概况
 
-cc-bar 是一个原生 macOS 菜单栏 App，用 Swift / SwiftUI 实现，用于展示 Codex 和 Claude Code 的额度、刷新状态、本地用量统计和桌面悬浮窗。
+cc-bar（产品显示名 ManaBar）是一个原生 macOS 菜单栏 App，用 Swift / SwiftUI 实现，用于展示 Codex 和 Claude Code 的额度、刷新状态、本地用量统计和桌面悬浮窗。
 
 项目主体功能已开发完成，后续以新需求和迭代为主，不再按初始里程碑推进。
 
 工程结构：
 
-- 入口：`CCBarApp.swift`
+- 入口：`ManaBarApp.swift`
 - 全局状态：`Core/AppState.swift`
 - 菜单栏：`MenuBar/`
 - 主窗口：`Main/`
@@ -18,7 +18,7 @@ cc-bar 是一个原生 macOS 菜单栏 App，用 Swift / SwiftUI 实现，用于
 - 引导：`Onboarding/`
 - 设置：`Settings/`
 - 凭据 / 额度 / 调度 / 用量 / 存储：`Core/`
-- Xcode 工程：`ccbar.xcodeproj`
+- Xcode 工程：`ManaBar.xcodeproj`
 
 ## 必读文档
 
@@ -61,6 +61,6 @@ cc-bar 是一个原生 macOS 菜单栏 App，用 Swift / SwiftUI 实现，用于
 
 - 小范围 UI 改动：先做静态检查和代码审阅。
 - 需要编译确认时，先说明原因，再询问是否运行 Xcode 构建。
-- 需要手动验收时，说明在 Xcode 中打开 `ccbar.xcodeproj` 并运行 App，按本次需求的验收点检查。
+- 需要手动验收时，说明在 Xcode 中打开 `ManaBar.xcodeproj` 并运行 App，按本次需求的验收点检查。
 
 不要为了验证一个小改动主动跑完整构建、完整测试或启动开发服务，除非用户明确要求。

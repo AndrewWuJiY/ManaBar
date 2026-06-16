@@ -21,7 +21,8 @@ struct FloatingContentView: View {
                     logoName: "codex",
                     fallback: "C",
                     tint: .codexAccent,
-                    window: appState.codexQuota?.fiveHour
+                    window: appState.codexQuota?.fiveHour,
+                    showReset: settings.floatingShowReset
                 )
             }
             if showClaude {
@@ -29,7 +30,8 @@ struct FloatingContentView: View {
                     logoName: "claude",
                     fallback: "K",
                     tint: .claudeAccent,
-                    window: appState.claudeQuota?.fiveHour
+                    window: appState.claudeQuota?.fiveHour,
+                    showReset: settings.floatingShowReset
                 )
             }
             if !showCodex && !showClaude {
@@ -67,6 +69,7 @@ private struct FloatingRow: View {
     let fallback: String
     let tint: Color
     let window: QuotaWindow?
+    var showReset: Bool = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -87,7 +90,22 @@ private struct FloatingRow: View {
                 .kerning(-0.3)
                 .monospacedDigit()
                 .foregroundStyle(barColor)
-                .frame(minWidth: 34, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: 40, alignment: .trailing)
+
+            if showReset {
+                // 两行都恒定渲染:无 resetsAt 时 formatResetCompact 返回 "—",保证百分比列对齐。
+                // 倒计时按分钟自走,否则 .accessory 非激活态会冻在渲染那一刻。
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    Text(formatResetCompact(window?.resetsAt, now: context.date))
+                        .font(.system(size: 10, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(minWidth: 46, alignment: .trailing)
+            }
         }
     }
 

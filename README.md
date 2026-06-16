@@ -1,6 +1,6 @@
-# cc-bar
+# ManaBar (原 cc-bar)
 
-> macOS 菜单栏小工具 —— 一眼看清 Codex 与 Claude Code 的用量与花费。
+> ManaBar —— macOS 菜单栏小工具 —— 一眼看清 Codex 与 Claude Code 的用量与花费。
 
 <p>
   <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
@@ -28,12 +28,12 @@
 
 要求 macOS 14 Sonoma 或更新版本。已通过终端完成 `codex login` 与 `claude` 登录。
 
-1. 到 [Releases](https://github.com/nanvon/cc-bar/releases) 下载最新 `CCBar.app.zip`,解压后把 `CCBar.app` 拖入 `/Applications`。
+1. 到 [Releases](https://github.com/nanvon/cc-bar/releases) 下载最新 `ManaBar.app.zip`,解压后把 `ManaBar.app` 拖入 `/Applications`。
 
 2. 首次启动会被 Gatekeeper 拦下。在「应用程序」里**右键 → 打开**,或在终端执行:
 
    ```bash
-   xattr -d com.apple.quarantine /Applications/CCBar.app
+   xattr -d com.apple.quarantine /Applications/ManaBar.app
    ```
 
 3. 若本机无 `~/.claude/.credentials.json`,会弹出说明后请求 Keychain 授权,请选「**始终允许**」。

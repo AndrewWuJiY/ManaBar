@@ -28,7 +28,8 @@ struct QuotaChangeEvent: Sendable, Equatable, Codable, Identifiable {
 }
 
 struct QuotaHistoryPayload: Sendable, Equatable, Codable {
-    static let currentVersion = 1
+    /// v2(2026-06):由「只存今天」改为按保留窗口跨天留存,供时间线按区间回看。
+    static let currentVersion = 2
 
     var version: Int = Self.currentVersion
     var dayStart: Date = QuotaHistoryStore.todayStart()
@@ -61,18 +62,32 @@ enum QuotaHistoryAccountKey {
 }
 
 enum QuotaHistoryStore {
-    nonisolated private static let fileName = "quota-history-today.json"
+    nonisolated private static let fileName = "quota-history.json"
+    /// v1 旧文件名(只存当天)。升级时一次性迁移其内容。
+    nonisolated private static let legacyFileName = "quota-history-today.json"
     nonisolated private static let bundleDirectory = "CCBar"
+    /// 跨天保留窗口(天)。超过的事件在 prune 时丢弃,避免文件无限增长。
+    nonisolated static let retentionDays = 90
 
     nonisolated static func load(now: Date = Date()) -> QuotaHistoryPayload {
-        let url = fileURL()
-        guard let data = try? Data(contentsOf: url),
-              let payload = try? JSONDecoder().decode(QuotaHistoryPayload.self, from: data),
-              payload.version == QuotaHistoryPayload.currentVersion
-        else {
-            return QuotaHistoryPayload(dayStart: todayStart(now: now))
+        if let payload = decodeFile(fileURL()), payload.version == QuotaHistoryPayload.currentVersion {
+            return prune(payload, now: now)
         }
-        return prune(payload, now: now)
+        // 迁移:旧版 v1 只存当天的 quota-history-today.json,搬进新存储。
+        if let legacy = decodeFile(legacyFileURL()) {
+            var migrated = QuotaHistoryPayload(dayStart: todayStart(now: now))
+            migrated.lastSamples = legacy.lastSamples
+            migrated.events = legacy.events
+            return prune(migrated, now: now)
+        }
+        return QuotaHistoryPayload(dayStart: todayStart(now: now))
+    }
+
+    nonisolated private static func decodeFile(_ url: URL) -> QuotaHistoryPayload? {
+        guard let data = try? Data(contentsOf: url),
+              let payload = try? JSONDecoder().decode(QuotaHistoryPayload.self, from: data)
+        else { return nil }
+        return payload
     }
 
     nonisolated static func save(_ payload: QuotaHistoryPayload) throws {
@@ -135,24 +150,37 @@ enum QuotaHistoryStore {
     }
 
     nonisolated static func fileURL() -> URL {
+        supportDirectory().appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    nonisolated private static func legacyFileURL() -> URL {
+        supportDirectory().appendingPathComponent(legacyFileName, isDirectory: false)
+    }
+
+    nonisolated private static func supportDirectory() -> URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Application Support", isDirectory: true)
-        return support
-            .appendingPathComponent(bundleDirectory, isDirectory: true)
-            .appendingPathComponent(fileName, isDirectory: false)
+        return support.appendingPathComponent(bundleDirectory, isDirectory: true)
+    }
+
+    /// 保留窗口起点(含):今天 0 点往前推 retentionDays-1 天。
+    nonisolated static func retentionStart(now: Date = Date()) -> Date {
+        let start = todayStart(now: now)
+        return Calendar.current.date(byAdding: .day, value: -(retentionDays - 1), to: start) ?? start
     }
 
     nonisolated private static func prune(_ payload: QuotaHistoryPayload, now: Date) -> QuotaHistoryPayload {
-        let start = todayStart(now: now)
-        guard Calendar.current.isDate(payload.dayStart, inSameDayAs: start) else {
-            return QuotaHistoryPayload(dayStart: start)
-        }
-
+        let cutoff = retentionStart(now: now)
         var next = payload
-        next.dayStart = start
-        next.events = next.events.filter { Calendar.current.isDate($0.sampledAt, inSameDayAs: start) }
-        next.lastSamples = next.lastSamples.filter { Calendar.current.isDate($0.value.sampledAt, inSameDayAs: start) }
+        next.version = QuotaHistoryPayload.currentVersion
+        next.dayStart = todayStart(now: now)
+        // 事件按保留窗口裁剪并保持时间升序。
+        next.events = next.events
+            .filter { $0.sampledAt >= cutoff }
+            .sorted { $0.sampledAt < $1.sampledAt }
+        // lastSamples 是跨天 delta 的 baseline,保留;仅丢弃超出窗口很久未更新的账号。
+        next.lastSamples = next.lastSamples.filter { $0.value.sampledAt >= cutoff }
         return next
     }
 

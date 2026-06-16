@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		4931AC592FC02A4200EE598C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4931AC522FC02A4200EE598C /* Assets.xcassets */; };
 		4931AC622FC02A4200EE598C /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC4F2FC02A4200EE598C /* MenuBarLabel.swift */; };
-		4931AC632FC02A4200EE598C /* CCBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC412FC02A4200EE598C /* CCBarApp.swift */; };
+		4931AC632FC02A4200EE598C /* ManaBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC412FC02A4200EE598C /* ManaBarApp.swift */; };
 		4931AC642FC02A4200EE598C /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC542FC02A4200EE598C /* SettingsRootView.swift */; };
 		4931AC652FC02A4200EE598C /* PopoverRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC502FC02A4200EE598C /* PopoverRootView.swift */; };
 		4931AC662FC02A4200EE598C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC422FC02A4200EE598C /* AppState.swift */; };
@@ -56,11 +56,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4931AC302FC029A000EE598C /* CCBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CCBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4931AC302FC029A000EE598C /* ManaBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ManaBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4931AC3E2FC02A4200EE598C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		4931AC3F2FC02A4200EE598C /* ccbar.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = ccbar.xcodeproj; sourceTree = "<group>"; };
-		4931AC402FC02A4200EE598C /* CCBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CCBar.entitlements; sourceTree = "<group>"; };
-		4931AC412FC02A4200EE598C /* CCBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCBarApp.swift; sourceTree = "<group>"; };
+		4931AC3F2FC02A4200EE598C /* ManaBar.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = ManaBar.xcodeproj; sourceTree = "<group>"; };
+		4931AC402FC02A4200EE598C /* ManaBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ManaBar.entitlements; sourceTree = "<group>"; };
+		4931AC412FC02A4200EE598C /* ManaBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManaBarApp.swift; sourceTree = "<group>"; };
 		4931AC422FC02A4200EE598C /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		4931AC4E2FC02A4200EE598C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4931AC4F2FC02A4200EE598C /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
@@ -124,9 +124,9 @@
 			isa = PBXGroup;
 			children = (
 				4931AC3E2FC02A4200EE598C /* AppDelegate.swift */,
-				4931AC3F2FC02A4200EE598C /* ccbar.xcodeproj */,
-				4931AC402FC02A4200EE598C /* CCBar.entitlements */,
-				4931AC412FC02A4200EE598C /* CCBarApp.swift */,
+				4931AC3F2FC02A4200EE598C /* ManaBar.xcodeproj */,
+				4931AC402FC02A4200EE598C /* ManaBar.entitlements */,
+				4931AC412FC02A4200EE598C /* ManaBarApp.swift */,
 				4931AC432FC02A4200EE598C /* Core */,
 				49C1B170000000000001AAAA /* Floating */,
 				49C1B203000000000001AAAA /* Helpers */,
@@ -143,7 +143,7 @@
 		4931AC312FC029A000EE598C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4931AC302FC029A000EE598C /* CCBar.app */,
+				4931AC302FC029A000EE598C /* ManaBar.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -286,18 +286,18 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
-		49C1B201000000000001AAAA /* CCBarClaudeWatchdog */ = {
+		49C1B201000000000001AAAA /* ManaBarClaudeWatchdog */ = {
 			isa = PBXGroup;
 			children = (
 				49C1B200000000000001AAAA /* main.swift */,
 			);
-			path = CCBarClaudeWatchdog;
+			path = ManaBarClaudeWatchdog;
 			sourceTree = "<group>";
 		};
 		49C1B203000000000001AAAA /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				49C1B201000000000001AAAA /* CCBarClaudeWatchdog */,
+				49C1B201000000000001AAAA /* ManaBarClaudeWatchdog */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -305,24 +305,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4931AC2F2FC029A000EE598C /* ccbar */ = {
+		4931AC2F2FC029A000EE598C /* ManaBar */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4931AC3B2FC029A100EE598C /* Build configuration list for PBXNativeTarget "ccbar" */;
+			buildConfigurationList = 4931AC3B2FC029A100EE598C /* Build configuration list for PBXNativeTarget "ManaBar" */;
 			buildPhases = (
 				4931AC2C2FC029A000EE598C /* Sources */,
 				4931AC2D2FC029A000EE598C /* Frameworks */,
 				4931AC2E2FC029A000EE598C /* Resources */,
-				49C1B202000000000001AABB /* Embed CCBarClaudeWatchdog */,
+				49C1B202000000000001AABB /* Embed ManaBarClaudeWatchdog */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = ccbar;
+			name = ManaBar;
 			packageProductDependencies = (
 			);
-			productName = CCBar;
-			productReference = 4931AC302FC029A000EE598C /* CCBar.app */;
+			productName = ManaBar;
+			productReference = 4931AC302FC029A000EE598C /* ManaBar.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -340,7 +340,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 4931AC2B2FC029A000EE598C /* Build configuration list for PBXProject "ccbar" */;
+			buildConfigurationList = 4931AC2B2FC029A000EE598C /* Build configuration list for PBXProject "ManaBar" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -355,12 +355,12 @@
 			projectReferences = (
 				{
 					ProductGroup = 4931AC562FC02A4200EE598C /* Products */;
-					ProjectRef = 4931AC3F2FC02A4200EE598C /* ccbar.xcodeproj */;
+					ProjectRef = 4931AC3F2FC02A4200EE598C /* ManaBar.xcodeproj */;
 				},
 			);
 			projectRoot = "";
 			targets = (
-				4931AC2F2FC029A000EE598C /* ccbar */,
+				4931AC2F2FC029A000EE598C /* ManaBar */,
 			);
 		};
 /* End PBXProject section */
@@ -379,7 +379,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		49C1B202000000000001AABB /* Embed CCBarClaudeWatchdog */ = {
+		49C1B202000000000001AABB /* Embed ManaBarClaudeWatchdog */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -387,17 +387,17 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Helpers/CCBarClaudeWatchdog/main.swift",
+				"$(SRCROOT)/Helpers/ManaBarClaudeWatchdog/main.swift",
 			);
-			name = "Embed CCBarClaudeWatchdog";
+			name = "Embed ManaBarClaudeWatchdog";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers/CCBarClaudeWatchdog",
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers/ManaBarClaudeWatchdog",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "set -euo pipefail\n\nSOURCE=\"${SRCROOT}/Helpers/CCBarClaudeWatchdog/main.swift\"\nOUTPUT_DIR=\"${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers\"\nOUTPUT_BIN=\"${OUTPUT_DIR}/CCBarClaudeWatchdog\"\n\nmkdir -p \"${OUTPUT_DIR}\"\n\n# 编译为当前架构。cc-bar 是个人 / 单机分发,native arch 够用;\n# 真要做 universal 在这里加 lipo 即可。\nARCH=\"${NATIVE_ARCH_ACTUAL:-$(uname -m)}\"\nDEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-13.0}\"\n\nxcrun -sdk macosx swiftc -O \\\n  -target \"${ARCH}-apple-macos${DEPLOYMENT_TARGET}\" \\\n  -o \"${OUTPUT_BIN}\" \\\n  \"${SOURCE}\"\n\n# 跟父 target 同一个签名身份,签上;Debug 下 EXPANDED_CODE_SIGN_IDENTITY 可能是 -,\n# 等价 ad-hoc 签名,够用。\nIDENT=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\ncodesign --force --sign \"${IDENT}\" --options runtime --timestamp=none \"${OUTPUT_BIN}\"\n\necho \"embedded watchdog: ${OUTPUT_BIN}\"\n";
+			shellScript = "set -euo pipefail\n\nSOURCE=\"${SRCROOT}/Helpers/ManaBarClaudeWatchdog/main.swift\"\nOUTPUT_DIR=\"${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers\"\nOUTPUT_BIN=\"${OUTPUT_DIR}/ManaBarClaudeWatchdog\"\n\nmkdir -p \"${OUTPUT_DIR}\"\n\n# 编译为当前架构。cc-bar 是个人 / 单机分发,native arch 够用;\n# 真要做 universal 在这里加 lipo 即可。\nARCH=\"${NATIVE_ARCH_ACTUAL:-$(uname -m)}\"\nDEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-13.0}\"\n\nxcrun -sdk macosx swiftc -O \\\n  -target \"${ARCH}-apple-macos${DEPLOYMENT_TARGET}\" \\\n  -o \"${OUTPUT_BIN}\" \\\n  \"${SOURCE}\"\n\n# 跟父 target 同一个签名身份,签上;Debug 下 EXPANDED_CODE_SIGN_IDENTITY 可能是 -,\n# 等价 ad-hoc 签名,够用。\nIDENT=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\ncodesign --force --sign \"${IDENT}\" --options runtime --timestamp=none \"${OUTPUT_BIN}\"\n\necho \"embedded watchdog: ${OUTPUT_BIN}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -407,7 +407,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4931AC622FC02A4200EE598C /* MenuBarLabel.swift in Sources */,
-				4931AC632FC02A4200EE598C /* CCBarApp.swift in Sources */,
+				4931AC632FC02A4200EE598C /* ManaBarApp.swift in Sources */,
 				4931AC642FC02A4200EE598C /* SettingsRootView.swift in Sources */,
 				4931AC652FC02A4200EE598C /* PopoverRootView.swift in Sources */,
 				4931AC662FC02A4200EE598C /* AppState.swift in Sources */,
@@ -578,12 +578,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ManaBar.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 324F7B2X9T;
+				DEVELOPMENT_TEAM = 659P79368S;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -595,7 +595,7 @@
 				);
 				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
-				PRODUCT_NAME = CCBar;
+				PRODUCT_NAME = ManaBar;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -611,12 +611,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CCBar.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ManaBar.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 324F7B2X9T;
+				DEVELOPMENT_TEAM = 659P79368S;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -628,7 +628,7 @@
 				);
 				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nanvon.ccbar;
-				PRODUCT_NAME = CCBar;
+				PRODUCT_NAME = ManaBar;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -642,7 +642,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4931AC2B2FC029A000EE598C /* Build configuration list for PBXProject "ccbar" */ = {
+		4931AC2B2FC029A000EE598C /* Build configuration list for PBXProject "ManaBar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4931AC392FC029A100EE598C /* Debug */,
@@ -651,7 +651,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4931AC3B2FC029A100EE598C /* Build configuration list for PBXNativeTarget "ccbar" */ = {
+		4931AC3B2FC029A100EE598C /* Build configuration list for PBXNativeTarget "ManaBar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4931AC3C2FC029A100EE598C /* Debug */,

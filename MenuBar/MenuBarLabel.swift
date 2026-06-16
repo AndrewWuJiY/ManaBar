@@ -75,26 +75,27 @@ enum MenuBarBadgeImage {
             return placeholderImage()
         }
 
-        let image = NSImage(size: NSSize(width: max(ceil(width), iconSize), height: height))
-        image.lockFocus()
-        NSColor.clear.setFill()
-        NSRect(origin: .zero, size: image.size).fill()
-
-        var x: CGFloat = 0
-        for (index, item) in items.enumerated() {
-            if index > 0 { x += segmentGap }
-            drawIcon(item, x: x)
-            x += iconSize
-            if !item.text.isEmpty {
-                x += iconTextGap
-                let textSize = item.text.size(withAttributes: attrs)
-                item.text.draw(at: NSPoint(x: x, y: floor((height - textSize.height) / 2)),
-                               withAttributes: attrs)
-                x += ceil(textSize.width)
+        // 用 drawingHandler 而非 lockFocus/unlockFocus:
+        // 后者拍一张静态位图,可能在状态栏拿到外观/tint 上下文前就生成,导致 MenuBarExtra
+        // 首帧空白、要点一下菜单栏才重绘。drawingHandler 会在系统每次需要渲染时(含首次显示、
+        // 外观切换)重新调用,菜单栏图标启动即可见。
+        let imageWidth = max(ceil(width), iconSize)
+        let image = NSImage(size: NSSize(width: imageWidth, height: height), flipped: false) { _ in
+            var x: CGFloat = 0
+            for (index, item) in items.enumerated() {
+                if index > 0 { x += segmentGap }
+                drawIcon(item, x: x)
+                x += iconSize
+                if !item.text.isEmpty {
+                    x += iconTextGap
+                    let textSize = item.text.size(withAttributes: attrs)
+                    item.text.draw(at: NSPoint(x: x, y: floor((height - textSize.height) / 2)),
+                                   withAttributes: attrs)
+                    x += ceil(textSize.width)
+                }
             }
+            return true
         }
-
-        image.unlockFocus()
         image.isTemplate = true
         return image
     }
@@ -109,7 +110,7 @@ enum MenuBarBadgeImage {
         var parts: [String] = []
         if showCodex { parts.append("Codex \(pctText(codex, window: window))") }
         if showClaude { parts.append("Claude \(pctText(claude, window: window))") }
-        return parts.isEmpty ? "CCBar" : parts.joined(separator: ", ")
+        return parts.isEmpty ? "ManaBar" : parts.joined(separator: ", ")
     }
 
     private static var textAttributes: [NSAttributedString.Key: Any] {
@@ -138,15 +139,13 @@ enum MenuBarBadgeImage {
     }
 
     private static func placeholderImage() -> NSImage {
-        let image = NSImage(size: NSSize(width: iconSize, height: height))
-        image.lockFocus()
-        NSColor.clear.setFill()
-        NSRect(origin: .zero, size: image.size).fill()
-        if let img = MenuBarLogo.rawImage(named: "codex") {
-            img.draw(in: NSRect(x: 0, y: floor((height - iconSize) / 2),
-                                width: iconSize, height: iconSize))
+        let image = NSImage(size: NSSize(width: iconSize, height: height), flipped: false) { _ in
+            if let img = MenuBarLogo.rawImage(named: "codex") {
+                img.draw(in: NSRect(x: 0, y: floor((height - iconSize) / 2),
+                                    width: iconSize, height: iconSize))
+            }
+            return true
         }
-        image.unlockFocus()
         image.isTemplate = true
         return image
     }

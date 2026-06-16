@@ -158,6 +158,19 @@ struct SettingsRootView: View {
                 .tint(.green)
                 .disabled(!settings.floatingEnabled)
             }
+            PrefsRow(label: "Show 5h reset time", chinese: "显示 5h 重置时间") {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingShowReset },
+                    set: { newValue in
+                        settings.floatingShowReset = newValue
+                        FloatingPanelController.shared.sync()
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+                .disabled(!settings.floatingEnabled)
+            }
         }
     }
 
@@ -243,6 +256,24 @@ struct SettingsRootView: View {
 
     private func generalGroup(settings: SettingsStore) -> some View {
         PrefsGroup(title: "General", chinese: "通用") {
+            PrefsRow(
+                label: "Appearance",
+                chinese: "外观",
+                desc: "Applies to popover, main window and floating HUD.",
+                chineseDesc: "对弹出窗口、主窗口和悬浮窗都生效"
+            ) {
+                Picker("", selection: Binding(
+                    get: { settings.appAppearance },
+                    set: { settings.appAppearance = $0 }
+                )) {
+                    Text(tr("System", "跟随系统")).tag(AppAppearanceChoice.system)
+                    Text(tr("Light", "浅色")).tag(AppAppearanceChoice.light)
+                    Text(tr("Dark", "深色")).tag(AppAppearanceChoice.dark)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
             PrefsRow(label: "Language", chinese: "语言") {
                 Picker("", selection: Binding(
                     get: { settings.appLanguage },
@@ -303,8 +334,8 @@ struct SettingsRootView: View {
 
     private var footer: some View {
         HStack(spacing: 8) {
-            Text(tr("cc-bar \(shortVersion) · made with Liquid Glass",
-                    "CCBar \(shortVersion) · 双应用额度与本地用量统计"))
+            Text(tr("ManaBar \(shortVersion) · made with Liquid Glass",
+                    "ManaBar \(shortVersion) · 双应用额度与本地用量统计"))
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
             Spacer()
@@ -457,16 +488,16 @@ private struct AccountRow: View {
     private var statusBadge: some View {
         if email != nil {
             HStack(spacing: 4) {
-                Circle().fill(Color.green).frame(width: 6, height: 6)
+                Circle().fill(Color.connectedStatus).frame(width: 7, height: 7)
                 Text(tr("Connected", "已连接"))
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.green)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.connectedStatus)
             }
         } else {
             HStack(spacing: 4) {
-                Circle().fill(Color.orange).frame(width: 6, height: 6)
+                Circle().fill(Color.orange).frame(width: 7, height: 7)
                 Text(tr("Not detected", "未识别"))
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 11.5))
                     .foregroundStyle(.orange)
             }
         }

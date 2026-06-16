@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct CCBarApp: App {
+struct ManaBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
 
@@ -15,7 +15,7 @@ struct CCBarApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("CCBar", id: "main") {
+        Window("ManaBar", id: "main") {
             MainWindowRootView()
                 .environment(appState)
         }

@@ -1,7 +1,16 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import Observation
 import ServiceManagement
+
+enum AppAppearanceChoice: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+}
 
 enum QuotaIntervalChoice: String, CaseIterable, Identifiable {
     case m1
@@ -106,6 +115,7 @@ final class SettingsStore {
     var floatingEnabled: Bool { didSet { defaults.set(floatingEnabled, forKey: Keys.floatingEnabled) } }
     var floatingShowCodex: Bool { didSet { defaults.set(floatingShowCodex, forKey: Keys.floatingShowCodex) } }
     var floatingShowClaude: Bool { didSet { defaults.set(floatingShowClaude, forKey: Keys.floatingShowClaude) } }
+    var floatingShowReset: Bool { didSet { defaults.set(floatingShowReset, forKey: Keys.floatingShowReset) } }
 
     // 刷新
     var quotaInterval: QuotaIntervalChoice { didSet { defaults.set(quotaInterval.rawValue, forKey: Keys.quotaInterval) } }
@@ -116,7 +126,21 @@ final class SettingsStore {
     var showServiceStatus: Bool { didSet { defaults.set(showServiceStatus, forKey: Keys.showServiceStatus) } }
 
     // 通用
-    var appLanguage: AppLanguage { didSet { defaults.set(appLanguage.rawValue, forKey: Keys.appLanguage) } }
+    /// 外观：跟随系统 / 浅色 / 深色。生效见 `applyAppearance()`。
+    var appAppearance: AppAppearanceChoice {
+        didSet {
+            defaults.set(appAppearance.rawValue, forKey: Keys.appAppearance)
+            applyAppearance()
+        }
+    }
+
+    var appLanguage: AppLanguage {
+        didSet {
+            defaults.set(appLanguage.rawValue, forKey: Keys.appLanguage)
+            // 切换语言立即刷新 _cachedLanguage,不依赖下一次 resolvedLanguage 渲染访问
+            _ = resolvedLanguage
+        }
+    }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin) } }
 
     /// 隐私模式：Popover 中主账号邮箱、Codex 副账号名称均隐藏
@@ -146,6 +170,7 @@ final class SettingsStore {
         floatingEnabled = defaults.object(forKey: Keys.floatingEnabled) as? Bool ?? false
         floatingShowCodex = defaults.object(forKey: Keys.floatingShowCodex) as? Bool ?? true
         floatingShowClaude = defaults.object(forKey: Keys.floatingShowClaude) as? Bool ?? true
+        floatingShowReset = defaults.object(forKey: Keys.floatingShowReset) as? Bool ?? true
         // 刷新
         let qiRaw = defaults.string(forKey: Keys.quotaInterval) ?? QuotaIntervalChoice.m2.rawValue
         quotaInterval = QuotaIntervalChoice(rawValue: qiRaw) ?? .m2
@@ -155,6 +180,8 @@ final class SettingsStore {
         resetTimeDisplay = ResetTimeDisplay(rawValue: rtdRaw) ?? .relative
         showServiceStatus = defaults.object(forKey: Keys.showServiceStatus) as? Bool ?? true
         // 通用：launchAtLogin 以系统当前注册状态为准
+        let appearanceRaw = defaults.string(forKey: Keys.appAppearance) ?? AppAppearanceChoice.system.rawValue
+        appAppearance = AppAppearanceChoice(rawValue: appearanceRaw) ?? .system
         let langRaw = defaults.string(forKey: Keys.appLanguage) ?? AppLanguage.system.rawValue
         appLanguage = AppLanguage(rawValue: langRaw) ?? .system
         let stored = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
@@ -162,6 +189,8 @@ final class SettingsStore {
         privacyMode = defaults.object(forKey: Keys.privacyMode) as? Bool ?? true
         didShowKeychainPrompt = defaults.object(forKey: Keys.didShowKeychainPrompt) as? Bool ?? false
         didCompleteOnboarding = defaults.object(forKey: Keys.didCompleteOnboarding) as? Bool ?? false
+        // 立即播种 _cachedLanguage,避免首个 tr() 调用早于任何 resolvedLanguage 访问时拿到默认值
+        _ = resolvedLanguage
     }
 
     /// 账号与菜单栏开关的合取，最终决定菜单栏该不该画该应用
@@ -177,13 +206,16 @@ final class SettingsStore {
     /// 导致即便系统设为中文也判定为英文。`Locale.preferredLanguages.first` 反映用户在系统设置中排首位的语言,
     /// 与 App 本地化无关,例如 `zh-Hans-CN` / `zh-Hant-TW`,前缀判断对简繁均成立。
     var resolvedLanguage: ResolvedLanguage {
+        let result: ResolvedLanguage
         switch appLanguage {
         case .system:
             let code = Locale.preferredLanguages.first ?? "en"
-            return code.hasPrefix("zh") ? .zh : .en
-        case .zh: return .zh
-        case .en: return .en
+            result = code.hasPrefix("zh") ? .zh : .en
+        case .zh: result = .zh
+        case .en: result = .en
         }
+        _cachedLanguage = result
+        return result
     }
 
     // MARK: - Floating panel frame
@@ -215,6 +247,18 @@ final class SettingsStore {
         }
     }
 
+    // MARK: - Appearance
+
+    /// 把当前外观设置应用到整个 App（主窗口 / Popover / 悬浮窗都跟随 NSApp.appearance）。
+    /// 启动时由 AppDelegate 调一次，之后由 `appAppearance.didSet` 触发。
+    func applyAppearance() {
+        switch appAppearance {
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
+
     // MARK: - Launch at login
 
     /// 当前系统记录的注册状态
@@ -241,10 +285,12 @@ final class SettingsStore {
         static let floatingEnabled = "ccbar.settings.floatingEnabled"
         static let floatingShowCodex = "ccbar.settings.floatingShowCodex"
         static let floatingShowClaude = "ccbar.settings.floatingShowClaude"
+        static let floatingShowReset = "ccbar.settings.floatingShowReset"
         static let quotaInterval = "ccbar.settings.quotaInterval"
         static let usageInterval = "ccbar.settings.usageInterval"
         static let resetTimeDisplay = "ccbar.settings.resetTimeDisplay"
         static let showServiceStatus = "ccbar.settings.showServiceStatus"
+        static let appAppearance = "ccbar.settings.appAppearance"
         static let launchAtLogin = "ccbar.settings.launchAtLogin"
         static let appLanguage = "ccbar.settings.appLanguage"
         static let privacyMode = "ccbar.settings.privacyMode"

@@ -294,14 +294,14 @@ enum ClaudeProbeWorkspace {
 
 // MARK: - Watchdog Helper Resolver
 
-/// 找到内嵌的 `CCBarClaudeWatchdog`。
-/// 发布构建里它在 `CCBar.app/Contents/Helpers/CCBarClaudeWatchdog`;
+/// 找到内嵌的 `ManaBarClaudeWatchdog`。
+/// 发布构建里它在 `CCBar.app/Contents/Helpers/ManaBarClaudeWatchdog`;
 /// Debug 跑(尤其 Xcode Run)的话 bundle 里可能没有,这种情况下返回 nil,
 /// 让调用方降级到直接起 claude(开发期容忍一下 TCC 弹窗)。
 enum ClaudeWatchdogResolver {
     static func resolve() -> String? {
         let helperURL = Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Helpers/CCBarClaudeWatchdog")
+            .appendingPathComponent("Contents/Helpers/ManaBarClaudeWatchdog")
         guard FileManager.default.isExecutableFile(atPath: helperURL.path) else {
             return nil
         }
@@ -320,7 +320,7 @@ enum ClaudeWatchdogResolver {
 ///
 /// 我们不需要解析输出,目的只是"让 CLI 跑一次,顺便触发它内部的 token refresh"。
 ///
-/// 关键:如果发现内嵌的 `CCBarClaudeWatchdog`,启动 claude 时走 watchdog 套娃,
+/// 关键:如果发现内嵌的 `ManaBarClaudeWatchdog`,启动 claude 时走 watchdog 套娃,
 /// 这样 macOS TCC 把潜在的文件访问归到 watchdog 而不是 cc-bar 本体。
 enum ClaudePTYTouch {
     enum Error: Swift.Error, CustomStringConvertible {

@@ -4,7 +4,7 @@ import AppKit
 // MARK: - Product accent colors
 //
 // Codex / Claude 识别色定义在 Asset Catalog (CodexAccent / ClaudeAccent)。
-// 浅色 #6C6C70 / #D97757,深色 #98989D / #E68A6E。
+// 浅色 #718DFF / #D97757,深色 #8FA6FF / #E68A6E。
 // Xcode 自动从 .xcassets 生成 `Color.codexAccent` / `Color.claudeAccent`,直接使用即可。
 // 见 docs/03-设计风格.md §4.2。
 
@@ -23,18 +23,22 @@ func statusColor(remainingPercent: Double?, tint: Color) -> Color {
 }
 
 // normal 档统一用石墨灰(中性灰),不随服务识别色变化。
+// 2026-06 加深一档:原 #6C6C70 / #98989D 在大字号和浅色卡片上偏淡,可读性不足。
 private let quotaNormalColor = quotaAdaptiveColor(
-    light: (red: 108, green: 108, blue: 112), // #6C6C70
-    dark: (red: 152, green: 152, blue: 157)   // #98989D
+    light: (red: 72, green: 72, blue: 77),    // #48484D
+    dark: (red: 180, green: 180, blue: 186)   // #B4B4BA
 )
 
+// warning 浅色档不能用亮黄(#F6C343 在白底对比度 <2:1,文字几乎看不见),
+// 改用深琥珀;进度条/图表点一并变深,"黄=警告"语义不变。深色仍用亮黄。
 private let quotaWarningColor = quotaAdaptiveColor(
-    light: (red: 246, green: 195, blue: 67),  // #F6C343
+    light: (red: 178, green: 124, blue: 0),   // #B27C00
     dark: (red: 255, green: 226, blue: 122)   // #FFE27A
 )
 
+// low 浅色档同理加深一点,白底上 #FF7A2F 文字偏浅。
 private let quotaLowColor = quotaAdaptiveColor(
-    light: (red: 255, green: 122, blue: 47),  // #FF7A2F
+    light: (red: 224, green: 96, blue: 21),   // #E06015
     dark: (red: 255, green: 161, blue: 95)    // #FFA15F
 )
 
@@ -57,6 +61,15 @@ private func quotaAdaptiveColor(
             alpha: 1
         )
     })
+}
+
+extension Color {
+    /// 设置页「已连接」状态用的绿。参考 GitHub success green(成熟的"连接/成功"绿),
+    /// 浅深各一套、白底深底都清晰:浅色 #2DA44E,深色 #3FB950。
+    static let connectedStatus = quotaAdaptiveColor(
+        light: (red: 45, green: 164, blue: 78),    // #2DA44E
+        dark: (red: 63, green: 185, blue: 80)      // #3FB950
+    )
 }
 
 // MARK: - Reset time (hover 切换格式)
@@ -181,7 +194,7 @@ struct ServiceTile: View {
     var cornerRadius: CGFloat = 6
 
     /// Codex 的 tile 还原 OpenAI 官方品牌图标:白底黑 logo + 极细边框。
-    /// 其余地方(文字色、环形、图表)的 `Color.codexAccent` 仍是石墨灰,不受影响。
+    /// 其余地方(文字色、环形、图表)的 `Color.codexAccent` 是蓝紫(#718DFF / #8FA6FF),不受影响。
     private var isOpenAIBrand: Bool { logoName == "codex" }
 
     private var background: Color { isOpenAIBrand ? .white : tint }

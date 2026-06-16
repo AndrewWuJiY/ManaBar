@@ -167,7 +167,8 @@ struct PopoverRootView: View {
                         error: appState.claudeQuotaError,
                         weekSpend: weekSpend(for: .claude),
                         todayCost: appState.claudeTodayCost,
-                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil
+                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil,
+                        cliOnlySpend: true
                     )
                 }
             }
@@ -289,6 +290,8 @@ private struct ServiceBlockView: View {
     let weekSpend: Decimal
     let todayCost: Decimal?
     let serviceStatus: ServiceStatus?
+    /// 花费是否仅来自本机 CLI(Claude=true:桌面端/网页不计入;Codex=false:桌面端也会记录)。
+    var cliOnlySpend: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -319,7 +322,7 @@ private struct ServiceBlockView: View {
                 + Text("   ")
                 + Text(subtitle)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary.opacity(0.75))
+                    .foregroundColor(.secondary)
             )
             .lineLimit(1)
             .truncationMode(.tail)
@@ -363,7 +366,7 @@ private struct ServiceBlockView: View {
                 Text("5-HOUR · 五小时")
                     .font(.system(size: 9, weight: .semibold))
                     .kerning(0.5)
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(.tertiary)
             }
 
             // 右:5h 进度条 + 两行(数值 / label)
@@ -388,13 +391,16 @@ private struct ServiceBlockView: View {
                     HStack(spacing: 0) {
                         BilingualInline(english: "reset", chinese: "重置")
                             .font(.system(size: 9.5))
-                            .foregroundStyle(.quaternary)
+                            .foregroundStyle(.tertiary)
 
                         Spacer(minLength: 0)
 
-                        BilingualInline(english: "cost", chinese: "花费")
+                        BilingualInline(
+                            english: cliOnlySpend ? "cost · CLI only" : "cost",
+                            chinese: cliOnlySpend ? "花费 · 仅本机 CLI" : "花费"
+                        )
                             .font(.system(size: 9.5))
-                            .foregroundStyle(.quaternary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }
@@ -407,7 +413,7 @@ private struct ServiceBlockView: View {
             Text("WK")
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.6)
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(.tertiary)
                 .frame(width: 36, alignment: .leading)
 
             ProgressBar(value: weeklyRemaining / 100, tint: weeklyColor, height: 2.5)
@@ -419,7 +425,7 @@ private struct ServiceBlockView: View {
 
             ResetTimeText(resetsAt: snapshot?.weekly?.resetsAt)
                 .font(.system(size: 10.5))
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -427,7 +433,7 @@ private struct ServiceBlockView: View {
         HStack(spacing: 4) {
             BilingualInline(english: english, chinese: chinese)
                 .font(.system(size: 10))
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(.tertiary)
             Text(value)
                 .font(.system(size: 11, weight: .medium))
                 .monospacedDigit()

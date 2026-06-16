@@ -1,4 +1,4 @@
-// CCBarClaudeWatchdog
+// ManaBarClaudeWatchdog
 //
 // 一个最小化的进程套娃中间层,专门用于"代 cc-bar 启动 `claude` CLI"。
 //
@@ -30,7 +30,7 @@ private nonisolated(unsafe) var globalChildPID: pid_t = 0
 private nonisolated(unsafe) var globalShouldTerminate: Int32 = 0
 
 private func usageAndExit() -> Never {
-    fputs("Usage: CCBarClaudeWatchdog -- <binary> [args...]\n", stderr)
+    fputs("Usage: ManaBarClaudeWatchdog -- <binary> [args...]\n", stderr)
     Darwin.exit(WatchdogExitCode.usage)
 }
 
@@ -97,7 +97,7 @@ let spawnResult: Int32 = childArgv.withUnsafeBufferPointer { buffer in
 }
 
 guard spawnResult == 0, globalChildPID > 0 else {
-    fputs("CCBarClaudeWatchdog: failed to spawn child: \(childBinary) (rc=\(spawnResult))\n", stderr)
+    fputs("ManaBarClaudeWatchdog: failed to spawn child: \(childBinary) (rc=\(spawnResult))\n", stderr)
     Darwin.exit(WatchdogExitCode.spawnFailed)
 }
 

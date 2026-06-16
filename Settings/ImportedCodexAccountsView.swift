@@ -92,8 +92,8 @@ struct ImportedCodexAccountsView: View {
         } message: {
             if let target = deleteTarget {
                 let name = rowTitle(target)
-                Text(tr("\u{201C}\(name)\u{201D} will be removed from cc-bar. The account itself is not affected.",
-                        "\u{201C}\(name)\u{201D} 将从 cc-bar 中移除，账号本身不受影响。"))
+                Text(tr("\u{201C}\(name)\u{201D} will be removed from ManaBar. The account itself is not affected.",
+                        "\u{201C}\(name)\u{201D} 将从 ManaBar 中移除，账号本身不受影响。"))
             }
         }
     }

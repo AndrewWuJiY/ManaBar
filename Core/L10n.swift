@@ -28,6 +28,10 @@ enum ResolvedLanguage {
     case en
 }
 
+/// 非隔离的语言缓存。tr() 读这个值，避免每次都触碰 @MainActor 的 SettingsStore。
+/// 由 SettingsStore 在语言变化时更新（见下方说明）。
+nonisolated(unsafe) var _cachedLanguage: ResolvedLanguage = .zh
+
 @MainActor
 enum L10n {
     static var current: ResolvedLanguage { SettingsStore.shared.resolvedLanguage }
@@ -41,9 +45,11 @@ enum L10n {
 }
 
 /// SwiftUI view body 内的便捷选词函数。等同于 `L10n.tr(en, zh)`。
-@MainActor
 func tr(_ english: String, _ chinese: String) -> String {
-    L10n.tr(english, chinese)
+    switch _cachedLanguage {
+    case .zh: return chinese
+    case .en: return english
+    }
 }
 
 /// 根据用户设置把额度重置时间格式化为「剩余时长」或「绝对时间(MM-dd HH:mm)」。

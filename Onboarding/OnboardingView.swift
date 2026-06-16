@@ -76,7 +76,7 @@ private struct WelcomeStep: View {
             AppIconBlock()
                 .padding(.bottom, 24)
 
-            Text(tr("Welcome to cc-bar", "欢迎使用 cc-bar"))
+            Text(tr("Welcome to ManaBar", "欢迎使用 ManaBar"))
                 .font(.system(size: 22, weight: .bold))
                 .kerning(-0.4)
 
@@ -274,8 +274,8 @@ private struct ReadOnlyInfoCard: View {
                 Text(tr("Read-only access", "仅读取"))
                     .font(.system(size: 11.5, weight: .medium))
                 Text(tr(
-                    "cc-bar reads quota status locally. It never sends your credentials anywhere.",
-                    "cc-bar 仅本地读取额度,不会向任何地方发送你的凭据。"
+                    "ManaBar reads quota status locally. It never sends your credentials anywhere.",
+                    "ManaBar 仅本地读取额度,不会向任何地方发送你的凭据。"
                 ))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)

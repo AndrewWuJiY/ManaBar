@@ -1,5 +1,7 @@
 import SwiftUI
 import Charts
+import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - StatsRange
 
@@ -138,6 +140,22 @@ enum StatsServiceFilter: Hashable, CaseIterable {
 enum StatsViewMode: Hashable {
     case overview
     case timeline
+    case breakdown
+}
+
+// MARK: - Breakdown sort
+
+/// 明细表可排序列。
+enum BreakdownColumn: Hashable {
+    case date
+    case service
+    case model
+    case input
+    case cacheRead
+    case cacheWrite
+    case output
+    case total
+    case cost
 }
 
 // MARK: - StatsView
@@ -151,6 +169,8 @@ struct StatsView: View {
         for: Date().addingTimeInterval(-7 * 86400)
     )
     @State private var customTo: Date = Calendar.current.startOfDay(for: Date())
+    @State private var breakdownSortColumn: BreakdownColumn = .date
+    @State private var breakdownSortAscending: Bool = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -172,6 +192,8 @@ struct StatsView: View {
             overviewContent
         case .timeline:
             timelineContent
+        case .breakdown:
+            breakdownContent
         }
     }
 
@@ -198,7 +220,13 @@ struct StatsView: View {
 
     private var timelineContent: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Spacer()
+                rangePicker
+            }
+            if range == .custom { customRangeRow }
             timelineHeader
+            if showHistoryStartNote { historyStartNote }
             if timelineSections.isEmpty {
                 placeholderHeight(220, message: tr("No accounts", "暂无账号"))
                     .ccPanel(cornerRadius: 12)
@@ -209,6 +237,231 @@ struct StatsView: View {
             }
         }
         .padding(20)
+    }
+
+    // MARK: Breakdown
+
+    private var breakdownContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                localSpendNote
+                Spacer()
+                rangePicker
+                Button(action: exportBreakdownCSV) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.down")
+                        Text(tr("Export CSV", "导出 CSV"))
+                    }
+                    .font(.system(size: 12))
+                }
+                .controlSize(.small)
+                .disabled(breakdownRows.isEmpty)
+                .pointingHandCursor()
+            }
+            if range == .custom { customRangeRow }
+
+            VStack(alignment: .leading, spacing: 0) {
+                if breakdownRows.isEmpty {
+                    placeholderHeight(220, message: tr("No data", "无数据"))
+                } else {
+                    breakdownTable
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .ccPanel(cornerRadius: 12)
+        }
+        .padding(20)
+    }
+
+    private var breakdownTable: some View {
+        VStack(spacing: 0) {
+            breakdownHeaderRow
+            ForEach(breakdownRows) { row in
+                Divider()
+                breakdownRowView(row.bucket)
+            }
+            Divider().overlay(Color.secondary.opacity(0.28))
+            breakdownFooterRow
+        }
+    }
+
+    private var breakdownHeaderRow: some View {
+        HStack(spacing: 0) {
+            breakdownHeader("Date", "日期", column: .date, width: 92, alignment: .leading)
+            breakdownHeader("Service", "服务", column: .service, width: 90, alignment: .leading)
+            breakdownHeader("Model", "模型", column: .model, width: nil, alignment: .leading)
+            breakdownHeader("In", "输入", column: .input, width: 72, alignment: .trailing)
+            breakdownHeader("Cache R", "缓存读", column: .cacheRead, width: 84, alignment: .trailing)
+            breakdownHeader("Cache W", "缓存写", column: .cacheWrite, width: 84, alignment: .trailing)
+            breakdownHeader("Out", "输出", column: .output, width: 72, alignment: .trailing)
+            breakdownHeader("Total", "总计", column: .total, width: 84, alignment: .trailing)
+            breakdownHeader("Cost", "花费", column: .cost, width: 92, alignment: .trailing)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+    }
+
+    private func breakdownHeader(
+        _ english: String,
+        _ chinese: String,
+        column: BreakdownColumn,
+        width: CGFloat?,
+        alignment: Alignment
+    ) -> some View {
+        let trailing = alignment == .trailing
+        return Button {
+            if breakdownSortColumn == column {
+                breakdownSortAscending.toggle()
+            } else {
+                breakdownSortColumn = column
+                breakdownSortAscending = false
+            }
+        } label: {
+            HStack(spacing: 3) {
+                if trailing { Spacer(minLength: 0) }
+                Text(tr(english, chinese))
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(breakdownSortColumn == column ? Color.primary : .secondary)
+                if breakdownSortColumn == column {
+                    Image(systemName: breakdownSortAscending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                if !trailing { Spacer(minLength: 0) }
+            }
+            .frame(maxWidth: width == nil ? .infinity : nil, alignment: alignment)
+            .frame(width: width, alignment: alignment)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+    }
+
+    private func breakdownRowView(_ bucket: UsageBucket) -> some View {
+        HStack(spacing: 0) {
+            Text(StatsFormatter.day(bucket.day))
+                .font(.system(size: 11.5, design: .monospaced))
+                .foregroundStyle(.primary)
+                .frame(width: 92, alignment: .leading)
+
+            HStack(spacing: 5) {
+                ServiceMark(color: bucket.app == .codex ? .codexAccent : .claudeAccent, size: 7)
+                Text(bucket.app == .codex ? "Codex" : "Claude")
+                    .font(.system(size: 11.5))
+                Spacer(minLength: 0)
+            }
+            .frame(width: 90, alignment: .leading)
+
+            Text(bucket.model)
+                .font(.system(size: 11.5))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            breakdownTokenCell(bucket.inputTokens, width: 72)
+            breakdownTokenCell(bucket.cacheReadTokens, width: 84)
+            breakdownTokenCell(bucket.cacheCreationTokens, width: 84)
+            breakdownTokenCell(bucket.outputTokens, width: 72)
+            breakdownTokenCell(bucket.breakdownTotalTokens, width: 84)
+
+            Text(StatsFormatter.cost(bucket.costUSD))
+                .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.primary)
+                .frame(width: 92, alignment: .trailing)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+    }
+
+    private func breakdownTokenCell(_ value: Int, width: CGFloat) -> some View {
+        Text(StatsFormatter.compactToken(value))
+            .font(.system(size: 11.5, design: .monospaced))
+            .foregroundStyle(.secondary)
+            .frame(width: width, alignment: .trailing)
+    }
+
+    private var breakdownFooterRow: some View {
+        let totals = currentTotalsAll
+        return HStack(spacing: 0) {
+            Text("\(tr("Total", "合计")) · \(breakdownRows.count) \(tr("rows", "行"))")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 182, alignment: .leading)
+            Spacer(minLength: 0)
+            breakdownTokenCell(totals.inputTokens, width: 72)
+            breakdownTokenCell(totals.cacheReadTokens, width: 84)
+            breakdownTokenCell(totals.cacheCreationTokens, width: 84)
+            breakdownTokenCell(totals.outputTokens, width: 72)
+            breakdownTokenCell(totals.totalTokens, width: 84)
+            Text(StatsFormatter.cost(totals.costUSD))
+                .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.primary)
+                .frame(width: 92, alignment: .trailing)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+    }
+
+    /// 当前筛选(区间 + 服务)下的 bucket 行,按选中列排序。
+    private var breakdownRows: [BreakdownRow] {
+        let asc = breakdownSortAscending
+        func cmp<T: Comparable>(_ a: T, _ b: T) -> Bool { asc ? a < b : a > b }
+
+        let sorted = filteredBuckets.sorted { a, b in
+            switch breakdownSortColumn {
+            case .date:
+                if a.day != b.day { return cmp(a.day, b.day) }
+            case .service:
+                if a.app != b.app { return cmp(appOrder(a.app), appOrder(b.app)) }
+            case .model:
+                if a.model != b.model { return cmp(a.model, b.model) }
+            case .input:
+                if a.inputTokens != b.inputTokens { return cmp(a.inputTokens, b.inputTokens) }
+            case .cacheRead:
+                if a.cacheReadTokens != b.cacheReadTokens { return cmp(a.cacheReadTokens, b.cacheReadTokens) }
+            case .cacheWrite:
+                if a.cacheCreationTokens != b.cacheCreationTokens { return cmp(a.cacheCreationTokens, b.cacheCreationTokens) }
+            case .output:
+                if a.outputTokens != b.outputTokens { return cmp(a.outputTokens, b.outputTokens) }
+            case .total:
+                if a.breakdownTotalTokens != b.breakdownTotalTokens { return cmp(a.breakdownTotalTokens, b.breakdownTotalTokens) }
+            case .cost:
+                if a.costUSD != b.costUSD { return cmp(a.costUSD, b.costUSD) }
+            }
+            // 同值兜底:日期降序 → Codex 先于 Claude → 花费降序。
+            if a.day != b.day { return a.day > b.day }
+            if a.app != b.app { return appOrder(a.app) < appOrder(b.app) }
+            return a.costUSD > b.costUSD
+        }
+        return sorted.map { BreakdownRow(bucket: $0) }
+    }
+
+    /// Codex 永远排在 Claude 前(项目规则)。
+    private func appOrder(_ app: UsageApp) -> Int {
+        app == .codex ? 0 : 1
+    }
+
+    private func exportBreakdownCSV() {
+        let rows = breakdownRows
+        guard !rows.isEmpty else { return }
+
+        var csv = "date,service,model,input,cache_read,cache_write,output,total,cost_usd\n"
+        for row in rows {
+            let b = row.bucket
+            let service = b.app == .codex ? "Codex" : "Claude"
+            let model = "\"\(b.model.replacingOccurrences(of: "\"", with: "\"\""))\""
+            csv += "\(StatsFormatter.day(b.day)),\(service),\(model),"
+            csv += "\(b.inputTokens),\(b.cacheReadTokens),\(b.cacheCreationTokens),"
+            csv += "\(b.outputTokens),\(b.breakdownTotalTokens),\(b.costUSD.asPlainString)\n"
+        }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "manabar-usage-\(StatsFormatter.day(Date())).csv"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? csv.data(using: .utf8)?.write(to: url)
     }
 
     // MARK: Sidebar
@@ -245,9 +498,14 @@ struct StatsView: View {
                 ) {
                     viewMode = .timeline
                 }
-                sidebarItem(english: "Breakdown", chinese: "明细", icon: "list.bullet", active: false) {}
-                    .disabled(true)
-                    .opacity(0.5)
+                sidebarItem(
+                    english: "Breakdown",
+                    chinese: "明细",
+                    icon: "list.bullet",
+                    active: viewMode == .breakdown
+                ) {
+                    viewMode = .breakdown
+                }
             }
 
             Spacer()
@@ -317,16 +575,38 @@ struct StatsView: View {
 
     // MARK: Top bar (segmented + custom)
 
+    private var rangePicker: some View {
+        Picker("", selection: $range) {
+            ForEach(StatsRange.allCases, id: \.self) { r in
+                Text(tr(r.englishLabel, r.chineseLabel)).tag(r)
+            }
+        }
+        .pickerStyle(.segmented)
+        .fixedSize()
+    }
+
+    /// Overview / Breakdown 顶部左上角常显说明。
+    /// 仅 Claude 的花费是本机 CLI-only(桌面端/网页不计入);Codex 桌面端也会被记录,故只点名 Claude。
+    /// 不用 hover(主窗口虽为常规窗口,`.help()` 在 .accessory 应用里仍不稳),直接可见。
+    private var localSpendNote: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 10.5))
+            Text(tr(
+                "Claude spend counts local CLI usage only; its desktop / web usage shows in the quota, not here",
+                "Claude 花费仅统计本机 CLI 用量;其桌面端 / 网页消耗见额度环、不计入"
+            ))
+            .font(.system(size: 11))
+        }
+        .foregroundStyle(.tertiary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
     private var topBar: some View {
         HStack(spacing: 12) {
+            localSpendNote
             Spacer()
-            Picker("", selection: $range) {
-                ForEach(StatsRange.allCases, id: \.self) { r in
-                    Text(tr(r.englishLabel, r.chineseLabel)).tag(r)
-                }
-            }
-            .pickerStyle(.segmented)
-            .fixedSize()
+            rangePicker
         }
     }
 
@@ -394,33 +674,8 @@ struct StatsView: View {
                 if dailySamples.isEmpty {
                     placeholderHeight(160, message: tr("No data", "无数据"))
                 } else {
-                    Chart(dailySamples) { sample in
-                        BarMark(
-                            x: .value("Day", sample.day, unit: .day),
-                            y: .value("Cost", sample.codexCost.doubleValue),
-                            stacking: .standard
-                        )
-                        .foregroundStyle(Color.codexAccent)
-                        .cornerRadius(2)
-
-                        BarMark(
-                            x: .value("Day", sample.day, unit: .day),
-                            y: .value("Cost", sample.claudeCost.doubleValue),
-                            stacking: .standard
-                        )
-                        .foregroundStyle(Color.claudeAccent)
-                        .cornerRadius(2)
-                    }
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .day, count: max(1, dailySamples.count / 5))) { value in
-                            AxisValueLabel(format: .dateTime.month(.abbreviated).day(),
-                                           centered: true)
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .chartYAxis(.hidden)
-                    .frame(height: 160)
+                    DailyUsageChart(samples: dailySamples)
+                        .frame(height: 160)
                 }
             }
         }
@@ -487,17 +742,51 @@ struct StatsView: View {
     private var timelineHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(tr("Today 5H Quota", "今日 5H 额度"))
+                Text(tr("5H Quota changes", "5H 额度变化"))
                     .font(.system(size: 18, weight: .semibold))
                 Text(tr("Only quota changes are shown.", "仅展示额度发生变化的时间点。"))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(StatsFormatter.day(Date()))
+            Text(timelineDateLabel)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var timelineDateLabel: String {
+        if range == .all { return tr("All time", "全部") }
+        let (from, to) = rangeBounds
+        let fromStr = StatsFormatter.day(from)
+        let toStr = StatsFormatter.day(to.addingTimeInterval(-1))
+        return fromStr == toStr ? fromStr : "\(fromStr) ~ \(toStr)"
+    }
+
+    /// 额度历史里最早一条事件的时间(跨天留存从改动当天才开始累积)。
+    private var earliestHistoryDate: Date? {
+        appState.quotaHistory.events.map(\.sampledAt).min()
+    }
+
+    /// 选中区间起点早于已记录的最早一天时,提示"更早还没有数据",避免误以为筛选失灵。
+    private var showHistoryStartNote: Bool {
+        guard range != .today, let earliest = earliestHistoryDate else { return false }
+        return rangeBounds.from < Calendar.current.startOfDay(for: earliest)
+    }
+
+    private var historyStartNote: some View {
+        let dateStr = earliestHistoryDate.map(StatsFormatter.day) ?? ""
+        return HStack(spacing: 4) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 10.5))
+            Text(tr(
+                "Quota history starts \(dateStr); earlier data isn't recorded yet",
+                "额度历史从 \(dateStr) 起记录;更早暂无数据"
+            ))
+            .font(.system(size: 11))
+        }
+        .foregroundStyle(.tertiary)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var timelineSections: [QuotaTimelineSection] {
@@ -564,8 +853,9 @@ struct StatsView: View {
     }
 
     private func timelineEvents(for key: String) -> [QuotaChangeEvent] {
-        appState.quotaHistory.events
-            .filter { $0.accountKey == key }
+        let (from, to) = rangeBounds
+        return appState.quotaHistory.events
+            .filter { $0.accountKey == key && $0.sampledAt >= from && $0.sampledAt < to }
             .sorted { $0.sampledAt < $1.sampledAt }
     }
 
@@ -879,8 +1169,11 @@ private struct LimitRingRow: View {
                     .monospacedDigit()
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(label)
-                    .font(.system(size: 12, weight: .medium))
+                HStack(spacing: 5) {
+                    ServiceMark(color: tint, size: 7)
+                    Text(label)
+                        .font(.system(size: 12, weight: .medium))
+                }
                 Text(resetText)
                     .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
@@ -915,7 +1208,7 @@ private struct QuotaTimelineAccountPanel: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             if section.events.isEmpty {
-                Text(tr("No changes today", "今天暂无变动"))
+                Text(tr("No changes in range", "该区间暂无变动"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
@@ -940,7 +1233,7 @@ private struct QuotaTimelineAccountPanel: View {
             }
             Spacer()
             timelineMetric(label: tr("Current", "当前"), value: currentText)
-            timelineMetric(label: tr("Today", "今日"), value: StatsFormatter.quotaDelta(section.totalDelta))
+            timelineMetric(label: tr("Net", "净变"), value: StatsFormatter.quotaDelta(section.totalDelta))
             timelineMetric(label: tr("Latest", "最近"), value: latestText)
         }
     }
@@ -949,10 +1242,10 @@ private struct QuotaTimelineAccountPanel: View {
         VStack(alignment: .trailing, spacing: 1) {
             Text(label)
                 .font(.system(size: 9.5))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(.system(size: 11.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
     }
 
@@ -963,13 +1256,42 @@ private struct QuotaTimelineAccountPanel: View {
 
     private var latestText: String {
         guard let date = section.latestEventAt else { return "--" }
-        return StatsFormatter.time(date)
+        return Calendar.current.isDateInToday(date)
+            ? StatsFormatter.time(date)
+            : StatsFormatter.monthDayTime(date)
     }
 }
 
 private struct QuotaTimelineChart: View {
     let events: [QuotaChangeEvent]
     let tint: Color
+    @State private var hovered: QuotaChangeEvent?
+
+    /// 给 X 轴首尾各留约 4% padding,避免首点贴着 Y 轴标签、尾点贴着右缘。
+    /// 单点(lo == hi)时给 ±5 分钟,防止 domain 退化。
+    private var xDomain: ClosedRange<Date> {
+        let dates = events.map(\.sampledAt)
+        guard let lo = dates.min(), let hi = dates.max() else {
+            let now = Date()
+            return now.addingTimeInterval(-300)...now.addingTimeInterval(300)
+        }
+        guard lo < hi else {
+            return lo.addingTimeInterval(-300)...lo.addingTimeInterval(300)
+        }
+        let pad = hi.timeIntervalSince(lo) * 0.04
+        return lo.addingTimeInterval(-pad)...hi.addingTimeInterval(pad)
+    }
+
+    /// 跨天区间:X 轴与浮层显示日期而非纯时刻。
+    private var multiDay: Bool {
+        let dates = events.map(\.sampledAt)
+        guard let lo = dates.min(), let hi = dates.max() else { return false }
+        return !Calendar.current.isDate(lo, inSameDayAs: hi)
+    }
+
+    private var axisFormat: Date.FormatStyle {
+        multiDay ? .dateTime.month(.abbreviated).day() : .dateTime.hour().minute()
+    }
 
     var body: some View {
         Chart(events) { event in
@@ -984,17 +1306,18 @@ private struct QuotaTimelineChart: View {
                 x: .value("Time", event.sampledAt),
                 y: .value("Remaining", event.afterRemainingPercent)
             )
-            .foregroundStyle(statusColor(remainingPercent: Double(event.afterRemainingPercent), tint: tint))
-            .symbolSize(34)
+            .foregroundStyle(tint)
+            .symbolSize(30)
         }
+        .chartXScale(domain: xDomain)
         .chartYScale(domain: 0...100)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 5)) { value in
                 AxisGridLine()
                     .foregroundStyle(.quaternary)
-                AxisValueLabel(format: .dateTime.hour().minute())
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                AxisValueLabel(format: axisFormat)
+                    .font(.system(size: 10.5, design: .monospaced))
+                    .foregroundStyle(Color.primary.opacity(0.65))
             }
         }
         .chartYAxis {
@@ -1004,12 +1327,70 @@ private struct QuotaTimelineChart: View {
                 AxisValueLabel {
                     if let intValue = value.as(Int.self) {
                         Text("\(intValue)%")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.tertiary)
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(Color.primary.opacity(0.65))
                     }
                 }
             }
         }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location):
+                            hovered = event(at: location, proxy: proxy, geo: geo)
+                        case .ended:
+                            hovered = nil
+                        }
+                    }
+                if let hovered, let anchor = proxy.plotFrame,
+                   let xPos = proxy.position(forX: hovered.sampledAt) {
+                    let plot = geo[anchor]
+                    let yPos = proxy.position(forY: hovered.afterRemainingPercent) ?? 0
+                    Circle()
+                        .fill(tint)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
+                        .position(x: plot.minX + xPos, y: plot.minY + yPos)
+                    ChartCallout(lines: calloutLines(hovered))
+                        .position(
+                            x: clampX(plot.minX + xPos, in: plot),
+                            y: clampY(plot.minY + yPos - 30, in: plot)
+                        )
+                }
+            }
+        }
+    }
+
+    private func event(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> QuotaChangeEvent? {
+        guard let anchor = proxy.plotFrame else { return nil }
+        let plot = geo[anchor]
+        let xInPlot = location.x - plot.minX
+        guard xInPlot >= 0, xInPlot <= plot.width else { return nil }
+        guard let time: Date = proxy.value(atX: xInPlot, as: Date.self) else { return nil }
+        return events.min {
+            abs($0.sampledAt.timeIntervalSince(time)) < abs($1.sampledAt.timeIntervalSince(time))
+        }
+    }
+
+    private func clampX(_ x: CGFloat, in plot: CGRect) -> CGFloat {
+        min(max(x, plot.minX + 48), plot.maxX - 48)
+    }
+
+    private func clampY(_ y: CGFloat, in plot: CGRect) -> CGFloat {
+        min(max(y, plot.minY + 22), plot.maxY - 22)
+    }
+
+    private func calloutLines(_ e: QuotaChangeEvent) -> [ChartCallout.Line] {
+        let header = multiDay ? StatsFormatter.monthDayTime(e.sampledAt) : StatsFormatter.time(e.sampledAt)
+        return [
+            ChartCallout.Line(label: header, value: nil, color: nil),
+            ChartCallout.Line(label: tr("Remaining", "剩余"), value: "\(e.afterRemainingPercent)%", color: nil),
+            ChartCallout.Line(label: tr("Change", "变动"), value: StatsFormatter.quotaDelta(e.deltaPercent), color: nil)
+        ]
     }
 }
 
@@ -1070,15 +1451,151 @@ private struct QuotaTimelineTable: View {
     ) -> some View {
         Text(tr(english, chinese))
             .font(.system(size: 10.5, weight: .semibold))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(.secondary)
             .frame(width: width, alignment: alignment)
     }
 
     private func tableText(_ text: String, width: CGFloat, alignment: Alignment) -> some View {
         Text(text)
             .font(.system(size: 11.5, design: .monospaced))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.primary)
             .frame(width: width, alignment: alignment)
+    }
+}
+
+// MARK: - Daily usage chart (hover tooltip)
+
+private struct DailyUsageChart: View {
+    let samples: [DailySample]
+    @State private var hovered: DailySample?
+
+    var body: some View {
+        Chart(samples) { sample in
+            BarMark(
+                x: .value("Day", sample.day, unit: .day),
+                y: .value("Cost", sample.codexCost.doubleValue),
+                stacking: .standard
+            )
+            .foregroundStyle(Color.codexAccent)
+            .cornerRadius(2)
+            .opacity(barOpacity(sample))
+
+            BarMark(
+                x: .value("Day", sample.day, unit: .day),
+                y: .value("Cost", sample.claudeCost.doubleValue),
+                stacking: .standard
+            )
+            .foregroundStyle(Color.claudeAccent)
+            .cornerRadius(2)
+            .opacity(barOpacity(sample))
+        }
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: max(1, samples.count / 5))) { _ in
+                AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: true)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(Color.primary.opacity(0.65))
+            }
+        }
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location):
+                            hovered = sample(at: location, proxy: proxy, geo: geo)
+                        case .ended:
+                            hovered = nil
+                        }
+                    }
+                if let hovered, let anchor = proxy.plotFrame,
+                   let xPos = proxy.position(forX: hovered.day) {
+                    let plot = geo[anchor]
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.12))
+                        .frame(width: 1, height: plot.height)
+                        .position(x: plot.minX + xPos, y: plot.midY)
+                    ChartCallout(lines: calloutLines(hovered))
+                        .position(x: clampX(plot.minX + xPos, in: plot), y: plot.minY + 24)
+                }
+            }
+        }
+    }
+
+    private func barOpacity(_ s: DailySample) -> Double {
+        guard let hovered else { return 1 }
+        return hovered.id == s.id ? 1 : 0.4
+    }
+
+    private func sample(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> DailySample? {
+        guard let anchor = proxy.plotFrame else { return nil }
+        let plot = geo[anchor]
+        let xInPlot = location.x - plot.minX
+        guard xInPlot >= 0, xInPlot <= plot.width else { return nil }
+        guard let day: Date = proxy.value(atX: xInPlot, as: Date.self) else { return nil }
+        return samples.min {
+            abs($0.day.timeIntervalSince(day)) < abs($1.day.timeIntervalSince(day))
+        }
+    }
+
+    private func clampX(_ x: CGFloat, in plot: CGRect) -> CGFloat {
+        min(max(x, plot.minX + 52), plot.maxX - 52)
+    }
+
+    private func calloutLines(_ s: DailySample) -> [ChartCallout.Line] {
+        [
+            ChartCallout.Line(label: StatsFormatter.day(s.day), value: nil, color: nil),
+            ChartCallout.Line(label: "Codex", value: StatsFormatter.cost(s.codexCost), color: .codexAccent),
+            ChartCallout.Line(label: "Claude", value: StatsFormatter.cost(s.claudeCost), color: .claudeAccent)
+        ]
+    }
+}
+
+// MARK: - Chart hover callout
+
+private struct ChartCallout: View {
+    struct Line: Identifiable {
+        let id = UUID()
+        let label: String
+        let value: String?
+        let color: Color?
+    }
+    let lines: [Line]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(lines) { line in
+                HStack(spacing: 5) {
+                    if let color = line.color {
+                        ServiceMark(color: color, size: 7)
+                    }
+                    Text(line.label)
+                        .font(.system(size: 10.5, weight: line.value == nil ? .semibold : .regular))
+                        .foregroundStyle(line.value == nil ? Color.primary : .secondary)
+                    if let value = line.value {
+                        Spacer(minLength: 10)
+                        Text(value)
+                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.primary)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(.regularMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
+        )
+        .fixedSize()
+        .allowsHitTesting(false)
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
     }
 }
 
@@ -1095,6 +1612,13 @@ private struct ModelRow: Identifiable {
     var id: String { model }
     let model: String
     let totals: UsageTotals
+}
+
+/// 明细表一行 = 一个 (day × app × model) bucket。
+/// id 用三元组拼接,聚合器保证其唯一。
+private struct BreakdownRow: Identifiable {
+    let bucket: UsageBucket
+    var id: String { "\(bucket.day.timeIntervalSince1970)-\(bucket.app.rawValue)-\(bucket.model)" }
 }
 
 private struct QuotaTimelineSection: Identifiable {
@@ -1192,6 +1716,18 @@ enum StatsFormatter {
         timeFormatter.string(from: date)
     }
 
+    private static let monthDayTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "MM-dd HH:mm"
+        return f
+    }()
+
+    /// 跨天时间线浮层用:`MM-dd HH:mm`。
+    static func monthDayTime(_ date: Date) -> String {
+        monthDayTimeFormatter.string(from: date)
+    }
+
     static func resetTime(_ date: Date?) -> String {
         guard let date else { return "--" }
         return time(date)
@@ -1208,5 +1744,14 @@ enum StatsFormatter {
 private extension Decimal {
     var doubleValue: Double {
         NSDecimalNumber(decimal: self).doubleValue
+    }
+}
+
+// MARK: - UsageBucket helper
+
+private extension UsageBucket {
+    /// 全量 token(输入含缓存 + 输出),口径与 UsageTotals.totalTokens 一致。
+    var breakdownTotalTokens: Int {
+        inputTokens + cacheReadTokens + cacheCreationTokens + outputTokens
     }
 }
