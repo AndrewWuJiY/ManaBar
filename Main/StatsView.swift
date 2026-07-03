@@ -1185,8 +1185,10 @@ private struct LimitRingRow: View {
     }
 
     private var ringColor: Color {
-        guard window != nil else { return .secondary }
-        return statusColor(remainingPercent: window?.remainingPercent, tint: tint)
+        guard let remaining = window?.remainingPercent else { return .secondary }
+        if remaining > 50 { return tint }
+        if remaining < 10 { return statusColor(remainingPercent: 0, tint: tint) }
+        return statusColor(remainingPercent: remaining, tint: tint)
     }
 
     private var percentText: String {

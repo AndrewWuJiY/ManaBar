@@ -5,7 +5,7 @@ import SwiftUI
 // 见 docs/04-界面布局.md §2。
 // 默认变体:Two-row pill。
 // 结构:14pt 圆角 HUD 容器 + .hudWindow material 背景 + 两行 pill。
-// 每行:18pt ServiceTile + flex 4pt bar + 34pt 百分比(服务色)。
+// 每行:18pt ServiceTile + flex 4pt bar(状态色) + 40pt 百分比(主文字色)。
 
 struct FloatingContentView: View {
     @Environment(AppState.self) private var appState
@@ -65,6 +65,8 @@ struct FloatingContentView: View {
 }
 
 private struct FloatingRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let logoName: String
     let fallback: String
     let tint: Color
@@ -89,9 +91,16 @@ private struct FloatingRow: View {
                 .font(.system(size: 13, weight: .semibold))
                 .kerning(-0.3)
                 .monospacedDigit()
-                .foregroundStyle(barColor)
+                .foregroundStyle(.primary)
                 .lineLimit(1)
                 .frame(width: 40, alignment: .trailing)
+                .background {
+                    if criticalQuota {
+                        Capsule()
+                            .fill(criticalColor.opacity(criticalBadgeOpacity))
+                            .frame(width: 40, height: 19)
+                    }
+                }
 
             if showReset {
                 // 两行都恒定渲染:无 resetsAt 时 formatResetCompact 返回 "—",保证百分比列对齐。
@@ -100,7 +109,7 @@ private struct FloatingRow: View {
                     Text(formatResetCompact(window?.resetsAt, now: context.date))
                         .font(.system(size: 10, weight: .medium))
                         .monospacedDigit()
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.secondary.opacity(0.86))
                         .lineLimit(1)
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -120,6 +129,20 @@ private struct FloatingRow: View {
     }
 
     private var barColor: Color {
-        statusColor(remainingPercent: window?.remainingPercent, tint: tint)
+        if criticalQuota { return criticalColor }
+        return statusColor(remainingPercent: window?.remainingPercent, tint: tint)
+    }
+
+    private var criticalQuota: Bool {
+        guard let value = window?.remainingPercent else { return false }
+        return value < 10
+    }
+
+    private var criticalColor: Color {
+        statusColor(remainingPercent: 0, tint: tint)
+    }
+
+    private var criticalBadgeOpacity: Double {
+        colorScheme == .dark ? 0.2 : 0.14
     }
 }
