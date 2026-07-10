@@ -15,12 +15,15 @@ echo "▶ 发布版本: $TAG"
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "▶ 提交本地改动..."
   git add -A
-  git commit -m "release: v$VERSION — 价格表新增 GPT-5.6 sol/terra/luna
+  git commit -m "release: v$VERSION — GPT-5.6 新模型价格 + Claude 桌面 App 用量统计
 
 - Pricing 表新增 gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna(官方 Standard 短上下文档价),
   修复 Codex 更新后新模型花费计 0、每日用量柱状图空白的问题
+- ClaudeJSONLScanner 新增桌面 App(Cowork)会话日志扫描根,Claude 用量不再仅限 CLI;
+  未公开内部目录,结构变化时静默降级为仅 CLI
+- Popover 花费口径 caption 改为「仅本机」(cliOnlySpend → localOnlySpend),统计页提示同步
 - 依赖 Pricing.fingerprint 自动失效缓存,历史桶全量重算,无需手动迁移
-- 同步 docs/产品需求.md 价格表覆盖范围说明
+- 同步 docs 产品需求 / 技术实现 / 界面布局
 - 版本号升至 v$VERSION"
 fi
 
@@ -50,10 +53,11 @@ git push -f origin "$TAG"
 # 4. 创建 GitHub Release
 NOTES="## ManaBar $VERSION
 
-修复 Codex 新模型的花费统计:
+修复 Codex 新模型花费统计,并新增 Claude 桌面 App 用量统计:
 
 - 💰 **价格表更新**:新增 \`gpt-5.6-sol\` / \`gpt-5.6-terra\` / \`gpt-5.6-luna\`(官方 Standard 价)。修复 Codex 更新后新模型花费显示 \$0.00、每日用量柱状图空白的问题
-- 🔄 **历史自动补算**:升级后首次启动自动重扫本地用量日志,今天起的历史花费无需手动处理
+- 🖥️ **Claude 桌面 App 用量统计**:用量统计不再仅限 CLI,Claude 桌面 App(Cowork)的本地会话 token 与花费也会计入;网页 / 移动端消耗仍只反映在额度环
+- 🔄 **历史自动补算**:升级后首次启动自动重扫本地用量日志,已有的 App 端历史会话与今天的 Codex 花费都会自动补上
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:

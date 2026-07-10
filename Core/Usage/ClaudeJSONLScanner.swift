@@ -1,6 +1,9 @@
 import Foundation
 
-/// 扫 `~/.claude/projects/**/*.jsonl`，把 assistant 行解析成 UsageEntry。
+/// 扫 Claude 本地会话日志，把 assistant 行解析成 UsageEntry。两个扫描根：
+/// 1. CLI：`~/.claude/projects/**/*.jsonl`
+/// 2. 桌面 App（Cowork）：`~/Library/Application Support/Claude/local-agent-mode-sessions/<uuid>/<uuid>/<session>/.claude/projects/**/*.jsonl`
+///    （未公开内部结构，按固定 3 层定向枚举；结构变化时找不到即返回空，不影响 CLI 统计。网页 / 移动端无本地日志，仍不可统计。）
 /// 增量逻辑：file mtime + byte offset；同一条 message.id 跨调用只计一次（持久化到 ScanFileState.seenMessageIds）。
 enum ClaudeJSONLScanner {
     struct Result: Sendable {
@@ -13,8 +16,11 @@ enum ClaudeJSONLScanner {
 
     nonisolated static func scan(previous: [String: ScanFileState], seenMessageIds: [String]) -> Result {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let root = home.appendingPathComponent(".claude/projects", isDirectory: true)
-        let files = JSONLDirectoryEnumerator.files(at: root)
+        let cliRoot = home.appendingPathComponent(".claude/projects", isDirectory: true)
+        var files = JSONLDirectoryEnumerator.files(at: cliRoot)
+        for root in appSessionProjectRoots(home: home) {
+            files.append(contentsOf: JSONLDirectoryEnumerator.files(at: root))
+        }
 
         var newState: [String: ScanFileState] = previous
         var entries: [UsageEntry] = []
@@ -98,6 +104,38 @@ enum ClaudeJSONLScanner {
         let cappedSeen = seenArr.count > 20000 ? Array(seenArr.suffix(20000)) : seenArr
 
         return Result(entries: entries, newState: newState, newSeenIds: cappedSeen, filesScanned: files.count, linesParsed: linesParsed)
+    }
+
+    /// 枚举桌面 App 会话的 `.claude/projects` 根目录。
+    /// 不从会话根整树递归：目录大（数百 MB、含大量非日志文件），且 `.claude` 是隐藏目录会被
+    /// `.skipsHiddenFiles` 跳过——按观察到的固定层级 `<base>/<uuid>/<uuid>/<session>/` 逐层列目录，
+    /// 再显式拼 `.claude/projects` 检查存在性，开销只有几次浅层 contentsOfDirectory。
+    private nonisolated static func appSessionProjectRoots(home: URL) -> [URL] {
+        let fm = FileManager.default
+        let base = home.appendingPathComponent(
+            "Library/Application Support/Claude/local-agent-mode-sessions", isDirectory: true)
+        var roots: [URL] = []
+        for l1 in subdirectories(of: base, fm) {
+            for l2 in subdirectories(of: l1, fm) {
+                for session in subdirectories(of: l2, fm) {
+                    let projects = session.appendingPathComponent(".claude/projects", isDirectory: true)
+                    var isDir: ObjCBool = false
+                    if fm.fileExists(atPath: projects.path, isDirectory: &isDir), isDir.boolValue {
+                        roots.append(projects)
+                    }
+                }
+            }
+        }
+        return roots
+    }
+
+    private nonisolated static func subdirectories(of url: URL, _ fm: FileManager) -> [URL] {
+        guard let items = try? fm.contentsOfDirectory(
+            at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
+        ) else { return [] }
+        return items.filter {
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+        }
     }
 
     private struct ParsedAssistant {

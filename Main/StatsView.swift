@@ -593,8 +593,8 @@ struct StatsView: View {
             Image(systemName: "info.circle")
                 .font(.system(size: 10.5))
             Text(tr(
-                "Claude spend counts local CLI usage only; its desktop / web usage shows in the quota, not here",
-                "Claude 花费仅统计本机 CLI 用量;其桌面端 / 网页消耗见额度环、不计入"
+                "Claude spend counts local CLI + desktop app sessions; web / mobile usage shows in the quota, not here",
+                "Claude 花费统计本机 CLI 与桌面 App 会话;网页 / 移动端消耗见额度环、不计入"
             ))
             .font(.system(size: 11))
         }
