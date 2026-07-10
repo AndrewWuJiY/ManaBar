@@ -44,6 +44,10 @@ enum Pricing {
         "gpt-5.5-codex":     .init(input: 5,    output: 30,  cacheRead: 0.50,  cacheCreation: 0),
         "gpt-5.5-pro":       .init(input: 5,    output: 30,  cacheRead: 0.50,  cacheCreation: 0),
         "gpt-5.6":           .init(input: 5,    output: 30,  cacheRead: 0.50,  cacheCreation: 0),
+        // 5.6 sol/terra/luna 取官方 Standard 短上下文档（>272k 有阶梯价，维持单档口径）
+        "gpt-5.6-sol":       .init(input: 5,    output: 30,  cacheRead: 0.50,  cacheCreation: 6.25),
+        "gpt-5.6-terra":     .init(input: 2.50, output: 15,  cacheRead: 0.25,  cacheCreation: 3.125),
+        "gpt-5.6-luna":      .init(input: 1,    output: 6,   cacheRead: 0.10,  cacheCreation: 1.25),
         "codex-mini-latest": .init(input: 1.50, output: 6,   cacheRead: 0.375, cacheCreation: 0)
         // codex-auto-review 内部 review，官方未公开计费；不入表 → cost=0，token 仍记录
     ]

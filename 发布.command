@@ -15,12 +15,12 @@ echo "▶ 发布版本: $TAG"
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "▶ 提交本地改动..."
   git add -A
-  git commit -m "release: v$VERSION — 悬浮窗快捷操作与版本发布
+  git commit -m "release: v$VERSION — 价格表新增 GPT-5.6 sol/terra/luna
 
-- 全局快捷键 ⌃⌥F 显示/隐藏悬浮窗 (Carbon RegisterEventHotKey,后台可用、无需辅助功能授权,设置可关)
-- 悬浮窗右键菜单:关闭悬浮窗 / 打开设置
-- Popover 顶栏新增悬浮窗开关按钮,开启时高亮强调色
-- 打包安装.command 构建失败时输出错误摘要;新增 发布.command
+- Pricing 表新增 gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna(官方 Standard 短上下文档价),
+  修复 Codex 更新后新模型花费计 0、每日用量柱状图空白的问题
+- 依赖 Pricing.fingerprint 自动失效缓存,历史桶全量重算,无需手动迁移
+- 同步 docs/产品需求.md 价格表覆盖范围说明
 - 版本号升至 v$VERSION"
 fi
 
@@ -50,13 +50,10 @@ git push -f origin "$TAG"
 # 4. 创建 GitHub Release
 NOTES="## ManaBar $VERSION
 
-cc-bar 正式更名 **ManaBar**,并带来一批体验升级:
+修复 Codex 新模型的花费统计:
 
-- 🪄 **全新品牌**:更名 ManaBar,全新「双法力条」图标;旧版 CCBar 设置自动迁移
-- 🌓 **外观切换**:浅色 / 深色 / 跟随系统,全窗口生效
-- ⌨️ **悬浮窗快捷操作**:全局快捷键 \`⌃⌥F\` 一键显隐;右键悬浮窗弹出菜单;Popover 顶栏新增悬浮窗开关
-- 👀 **可读性优化**:状态色按浅/深色分别调校(浅色警告黄改深琥珀)、字体层级整体提档、图表坐标轴标签加深
-- 🔴 **额度告急提示**:悬浮窗额度 <10% 时百分比加危险色底
+- 💰 **价格表更新**:新增 \`gpt-5.6-sol\` / \`gpt-5.6-terra\` / \`gpt-5.6-luna\`(官方 Standard 价)。修复 Codex 更新后新模型花费显示 \$0.00、每日用量柱状图空白的问题
+- 🔄 **历史自动补算**:升级后首次启动自动重扫本地用量日志,今天起的历史花费无需手动处理
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:
