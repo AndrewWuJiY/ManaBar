@@ -12,11 +12,19 @@ if ! xcodebuild -version >/dev/null 2>&1; then
 fi
 
 echo "▶ 开始构建 ManaBar (Release)..."
-xcodebuild -project ManaBar.xcodeproj \
+LOG=build/xcodebuild.log
+mkdir -p build
+if ! xcodebuild -project ManaBar.xcodeproj \
   -scheme ManaBar \
   -configuration Release \
   -derivedDataPath build/DerivedData \
-  build | tail -5
+  build > "$LOG" 2>&1; then
+  echo "❌ 构建失败,错误摘要:"
+  grep -E "error:" "$LOG" | head -20
+  echo "完整日志: $LOG"
+  exit 1
+fi
+grep -E "BUILD SUCCEEDED" "$LOG" || tail -3 "$LOG"
 
 APP="build/DerivedData/Build/Products/Release/ManaBar.app"
 if [ ! -d "$APP" ]; then

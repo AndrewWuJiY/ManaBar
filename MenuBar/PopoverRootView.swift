@@ -73,6 +73,20 @@ struct PopoverRootView: View {
             .buttonStyle(PopoverIconButtonStyle())
             .help(tr("Open Statistics", "查看统计"))
 
+            // 悬浮窗开关:开启时高亮为强调色,与设置页「显示悬浮窗」/⌃⌥F 同一状态
+            Button {
+                SettingsStore.shared.floatingEnabled.toggle()
+                FloatingPanelController.shared.sync()
+            } label: {
+                Image(systemName: "macwindow.on.rectangle")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(SettingsStore.shared.floatingEnabled ? Color.accentColor : Color(.secondaryLabelColor))
+            }
+            .buttonStyle(PopoverIconButtonStyle())
+            .help(SettingsStore.shared.floatingEnabled
+                  ? tr("Hide Floating HUD (⌃⌥F)", "隐藏悬浮窗 (⌃⌥F)")
+                  : tr("Show Floating HUD (⌃⌥F)", "显示悬浮窗 (⌃⌥F)"))
+
             Button { activateAndOpenMain() } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 13, weight: .medium))

@@ -61,6 +61,23 @@ struct FloatingContentView: View {
         // 阴影交给 NSPanel 的 hasShadow,它按内容 alpha 自动取圆角形状,
         // SwiftUI 这层 shadow 会被 panel 边界裁掉而且和系统阴影叠加,所以移除。
         .fixedSize()
+        .contextMenu {
+            Button {
+                settings.floatingEnabled = false
+                FloatingPanelController.shared.sync()
+            } label: {
+                Text(settings.floatingHotkeyEnabled
+                     ? tr("Hide Floating HUD (⌃⌥F)", "关闭悬浮窗 (⌃⌥F)")
+                     : tr("Hide Floating HUD", "关闭悬浮窗"))
+            }
+            Divider()
+            Button {
+                appState.mainTab = .settings
+                appState.shouldOpenMainWindow = true
+            } label: {
+                Text(tr("Settings…", "设置…"))
+            }
+        }
     }
 }
 

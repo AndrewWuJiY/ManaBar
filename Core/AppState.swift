@@ -29,6 +29,10 @@ final class AppState {
     /// 首次启动时由 bootstrap 设为 true,触发 Onboarding 窗口
     var shouldShowOnboarding: Bool = false
 
+    /// 场景外的代码(如悬浮窗右键菜单)请求打开主窗口时置 true,
+    /// 由 MenuBarLabelRoot 的 onChange 消费并调 openWindow(悬浮窗不在 SwiftUI 场景里,拿不到 openWindow)
+    var shouldOpenMainWindow: Bool = false
+
     var codexQuota: QuotaSnapshot?
     var claudeQuota: QuotaSnapshot?
     var codexQuotaError: String?

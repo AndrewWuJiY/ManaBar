@@ -117,6 +117,14 @@ final class SettingsStore {
     var floatingShowClaude: Bool { didSet { defaults.set(floatingShowClaude, forKey: Keys.floatingShowClaude) } }
     var floatingShowReset: Bool { didSet { defaults.set(floatingShowReset, forKey: Keys.floatingShowReset) } }
 
+    /// 全局快捷键 ⌃⌥F 显示/隐藏悬浮窗（Carbon HotKey,后台可用,见 Core/HotKey.swift）
+    var floatingHotkeyEnabled: Bool {
+        didSet {
+            defaults.set(floatingHotkeyEnabled, forKey: Keys.floatingHotkeyEnabled)
+            HotKeyCenter.shared.setToggleFloatingEnabled(floatingHotkeyEnabled)
+        }
+    }
+
     // 刷新
     var quotaInterval: QuotaIntervalChoice { didSet { defaults.set(quotaInterval.rawValue, forKey: Keys.quotaInterval) } }
     var usageInterval: UsageIntervalChoice { didSet { defaults.set(usageInterval.rawValue, forKey: Keys.usageInterval) } }
@@ -173,6 +181,7 @@ final class SettingsStore {
         floatingShowCodex = defaults.object(forKey: Keys.floatingShowCodex) as? Bool ?? true
         floatingShowClaude = defaults.object(forKey: Keys.floatingShowClaude) as? Bool ?? true
         floatingShowReset = defaults.object(forKey: Keys.floatingShowReset) as? Bool ?? true
+        floatingHotkeyEnabled = defaults.object(forKey: Keys.floatingHotkeyEnabled) as? Bool ?? true
         // 刷新
         let qiRaw = defaults.string(forKey: Keys.quotaInterval) ?? QuotaIntervalChoice.m2.rawValue
         quotaInterval = QuotaIntervalChoice(rawValue: qiRaw) ?? .m2
@@ -288,6 +297,7 @@ final class SettingsStore {
         static let floatingShowCodex = "manabar.settings.floatingShowCodex"
         static let floatingShowClaude = "manabar.settings.floatingShowClaude"
         static let floatingShowReset = "manabar.settings.floatingShowReset"
+        static let floatingHotkeyEnabled = "manabar.settings.floatingHotkeyEnabled"
         static let quotaInterval = "manabar.settings.quotaInterval"
         static let usageInterval = "manabar.settings.usageInterval"
         static let resetTimeDisplay = "manabar.settings.resetTimeDisplay"

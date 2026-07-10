@@ -51,6 +51,12 @@ private struct MenuBarLabelRoot: View {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
             }
+            .onChange(of: appState.shouldOpenMainWindow) { _, open in
+                guard open else { return }
+                appState.shouldOpenMainWindow = false
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "main")
+            }
     }
 }
 

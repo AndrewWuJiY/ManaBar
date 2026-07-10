@@ -132,6 +132,20 @@ struct SettingsRootView: View {
                 .toggleStyle(.switch)
                 .tint(.green)
             }
+            PrefsRow(
+                label: "Global hotkey ⌃⌥F",
+                chinese: "全局快捷键 ⌃⌥F",
+                desc: "Press ⌃⌥F in any app to show / hide the floating HUD.",
+                chineseDesc: "在任意应用中按 ⌃⌥F 显示/隐藏悬浮窗;也可右键悬浮窗关闭"
+            ) {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingHotkeyEnabled },
+                    set: { settings.floatingHotkeyEnabled = $0 }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+            }
             PrefsRow(label: "Show Codex row", chinese: "显示 Codex 行") {
                 Toggle("", isOn: Binding(
                     get: { settings.floatingShowCodex },
