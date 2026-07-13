@@ -362,7 +362,7 @@ private struct ServiceBlockView: View {
 
     private var bodyRow: some View {
         HStack(alignment: .center, spacing: 16) {
-            // 左:5h 大百分比 + 小标签
+            // 左:5h 大百分比 + 小标签;服务端取消 5h 限制时显示 ∞
             VStack(alignment: .center, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     Text(fiveHourValueText)
@@ -371,13 +371,15 @@ private struct ServiceBlockView: View {
                         .kerning(-0.8)
                         .foregroundStyle(fiveHourColor)
                         .lineLimit(1)
-                    Text("%")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(fiveHourColor.opacity(0.75))
+                    if !fiveHourUnlimited {
+                        Text("%")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(fiveHourColor.opacity(0.75))
+                    }
                 }
                 .fixedSize()
 
-                Text("5-HOUR · 五小时")
+                Text(fiveHourUnlimited ? tr("5-HOUR · UNLIMITED", "5-HOUR · 无限制") : "5-HOUR · 五小时")
                     .font(.system(size: 9, weight: .semibold))
                     .kerning(0.5)
                     .foregroundStyle(.tertiary)
@@ -457,8 +459,13 @@ private struct ServiceBlockView: View {
 
     // MARK: Derived data
 
+    private var fiveHourUnlimited: Bool {
+        snapshot?.fiveHourUnlimited == true
+    }
+
     private var fiveHourRemaining: Double {
-        snapshot?.fiveHour?.remainingPercent ?? 0
+        if fiveHourUnlimited { return 100 }
+        return snapshot?.fiveHour?.remainingPercent ?? 0
     }
 
     private var weeklyRemaining: Double {
@@ -466,6 +473,7 @@ private struct ServiceBlockView: View {
     }
 
     private var fiveHourColor: Color {
+        if fiveHourUnlimited { return statusColor(remainingPercent: 100, tint: tint) }
         guard snapshot?.fiveHour != nil else { return .secondary }
         return statusColor(remainingPercent: fiveHourRemaining, tint: tint)
     }
@@ -476,6 +484,7 @@ private struct ServiceBlockView: View {
     }
 
     private var fiveHourValueText: String {
+        if fiveHourUnlimited { return "∞" }
         guard let window = snapshot?.fiveHour else { return "--" }
         return "\(Int(window.remainingPercent.rounded()))"
     }
@@ -501,6 +510,12 @@ private struct ServiceBlockView: View {
 
     private func shortError(_ error: String?) -> String? {
         guard let error, !error.isEmpty else { return nil }
+        // URLSession 的原始错误串(NSURLErrorDomain Code=-1001 之类)对用户没有信息量,
+        // 统一收敛为一句人话;快照保留策略已保证展示的是上次成功数据。
+        if error.contains("NSURLErrorDomain") {
+            return tr("Network hiccup — showing last successful data",
+                      "网络波动,当前展示上次成功获取的数据")
+        }
         let oneLine = error.replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if oneLine.count <= 110 { return oneLine }

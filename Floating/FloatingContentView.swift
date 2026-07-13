@@ -16,12 +16,14 @@ struct FloatingContentView: View {
         let showClaude = settings.effectiveFloatingShowClaude
 
         VStack(alignment: .leading, spacing: 7) {
+            // 无 5h 限制时(fiveHour 为 nil)回退显示周窗口:
+            // 悬浮窗是常驻小组件,∞ 没有信息量,周耗量才有监控价值
             if showCodex {
                 FloatingRow(
                     logoName: "codex",
                     fallback: "C",
                     tint: .codexAccent,
-                    window: appState.codexQuota?.fiveHour,
+                    window: appState.codexQuota?.fiveHour ?? appState.codexQuota?.weekly,
                     showReset: settings.floatingShowReset
                 )
             }
@@ -30,7 +32,7 @@ struct FloatingContentView: View {
                     logoName: "claude",
                     fallback: "K",
                     tint: .claudeAccent,
-                    window: appState.claudeQuota?.fiveHour,
+                    window: appState.claudeQuota?.fiveHour ?? appState.claudeQuota?.weekly,
                     showReset: settings.floatingShowReset
                 )
             }

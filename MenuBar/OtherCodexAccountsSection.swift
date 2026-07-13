@@ -84,7 +84,7 @@ private struct ImportedCodexRow: View {
             // 右：5H + WK 两行进度
             if let snap = snapshot {
                 VStack(alignment: .leading, spacing: 5) {
-                    quotaRow(label: "5H", window: snap.fiveHour)
+                    quotaRow(label: "5H", window: snap.fiveHour, unlimited: snap.fiveHourUnlimited)
                     quotaRow(label: "WK", window: snap.weekly)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -99,7 +99,7 @@ private struct ImportedCodexRow: View {
 
     // MARK: 进度行
 
-    private func quotaRow(label: String, window: QuotaWindow?) -> some View {
+    private func quotaRow(label: String, window: QuotaWindow?, unlimited: Bool = false) -> some View {
         HStack(spacing: 6) {
             Text(label)
                 .font(.system(size: 8.5, weight: .semibold))
@@ -108,15 +108,15 @@ private struct ImportedCodexRow: View {
                 .frame(width: 18, alignment: .leading)
 
             ProgressBar(
-                value: (window?.remainingPercent ?? 0) / 100,
-                tint: rowColor(window: window),
+                value: unlimited ? 1 : (window?.remainingPercent ?? 0) / 100,
+                tint: unlimited ? statusColor(remainingPercent: 100, tint: .codexAccent) : rowColor(window: window),
                 height: 2
             )
 
-            Text(percentText(window: window))
+            Text(unlimited ? "∞" : percentText(window: window))
                 .font(.system(size: 10, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(rowColor(window: window))
+                .foregroundStyle(unlimited ? statusColor(remainingPercent: 100, tint: .codexAccent) : rowColor(window: window))
                 .frame(width: 30, alignment: .trailing)
 
             ResetTimeText(resetsAt: window?.resetsAt)

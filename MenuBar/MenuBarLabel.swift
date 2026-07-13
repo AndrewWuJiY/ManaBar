@@ -121,15 +121,18 @@ enum MenuBarBadgeImage {
     }
 
     private static func pctText(_ snap: QuotaSnapshot?, window: MenuBarWindowChoice) -> String {
+        // 服务端取消 5h 限制时(如 2026-07 Codex):
+        // - 5H 模式:∞ 在菜单栏没有信息量,回退显示周额度
+        // - 都显示模式:保留 ∞/WK,让两个窗口语义完整
         switch window {
         case .fiveHour:
+            if snap?.fiveHourUnlimited == true { return pctOrPlaceholder(snap?.weekly) }
             return pctOrPlaceholder(snap?.fiveHour)
         case .weekly:
             return pctOrPlaceholder(snap?.weekly)
         case .both:
-            let a = pctOrPlaceholder(snap?.fiveHour)
-            let b = pctOrPlaceholder(snap?.weekly)
-            return "\(a)/\(b)"
+            let fiveHourText = snap?.fiveHourUnlimited == true ? "∞" : pctOrPlaceholder(snap?.fiveHour)
+            return "\(fiveHourText)/\(pctOrPlaceholder(snap?.weekly))"
         }
     }
 

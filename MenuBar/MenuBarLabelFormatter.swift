@@ -30,6 +30,10 @@ enum MenuBarLabelFormatter {
     }
 
     private static func pct(_ snap: QuotaSnapshot?, window: MenuBarWindow) -> String {
+        // 无 5h 限制时,5h 槽位回退显示周额度
+        if window == .fiveHour, snap?.fiveHourUnlimited == true {
+            return pct(snap, window: .weekly)
+        }
         guard let w = pickWindow(snap, window) else { return "--" }
         return "\(Int(w.remainingPercent.rounded()))%"
     }

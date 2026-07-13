@@ -711,9 +711,11 @@ struct StatsView: View {
     private var currentLimitsPanel: some View {
         Panel(title: "Current limits", chinese: "当前限额") {
             VStack(spacing: 4) {
-                LimitRingRow(label: "Codex 5H", window: appState.codexQuota?.fiveHour, tint: .codexAccent)
+                LimitRingRow(label: "Codex 5H", window: appState.codexQuota?.fiveHour, tint: .codexAccent,
+                             unlimited: appState.codexQuota?.fiveHourUnlimited == true)
                 LimitRingRow(label: "Codex WK", window: appState.codexQuota?.weekly, tint: .codexAccent)
-                LimitRingRow(label: "Claude 5H", window: appState.claudeQuota?.fiveHour, tint: .claudeAccent)
+                LimitRingRow(label: "Claude 5H", window: appState.claudeQuota?.fiveHour, tint: .claudeAccent,
+                             unlimited: appState.claudeQuota?.fiveHourUnlimited == true)
                 LimitRingRow(label: "Claude WK", window: appState.claudeQuota?.weekly, tint: .claudeAccent)
             }
         }
@@ -1155,11 +1157,13 @@ private struct LimitRingRow: View {
     let label: String
     let window: QuotaWindow?
     let tint: Color
+    /// 服务端未下发 5h 窗口(取消限制)时为 true,显示 ∞ + 满环
+    var unlimited: Bool = false
 
     var body: some View {
         HStack(spacing: 11) {
             ProgressRing(
-                value: (window?.remainingPercent ?? 0) / 100,
+                value: unlimited ? 1 : (window?.remainingPercent ?? 0) / 100,
                 tint: ringColor,
                 diameter: 32,
                 stroke: 4
@@ -1185,6 +1189,7 @@ private struct LimitRingRow: View {
     }
 
     private var ringColor: Color {
+        if unlimited { return tint }
         guard let remaining = window?.remainingPercent else { return .secondary }
         if remaining > 50 { return tint }
         if remaining < 10 { return statusColor(remainingPercent: 0, tint: tint) }
@@ -1192,12 +1197,14 @@ private struct LimitRingRow: View {
     }
 
     private var percentText: String {
+        if unlimited { return "∞" }
         guard let window else { return "--" }
         return "\(Int(window.remainingPercent.rounded()))"
     }
 
     private var resetText: String {
-        formatResetHint(window?.resetsAt)
+        if unlimited { return tr("No 5-hour limit", "无 5 小时限制") }
+        return formatResetHint(window?.resetsAt)
     }
 }
 

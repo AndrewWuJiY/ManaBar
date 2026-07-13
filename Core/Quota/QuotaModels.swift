@@ -54,6 +54,11 @@ struct QuotaSnapshot: Sendable, Equatable, Codable {
     var weeklySonnet: QuotaWindow?    // 仅 Claude
     var planType: String?
     var fetchedAt: Date
+
+    /// 服务端返回了周窗口但没有 5h 窗口 ⇒ 该服务当前没有 5 小时限制
+    /// (2026-07 OpenAI 暂时移除 Plus/Business/Pro 的 5h 限制)。
+    /// Popover / 菜单栏 / 悬浮窗 / 统计环据此显示 ∞,而不是 "--"。
+    var fiveHourUnlimited: Bool { fiveHour == nil && weekly != nil }
 }
 
 enum QuotaError: Error, CustomStringConvertible {

@@ -15,15 +15,14 @@ echo "▶ 发布版本: $TAG"
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "▶ 提交本地改动..."
   git add -A
-  git commit -m "release: v$VERSION — GPT-5.6 新模型价格 + Claude 桌面 App 用量统计
+  git commit -m "release: v$VERSION — 适配 Codex 取消 5 小时限制
 
-- Pricing 表新增 gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna(官方 Standard 短上下文档价),
-  修复 Codex 更新后新模型花费计 0、每日用量柱状图空白的问题
-- ClaudeJSONLScanner 新增桌面 App(Cowork)会话日志扫描根,Claude 用量不再仅限 CLI;
-  未公开内部目录,结构变化时静默降级为仅 CLI
-- Popover 花费口径 caption 改为「仅本机」(cliOnlySpend → localOnlySpend),统计页提示同步
-- 依赖 Pricing.fingerprint 自动失效缓存,历史桶全量重算,无需手动迁移
-- 同步 docs 产品需求 / 技术实现 / 界面布局
+- CodexQuotaClient 窗口解析改按时长归类(≥24h 归 weekly),不再按 primary/secondary 位置假设,
+  修复周额度被画进 5H 槽位、WK 显示 --% 的问题
+- 新增 QuotaSnapshot.fiveHourUnlimited:Popover 大数字 / 统计环 / 副账号行显示 ∞ 无限制
+- 菜单栏 5H 模式与悬浮窗在无限制时回退显示周额度(fiveHour ?? weekly),恢复限制自动还原
+- Popover 网络错误收敛为友好文案,不再显示 NSURLErrorDomain 原始串
+- 同步 docs 产品需求 / 技术实现
 - 版本号升至 v$VERSION"
 fi
 
@@ -53,11 +52,12 @@ git push -f origin "$TAG"
 # 4. 创建 GitHub Release
 NOTES="## ManaBar $VERSION
 
-修复 Codex 新模型花费统计,并新增 Claude 桌面 App 用量统计:
+适配 OpenAI 取消 Codex 5 小时限制(2026-07):
 
-- 💰 **价格表更新**:新增 \`gpt-5.6-sol\` / \`gpt-5.6-terra\` / \`gpt-5.6-luna\`(官方 Standard 价)。修复 Codex 更新后新模型花费显示 \$0.00、每日用量柱状图空白的问题
-- 🖥️ **Claude 桌面 App 用量统计**:用量统计不再仅限 CLI,Claude 桌面 App(Cowork)的本地会话 token 与花费也会计入;网页 / 移动端消耗仍只反映在额度环
-- 🔄 **历史自动补算**:升级后首次启动自动重扫本地用量日志,已有的 App 端历史会话与今天的 Codex 花费都会自动补上
+- 🔧 **窗口解析重构**:不再按 primary/secondary 位置假设,改按窗口时长归类(≥24h 归周窗口)。修复取消限制后周额度被画进 5H 槽位、WK 显示 \`--%\` 的问题
+- ♾️ **无限制状态**:检测到无 5h 窗口时,Popover 大数字 / 统计限额环 / Codex 副账号行显示 \`∞ 无限制\`
+- 📊 **菜单栏与悬浮窗回退周额度**:\`∞\` 对常驻小组件没有信息量,菜单栏 5H 模式与悬浮窗自动改显周额度耗量;OpenAI 恢复限制后自动还原
+- 💬 **报错友好化**:网络波动时不再显示 NSURLErrorDomain 原始错误串,并明确标注展示的是上次成功数据
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:
