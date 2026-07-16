@@ -15,14 +15,12 @@ echo "▶ 发布版本: $TAG"
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "▶ 提交本地改动..."
   git add -A
-  git commit -m "release: v$VERSION — 适配 Codex 取消 5 小时限制
+  git commit -m "release: v$VERSION — Popover 花费口径标注统一
 
-- CodexQuotaClient 窗口解析改按时长归类(≥24h 归 weekly),不再按 primary/secondary 位置假设,
-  修复周额度被画进 5H 槽位、WK 显示 --% 的问题
-- 新增 QuotaSnapshot.fiveHourUnlimited:Popover 大数字 / 统计环 / 副账号行显示 ∞ 无限制
-- 菜单栏 5H 模式与悬浮窗在无限制时回退显示周额度(fiveHour ?? weekly),恢复限制自动还原
-- Popover 网络错误收敛为友好文案,不再显示 NSURLErrorDomain 原始串
-- 同步 docs 产品需求 / 技术实现
+- 移除 Claude 花费 caption 的「仅本机」常显标注(ServiceBlockView.localOnlySpend),
+  与 Codex 统一为普通「花费」:v1.0.1 起 Claude 已统计 CLI + 桌面 App 会话,两侧口径一致
+- 「网页/移动端消耗不计入花费、反映在额度环」的完整口径说明保留在统计页顶部 info 行
+- 同步 docs 界面布局 与代码注释
 - 版本号升至 v$VERSION"
 fi
 
@@ -52,12 +50,10 @@ git push -f origin "$TAG"
 # 4. 创建 GitHub Release
 NOTES="## ManaBar $VERSION
 
-适配 OpenAI 取消 Codex 5 小时限制(2026-07):
+小版本清理:
 
-- 🔧 **窗口解析重构**:不再按 primary/secondary 位置假设,改按窗口时长归类(≥24h 归周窗口)。修复取消限制后周额度被画进 5H 槽位、WK 显示 \`--%\` 的问题
-- ♾️ **无限制状态**:检测到无 5h 窗口时,Popover 大数字 / 统计限额环 / Codex 副账号行显示 \`∞ 无限制\`
-- 📊 **菜单栏与悬浮窗回退周额度**:\`∞\` 对常驻小组件没有信息量,菜单栏 5H 模式与悬浮窗自动改显周额度耗量;OpenAI 恢复限制后自动还原
-- 💬 **报错友好化**:网络波动时不再显示 NSURLErrorDomain 原始错误串,并明确标注展示的是上次成功数据
+- 🧹 **Popover 花费标注统一**:移除 Claude 花费旁的「仅本机」常显小字,与 Codex 保持一致——自 v1.0.1 起 Claude 花费已同时统计 CLI 与桌面 App 会话,两个服务口径相同,不再需要单独标注
+- ℹ️ 「网页 / 移动端消耗不计入花费、反映在额度环」的完整说明保留在统计页顶部
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:

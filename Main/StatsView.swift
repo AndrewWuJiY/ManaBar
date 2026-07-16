@@ -586,7 +586,8 @@ struct StatsView: View {
     }
 
     /// Overview / Breakdown 顶部左上角常显说明。
-    /// 仅 Claude 的花费是本机 CLI-only(桌面端/网页不计入);Codex 桌面端也会被记录,故只点名 Claude。
+    /// Claude 花费统计本机 CLI + 桌面 App 会话,网页/移动端消耗只反映在额度环、不计入花费,故点名说明;
+    /// Codex 无此口径差异。Popover 侧自 v1.0.2 起不再单独标注,完整口径说明只保留在这里。
     /// 不用 hover(主窗口虽为常规窗口,`.help()` 在 .accessory 应用里仍不稳),直接可见。
     private var localSpendNote: some View {
         HStack(spacing: 4) {

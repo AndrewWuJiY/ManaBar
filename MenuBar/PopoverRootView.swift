@@ -181,8 +181,7 @@ struct PopoverRootView: View {
                         error: appState.claudeQuotaError,
                         weekSpend: weekSpend(for: .claude),
                         todayCost: appState.claudeTodayCost,
-                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil,
-                        localOnlySpend: true
+                        serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil
                     )
                 }
             }
@@ -304,8 +303,6 @@ private struct ServiceBlockView: View {
     let weekSpend: Decimal
     let todayCost: Decimal?
     let serviceStatus: ServiceStatus?
-    /// 花费是否仅来自本机(Claude=true:统计 CLI + 桌面 App 本地会话,网页/移动端不计入;Codex=false:无此口径差异)。
-    var localOnlySpend: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -411,10 +408,7 @@ private struct ServiceBlockView: View {
 
                         Spacer(minLength: 0)
 
-                        BilingualInline(
-                            english: localOnlySpend ? "cost · local only" : "cost",
-                            chinese: localOnlySpend ? "花费 · 仅本机" : "花费"
-                        )
+                        BilingualInline(english: "cost", chinese: "花费")
                             .font(.system(size: 9.5))
                             .foregroundStyle(.tertiary)
                     }
