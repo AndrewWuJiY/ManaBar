@@ -1463,7 +1463,7 @@ private struct QuotaTimelineTable: View {
             tableHeader("Time", "时间", width: 82, alignment: .leading)
             tableHeader("Change", "变动值", width: 82, alignment: .trailing)
             tableHeader("After", "变动后剩余", width: 104, alignment: .trailing)
-            tableHeader("Reset", "重置时间", width: 96, alignment: .trailing)
+            tableHeader("Reset", "重置时间", width: 130, alignment: .trailing)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
@@ -1478,7 +1478,7 @@ private struct QuotaTimelineTable: View {
                 .foregroundStyle(event.deltaPercent < 0 ? Color.red : Color.green)
             tableText("\(event.afterRemainingPercent)%", width: 104, alignment: .trailing)
                 .foregroundStyle(statusColor(remainingPercent: Double(event.afterRemainingPercent), tint: .secondary))
-            tableText(StatsFormatter.resetTime(event.resetsAt), width: 96, alignment: .trailing)
+            tableText(StatsFormatter.resetTime(event.resetsAt), width: 130, alignment: .trailing)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
@@ -1774,7 +1774,8 @@ enum StatsFormatter {
 
     static func resetTime(_ date: Date?) -> String {
         guard let date else { return "--" }
-        return time(date)
+        // 非当天(如周窗口在 7 天后重置)带上日期,只显示 HH:mm 会误导。
+        return Calendar.current.isDateInToday(date) ? time(date) : monthDayTime(date)
     }
 
     static func quotaDelta(_ value: Int) -> String {
