@@ -6,6 +6,13 @@ enum QuotaHistoryAccountKind: String, Sendable, Codable {
     case claudePrimary
 }
 
+/// 被记录的额度窗口类型。5H 优先;服务当前没有 5H 窗口时回退记录周额度
+/// (如 2026-07 起 OpenAI 移除 Plus/Business/Pro 的 5h 限制)。
+enum QuotaHistoryWindowKind: String, Sendable, Codable {
+    case fiveHour
+    case weekly
+}
+
 struct QuotaHistorySample: Sendable, Equatable, Codable {
     var accountKey: String
     var app: QuotaApp
@@ -13,6 +20,10 @@ struct QuotaHistorySample: Sendable, Equatable, Codable {
     var sampledAt: Date
     var remainingPercent: Int
     var resetsAt: Date?
+    /// 旧数据(仅记录 5H 的时期)没有此字段,按 5H 处理。
+    var window: QuotaHistoryWindowKind?
+
+    var windowKind: QuotaHistoryWindowKind { window ?? .fiveHour }
 }
 
 struct QuotaChangeEvent: Sendable, Equatable, Codable, Identifiable {
@@ -25,6 +36,10 @@ struct QuotaChangeEvent: Sendable, Equatable, Codable, Identifiable {
     var afterRemainingPercent: Int
     var deltaPercent: Int
     var resetsAt: Date?
+    /// 旧数据(仅记录 5H 的时期)没有此字段,按 5H 处理。
+    var window: QuotaHistoryWindowKind?
+
+    var windowKind: QuotaHistoryWindowKind { window ?? .fiveHour }
 }
 
 struct QuotaHistoryPayload: Sendable, Equatable, Codable {
@@ -109,12 +124,18 @@ enum QuotaHistoryStore {
         snapshot: QuotaSnapshot,
         sampledAt: Date
     ) -> QuotaHistoryPayload {
-        guard let fiveHour = snapshot.fiveHour else {
+        // 5H 优先;无 5H 窗口(fiveHourUnlimited)时回退记录周额度。
+        let tracked: (window: QuotaWindow, kind: QuotaHistoryWindowKind)
+        if let fiveHour = snapshot.fiveHour {
+            tracked = (fiveHour, .fiveHour)
+        } else if let weekly = snapshot.weekly {
+            tracked = (weekly, .weekly)
+        } else {
             return prune(payload, now: sampledAt)
         }
 
         var next = prune(payload, now: sampledAt)
-        let remaining = roundedPercent(fiveHour.remainingPercent)
+        let remaining = roundedPercent(tracked.window.remainingPercent)
         let previous = next.lastSamples[accountKey]
 
         next.lastSamples[accountKey] = QuotaHistorySample(
@@ -123,10 +144,16 @@ enum QuotaHistoryStore {
             kind: kind,
             sampledAt: sampledAt,
             remainingPercent: remaining,
-            resetsAt: fiveHour.resetsAt
+            resetsAt: tracked.window.resetsAt,
+            window: tracked.kind
         )
 
-        guard let previous, previous.remainingPercent != remaining else {
+        // 无基线,或窗口类型发生切换(5H ⇄ 周):只重置基线,
+        // 不把跨窗口差值当成一次额度变动记录下来。
+        guard let previous, previous.windowKind == tracked.kind else {
+            return next
+        }
+        guard previous.remainingPercent != remaining else {
             return next
         }
 
@@ -140,7 +167,8 @@ enum QuotaHistoryStore {
             beforeRemainingPercent: previous.remainingPercent,
             afterRemainingPercent: remaining,
             deltaPercent: delta,
-            resetsAt: fiveHour.resetsAt
+            resetsAt: tracked.window.resetsAt,
+            window: tracked.kind
         ))
         return next
     }

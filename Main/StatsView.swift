@@ -745,9 +745,12 @@ struct StatsView: View {
     private var timelineHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(tr("5H Quota changes", "5H 额度变化"))
+                Text(tr("Quota changes", "额度变化"))
                     .font(.system(size: 18, weight: .semibold))
-                Text(tr("Only quota changes are shown.", "仅展示额度发生变化的时间点。"))
+                Text(tr(
+                    "Only quota changes are shown. 5H window is tracked when available, weekly otherwise.",
+                    "仅展示额度发生变化的时间点。有 5H 额度时监测 5H,否则监测周额度。"
+                ))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
@@ -844,11 +847,20 @@ struct StatsView: View {
             accountKey: key,
             title: title,
             tint: tint,
+            window: sample?.windowKind ?? events.last?.windowKind ?? trackedWindowKind(snapshot),
             currentRemaining: sample?.remainingPercent ?? roundedRemaining(snapshot),
             totalDelta: events.reduce(0) { $0 + $1.deltaPercent },
             latestEventAt: events.last?.sampledAt,
             events: events
         )
+    }
+
+    /// 当前快照会被记录的窗口类型:5H 优先,无则周(与 QuotaHistoryStore.record 一致)。
+    private func trackedWindowKind(_ snapshot: QuotaSnapshot?) -> QuotaHistoryWindowKind? {
+        guard let snapshot else { return nil }
+        if snapshot.fiveHour != nil { return .fiveHour }
+        if snapshot.weekly != nil { return .weekly }
+        return nil
     }
 
     private func shouldShowTimelineSection(key: String, snapshot: QuotaSnapshot?, accountExists: Bool) -> Bool {
@@ -863,7 +875,9 @@ struct StatsView: View {
     }
 
     private func roundedRemaining(_ snapshot: QuotaSnapshot?) -> Int? {
-        guard let remaining = snapshot?.fiveHour?.remainingPercent else { return nil }
+        // 与记录逻辑一致:5H 优先,无 5H 窗口时回退周额度。
+        guard let remaining = snapshot?.fiveHour?.remainingPercent
+            ?? snapshot?.weekly?.remainingPercent else { return nil }
         return max(0, min(100, Int(remaining.rounded())))
     }
 
@@ -1240,6 +1254,16 @@ private struct QuotaTimelineAccountPanel: View {
                 ServiceMark(color: section.tint, size: 8)
                 Text(section.title)
                     .font(.system(size: 13, weight: .semibold))
+                if let label = windowLabel {
+                    Text(label)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            Capsule().fill(Color.secondary.opacity(0.12))
+                        )
+                }
             }
             Spacer()
             timelineMetric(label: tr("Current", "当前"), value: currentText)
@@ -1256,6 +1280,14 @@ private struct QuotaTimelineAccountPanel: View {
             Text(value)
                 .font(.system(size: 11.5, weight: .medium, design: .monospaced))
                 .foregroundStyle(.primary)
+        }
+    }
+
+    private var windowLabel: String? {
+        switch section.window {
+        case .fiveHour: return tr("5H", "5H")
+        case .weekly: return tr("Weekly", "周")
+        case nil: return nil
         }
     }
 
@@ -1636,6 +1668,8 @@ private struct QuotaTimelineSection: Identifiable {
     let accountKey: String
     let title: String
     let tint: Color
+    /// 当前监测的额度窗口(5H / 周),无可用窗口时为 nil。
+    let window: QuotaHistoryWindowKind?
     let currentRemaining: Int?
     let totalDelta: Int
     let latestEventAt: Date?

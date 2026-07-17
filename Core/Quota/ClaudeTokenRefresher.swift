@@ -45,14 +45,40 @@ enum ClaudeTokenRefresher {
     nonisolated static func ensureFreshAccessToken(
         account: inout ClaudeAccount
     ) async -> Result<String, QuotaError> {
-        guard let current = account.accessToken else {
+        // 空字符串视同缺失:凭据空壳(access/refresh 都为空)时直接报 missingToken,
+        // 让上层走 CLI 兜底,不再空转委托刷新。
+        guard let current = account.accessToken, !current.isEmpty else {
             return .failure(.missingToken)
         }
         if !isExpired(expiresAt: account.expiresAt) {
             return .success(current)
         }
-        guard let refreshToken = account.refreshToken, !refreshToken.isEmpty else {
-            return .failure(.tokenRefreshFailed("no refresh_token"))
+        var refreshToken = account.refreshToken ?? ""
+        if refreshToken.isEmpty {
+            // 内存里没有 refresh_token(某些登录形态只写 access_token,或凭据被外部
+            // 客户端重写过)。先重读存储再下结论:CLI / Desktop 可能刚刷新写回了新值。
+            if let onDisk = peekStored(source: account.source) {
+                if let storedExpiresAt = onDisk.expiresAt,
+                   !isExpired(expiresAt: storedExpiresAt) {
+                    account.accessToken = onDisk.accessToken
+                    account.refreshToken = onDisk.refreshToken
+                    account.expiresAt = storedExpiresAt
+                    account.expiredGuess = false
+                    return .success(onDisk.accessToken)
+                }
+                refreshToken = onDisk.refreshToken ?? ""
+            }
+        }
+        guard !refreshToken.isEmpty else {
+            // 存储里确实没有 refresh_token,自己刷不了。后台委托 claude CLI 刷新:
+            // 成功后 CLI 把新凭据写回存储,经 .claudeDelegatedRefreshDidSucceed 通知
+            // 触发 AppState 完整刷新,自动恢复;本次先按失败返回,保留已有快照。
+            // 报 tokenRevoked 而非裸的 "no refresh_token":这种凭据(过期 + 无
+            // refresh_token)通常是切换工具留下的残片或凭据已搬家,委托刷新也未必
+            // 能救,给用户"重新登录"的可操作提示。
+            refresherLog.warning("no refresh_token in account or storage, delegating to CLI")
+            ClaudeDelegatedRefresh.attemptInBackground(source: account.source)
+            return .failure(.tokenRevoked)
         }
         do {
             let r = try await Coordinator.shared.refresh(

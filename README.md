@@ -7,7 +7,7 @@
 <p>
   <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
   <img alt="swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.3-brightgreen.svg">
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.4-brightgreen.svg">
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@
 
 <p align="center">
   <img src="docs/Screenshots/timeline.png" width="860" alt="用量统计 · 时间线"><br>
-  <sub>用量统计 · 时间线(5H 额度变化)</sub>
+  <sub>用量统计 · 时间线(额度变化,5H 优先、无则周)</sub>
 </p>
 
 <p align="center">

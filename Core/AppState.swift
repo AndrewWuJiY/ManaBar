@@ -722,8 +722,11 @@ final class AppState {
             markClaudeFailure("no claude account")
             return
         }
-        guard account.accessToken != nil else {
+        guard account.accessToken?.isEmpty == false else {
             markClaudeFailure(QuotaError.missingToken.description)
+            // Keychain 条目可能只剩无 token 的空壳(新版 CLI 凭据已搬家),
+            // 同样交给 CLI 兜底。
+            await loadClaudeCLIFallback(apiError: .missingToken)
             return
         }
         let refreshed = await ClaudeTokenRefresher.ensureFreshAccessToken(account: &account)
@@ -736,6 +739,11 @@ final class AppState {
             }
         case .failure(let err):
             markClaudeFailure(err.description, error: err)
+            // OAuth 主路走不通(凭据缺失 / 空壳 / 刷新被拒)时改走 CLI 兜底:
+            // 新版 CLI 可能把凭据存到别处,此时本机 claude 会话通常仍然健康,
+            // /usage 一样能拿到额度。受 claudeFallbackBackoffUntil(10 分钟)
+            // 冷却保护,周期刷新触发也不会频繁唤起 CLI。
+            await loadClaudeCLIFallback(apiError: err)
             return
         }
         let result = await ClaudeQuotaClient.fetch(accessToken: activeToken)
