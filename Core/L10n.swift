@@ -103,24 +103,6 @@ func formatResetAltCompact(_ resetsAt: Date?, now: Date = Date()) -> String {
     }
 }
 
-/// 紧凑相对时长,如 "4h37m" / "5d3h" / "<1m"(无空格无后缀)。
-/// 供 formatResetCompact 与 formatResetAltCompact 共享。
-@MainActor
-private func compactRelativeReset(_ resetsAt: Date, now: Date) -> String {
-    let seconds = max(0, Int(resetsAt.timeIntervalSince(now)))
-    if seconds < 60 { return "<1m" }
-    let minutes = seconds / 60
-    if minutes < 60 { return "\(minutes)m" }
-    let hours = minutes / 60
-    let remainingMinutes = minutes % 60
-    if hours < 24 {
-        return remainingMinutes > 0 ? "\(hours)h\(remainingMinutes)m" : "\(hours)h"
-    }
-    let days = hours / 24
-    let remainingHours = hours % 24
-    return remainingHours > 0 ? "\(days)d\(remainingHours)h" : "\(days)d"
-}
-
 /// 相对时长文案,如 "4h 37m 后重置" / "resets in 4h 37m"。供 formatResetHint 使用。
 @MainActor
 private func relativeResetHint(_ resetsAt: Date, now: Date) -> String {

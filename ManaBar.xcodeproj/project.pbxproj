@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		446F37DF3053F55700E0F752 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 446F37DE3053F55700E0F752 /* WidgetKit.framework */; };
+		446F37E13053F55700E0F752 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 446F37E03053F55700E0F752 /* SwiftUI.framework */; };
+		446F37ED3053F55800E0F752 /* ManaBarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 446F37DC3053F55700E0F752 /* ManaBarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		446F37F53053F92200E0F752 /* WidgetSharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446F37F33053F92200E0F752 /* WidgetSharedState.swift */; };
+		49C1B150000000000002AACC /* QuotaVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B150000000000002AAAA /* QuotaVisuals.swift */; };
+		49C1B150000000000002AABB /* QuotaVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B150000000000002AAAA /* QuotaVisuals.swift */; };
+		49C1B151000000000002AABB /* codex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B140000000000001AAAA /* codex.svg */; };
+		49C1B152000000000002AABB /* claude.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B141000000000001AAAA /* claude.svg */; };
+		446F37F63053F92200E0F752 /* WidgetSharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446F37F33053F92200E0F752 /* WidgetSharedState.swift */; };
+		446F38013053F97D00E0F752 /* QuotaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B120000000000001AAAA /* QuotaModels.swift */; };
+		446F38023053F99500E0F752 /* QuotaCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B106000000000001AAAA /* QuotaCache.swift */; };
 		4931AC592FC02A4200EE598C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4931AC522FC02A4200EE598C /* Assets.xcassets */; };
 		4931AC622FC02A4200EE598C /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC4F2FC02A4200EE598C /* MenuBarLabel.swift */; };
 		4931AC632FC02A4200EE598C /* ManaBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4931AC412FC02A4200EE598C /* ManaBarApp.swift */; };
@@ -32,7 +43,6 @@
 		49C1B127000000000001AABB /* ClaudeDelegatedRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B127000000000001AAAA /* ClaudeDelegatedRefresh.swift */; };
 		49C1B130000000000001AABB /* MenuBarLabelFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */; };
 		49C1B131000000000001AABB /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B131000000000001AAAA /* Scheduler.swift */; };
-		49C1B1F7000000000001AABB /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B1F7000000000001AAAA /* HotKey.swift */; };
 		49C1B132000000000001AABB /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B132000000000001AAAA /* L10n.swift */; };
 		49C1B140000000000001AABB /* codex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B140000000000001AAAA /* codex.svg */; };
 		49C1B141000000000001AABB /* claude.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B141000000000001AAAA /* claude.svg */; };
@@ -54,9 +64,39 @@
 		49C1B192000000000001AABB /* ImportedCodexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B192000000000001AAAA /* ImportedCodexStore.swift */; };
 		49C1B193000000000001AABB /* OtherCodexAccountsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B193000000000001AAAA /* OtherCodexAccountsSection.swift */; };
 		49C1B194000000000001AABB /* ImportedCodexAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B194000000000001AAAA /* ImportedCodexAccountsView.swift */; };
+		49C1B1F7000000000001AABB /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B1F7000000000001AAAA /* HotKey.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		446F37EB3053F55800E0F752 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4931AC282FC029A000EE598C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 446F37DB3053F55700E0F752;
+			remoteInfo = ManaBarWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		446F37EE3053F55800E0F752 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				446F37ED3053F55800E0F752 /* ManaBarWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		446F37DC3053F55700E0F752 /* ManaBarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ManaBarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		446F37DE3053F55700E0F752 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		446F37E03053F55700E0F752 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		446F37F33053F92200E0F752 /* WidgetSharedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSharedState.swift; sourceTree = "<group>"; };
+		49C1B150000000000002AAAA /* QuotaVisuals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaVisuals.swift; sourceTree = "<group>"; };
 		4931AC302FC029A000EE598C /* ManaBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ManaBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4931AC3E2FC02A4200EE598C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4931AC3F2FC02A4200EE598C /* ManaBar.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = ManaBar.xcodeproj; sourceTree = "<group>"; };
@@ -86,7 +126,6 @@
 		49C1B127000000000001AAAA /* ClaudeDelegatedRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDelegatedRefresh.swift; sourceTree = "<group>"; };
 		49C1B130000000000001AAAA /* MenuBarLabelFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelFormatter.swift; sourceTree = "<group>"; };
 		49C1B131000000000001AAAA /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
-		49C1B1F7000000000001AAAA /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
 		49C1B132000000000001AAAA /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		49C1B140000000000001AAAA /* codex.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex.svg; sourceTree = "<group>"; };
 		49C1B141000000000001AAAA /* claude.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = claude.svg; sourceTree = "<group>"; };
@@ -108,10 +147,41 @@
 		49C1B192000000000001AAAA /* ImportedCodexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedCodexStore.swift; sourceTree = "<group>"; };
 		49C1B193000000000001AAAA /* OtherCodexAccountsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtherCodexAccountsSection.swift; sourceTree = "<group>"; };
 		49C1B194000000000001AAAA /* ImportedCodexAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedCodexAccountsView.swift; sourceTree = "<group>"; };
+		49C1B1F7000000000001AAAA /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
 		49C1B200000000000001AAAA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		446F37F13053F55800E0F752 /* Exceptions for "ManaBarWidget" folder in "ManaBarWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 446F37DB3053F55700E0F752 /* ManaBarWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		446F37E23053F55700E0F752 /* ManaBarWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				446F37F13053F55800E0F752 /* Exceptions for "ManaBarWidget" folder in "ManaBarWidgetExtension" target */,
+			);
+			path = ManaBarWidget;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		446F37D93053F55700E0F752 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				446F37E13053F55700E0F752 /* SwiftUI.framework in Frameworks */,
+				446F37DF3053F55700E0F752 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4931AC2D2FC029A000EE598C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -122,9 +192,28 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		446F37DD3053F55700E0F752 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				446F37DE3053F55700E0F752 /* WidgetKit.framework */,
+				446F37E03053F55700E0F752 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		446F37F43053F92200E0F752 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				446F37F33053F92200E0F752 /* WidgetSharedState.swift */,
+				49C1B150000000000002AAAA /* QuotaVisuals.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		4931AC272FC029A000EE598C = {
 			isa = PBXGroup;
 			children = (
+				446F37F43053F92200E0F752 /* Shared */,
 				4931AC3E2FC02A4200EE598C /* AppDelegate.swift */,
 				4931AC3F2FC02A4200EE598C /* ManaBar.xcodeproj */,
 				4931AC402FC02A4200EE598C /* ManaBar.entitlements */,
@@ -138,6 +227,8 @@
 				49C1B180000000000001AAAA /* Onboarding */,
 				4931AC532FC02A4200EE598C /* Resources */,
 				4931AC552FC02A4200EE598C /* Settings */,
+				446F37E23053F55700E0F752 /* ManaBarWidget */,
+				446F37DD3053F55700E0F752 /* Frameworks */,
 				4931AC312FC029A000EE598C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -146,6 +237,7 @@
 			isa = PBXGroup;
 			children = (
 				4931AC302FC029A000EE598C /* ManaBar.app */,
+				446F37DC3053F55700E0F752 /* ManaBarWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -308,6 +400,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		446F37DB3053F55700E0F752 /* ManaBarWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 446F37F23053F55800E0F752 /* Build configuration list for PBXNativeTarget "ManaBarWidgetExtension" */;
+			buildPhases = (
+				446F37D83053F55700E0F752 /* Sources */,
+				446F37D93053F55700E0F752 /* Frameworks */,
+				446F37DA3053F55700E0F752 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				446F37E23053F55700E0F752 /* ManaBarWidget */,
+			);
+			name = ManaBarWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = ManaBarWidgetExtension;
+			productReference = 446F37DC3053F55700E0F752 /* ManaBarWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		4931AC2F2FC029A000EE598C /* ManaBar */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4931AC3B2FC029A100EE598C /* Build configuration list for PBXNativeTarget "ManaBar" */;
@@ -316,10 +430,12 @@
 				4931AC2D2FC029A000EE598C /* Frameworks */,
 				4931AC2E2FC029A000EE598C /* Resources */,
 				49C1B202000000000001AABB /* Embed ManaBarClaudeWatchdog */,
+				446F37EE3053F55800E0F752 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				446F37EC3053F55800E0F752 /* PBXTargetDependency */,
 			);
 			name = ManaBar;
 			packageProductDependencies = (
@@ -335,9 +451,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2650;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
+					446F37DB3053F55700E0F752 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					4931AC2F2FC029A000EE598C = {
 						CreatedOnToolsVersion = 26.5;
 					};
@@ -364,11 +483,21 @@
 			projectRoot = "";
 			targets = (
 				4931AC2F2FC029A000EE598C /* ManaBar */,
+				446F37DB3053F55700E0F752 /* ManaBarWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		446F37DA3053F55700E0F752 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49C1B151000000000002AABB /* codex.svg in Resources */,
+				49C1B152000000000002AABB /* claude.svg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4931AC2E2FC029A000EE598C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -405,6 +534,17 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		446F37D83053F55700E0F752 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				446F38023053F99500E0F752 /* QuotaCache.swift in Sources */,
+				446F38013053F97D00E0F752 /* QuotaModels.swift in Sources */,
+				446F37F63053F92200E0F752 /* WidgetSharedState.swift in Sources */,
+				49C1B150000000000002AABB /* QuotaVisuals.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4931AC2C2FC029A000EE598C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -449,6 +589,8 @@
 				49C1B172000000000001AABB /* FloatingContentView.swift in Sources */,
 				49C1B173000000000001AABB /* FloatingPanelController.swift in Sources */,
 				49C1B181000000000001AABB /* OnboardingView.swift in Sources */,
+				446F37F53053F92200E0F752 /* WidgetSharedState.swift in Sources */,
+				49C1B150000000000002AACC /* QuotaVisuals.swift in Sources */,
 				49C1B191000000000001AABB /* ImportedCodexAccount.swift in Sources */,
 				49C1B192000000000001AABB /* ImportedCodexStore.swift in Sources */,
 				49C1B193000000000001AABB /* OtherCodexAccountsSection.swift in Sources */,
@@ -458,7 +600,75 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		446F37EC3053F55800E0F752 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 446F37DB3053F55700E0F752 /* ManaBarWidgetExtension */;
+			targetProxy = 446F37EB3053F55800E0F752 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		446F37EF3053F55800E0F752 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = ManaBarWidget/ManaBarWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 659P79368S;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ManaBarWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ManaBarWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andrewwujiy.manabar.ManaBarWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		446F37F03053F55800E0F752 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = ManaBarWidget/ManaBarWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 659P79368S;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ManaBarWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ManaBarWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andrewwujiy.manabar.ManaBarWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		4931AC392FC029A100EE598C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -597,7 +807,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andrewwujiy.manabar;
 				PRODUCT_NAME = ManaBar;
 				REGISTER_APP_GROUPS = YES;
@@ -630,7 +840,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andrewwujiy.manabar;
 				PRODUCT_NAME = ManaBar;
 				REGISTER_APP_GROUPS = YES;
@@ -646,6 +856,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		446F37F23053F55800E0F752 /* Build configuration list for PBXNativeTarget "ManaBarWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				446F37EF3053F55800E0F752 /* Debug */,
+				446F37F03053F55800E0F752 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		4931AC2B2FC029A000EE598C /* Build configuration list for PBXProject "ManaBar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

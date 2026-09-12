@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import WidgetKit
 
 @Observable
 @MainActor
@@ -74,6 +75,8 @@ final class AppState {
 
         subscribeToDelegatedRefreshSuccess()
         loadQuotaCache()
+        // 启动即发一次:否则小组件要等到第一轮额度刷新落盘才脱离空态。
+        publishWidgetState(force: true)
         loadQuotaHistory()
         reloadImportedCodexAccounts()
         usageService.bootstrap(appState: self)
@@ -527,7 +530,35 @@ final class AppState {
         } catch {
             print("[QuotaCache 额度缓存] 写盘失败 save failed: \(error)")
         }
+        publishWidgetState()
     }
+
+    /// 把小组件需要、而 quota-cache.json 里没有的东西写进 App Group 容器,并戳一次心跳,
+    /// 然后请 WidgetKit 重刷 timeline。见 docs/草案-桌面小组件.md §4.1。
+    ///
+    /// 心跳每次都写(小组件靠它把空态翻转时刻往后推),但 reload 做 10 秒节流:
+    /// 一轮刷新里主账号 + 每个导入的副账号都会各调一次 saveQuotaCache,没必要 reload 那么多次。
+    /// `force` 用于 Scheduler 的定期心跳——那一次的目的就是 reload,不能被节流吃掉。
+    func publishWidgetState(force: Bool = false) {
+        let settings = SettingsStore.shared
+        WidgetSharedStore.save(
+            WidgetSharedState(
+                heartbeatAt: Date(),
+                showCodex: settings.showCodex,
+                showClaude: settings.showClaude,
+                language: settings.resolvedLanguage == .zh ? "zh" : "en"
+            )
+        )
+
+        let now = Date()
+        if !force, let last = lastWidgetReloadAt, now.timeIntervalSince(last) < 10 {
+            return
+        }
+        lastWidgetReloadAt = now
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSharedStore.widgetKind)
+    }
+
+    private var lastWidgetReloadAt: Date?
 
     private func recordCodexQuotaHistory(snapshot: QuotaSnapshot, sampledAt: Date) {
         recordQuotaHistory(

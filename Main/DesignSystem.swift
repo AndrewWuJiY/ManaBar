@@ -8,60 +8,6 @@ import AppKit
 // Xcode 自动从 .xcassets 生成 `Color.codexAccent` / `Color.claudeAccent`,直接使用即可。
 // 见 docs/03-设计风格.md §4.2。
 
-// MARK: - Status color
-
-/// 按剩余百分比解析 4 档状态色:>50% → normal / 20~50% → warning / <20% → low / <=0 → empty。
-///
-/// 见 docs/03-设计风格.md §4.3。Popover / Floating / Stats KPI 全部走这里。
-/// `tint`(服务识别色)当前不参与额度着色,保留参数以备将来切回「服务色打底」方案。
-func statusColor(remainingPercent: Double?, tint: Color) -> Color {
-    guard let value = remainingPercent else { return .secondary }
-    if value <= 0 { return quotaEmptyColor }
-    if value < 20 { return quotaLowColor }
-    if value <= 50 { return quotaWarningColor }
-    return quotaNormalColor
-}
-
-// normal 档统一用石墨灰(中性灰),不随服务识别色变化。
-// 2026-06 加深一档:原 #6C6C70 / #98989D 在大字号和浅色卡片上偏淡,可读性不足。
-private let quotaNormalColor = quotaAdaptiveColor(
-    light: (red: 72, green: 72, blue: 77),    // #48484D
-    dark: (red: 180, green: 180, blue: 186)   // #B4B4BA
-)
-
-// warning 浅色档不能用亮黄(#F6C343 在白底对比度 <2:1,文字几乎看不见),
-// 改用深琥珀;进度条/图表点一并变深,"黄=警告"语义不变。深色仍用亮黄。
-private let quotaWarningColor = quotaAdaptiveColor(
-    light: (red: 178, green: 124, blue: 0),   // #B27C00
-    dark: (red: 255, green: 226, blue: 122)   // #FFE27A
-)
-
-// low 浅色档同理加深一点,白底上 #FF7A2F 文字偏浅。
-private let quotaLowColor = quotaAdaptiveColor(
-    light: (red: 224, green: 96, blue: 21),   // #E06015
-    dark: (red: 255, green: 161, blue: 95)    // #FFA15F
-)
-
-private let quotaEmptyColor = quotaAdaptiveColor(
-    light: (red: 255, green: 77, blue: 109),  // #FF4D6D
-    dark: (red: 255, green: 122, blue: 144)   // #FF7A90
-)
-
-private func quotaAdaptiveColor(
-    light: (red: CGFloat, green: CGFloat, blue: CGFloat),
-    dark: (red: CGFloat, green: CGFloat, blue: CGFloat)
-) -> Color {
-    Color(nsColor: NSColor(name: nil) { appearance in
-        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let rgb = isDark ? dark : light
-        return NSColor(
-            calibratedRed: rgb.red / 255,
-            green: rgb.green / 255,
-            blue: rgb.blue / 255,
-            alpha: 1
-        )
-    })
-}
 
 extension Color {
     /// 设置页「已连接」状态用的绿。参考 GitHub success green(成熟的"连接/成功"绿),
@@ -174,74 +120,6 @@ struct ServiceMark: View {
     }
 }
 
-// MARK: - ServiceTile (带 logo 的 squircle)
-//
-// 见 docs/03-设计风格.md §11.2。
-// Popover 服务行左侧、Stats sidebar 服务条目、Onboarding 账号列表都用。
-
-struct ServiceTile: View {
-    /// 资源名,对应 Resources/Logos/ 下的 svg。
-    let logoName: String
-    /// 备用字母(SVG 加载失败时显示)。
-    let fallback: String
-    /// 背景填充色(服务识别色)。Codex 走 OpenAI 官方观感(白底黑 logo),会忽略此值。
-    let tint: Color
-    /// tile 尺寸,默认 Popover 用 22pt。
-    var size: CGFloat = 22
-    /// 内 logo 尺寸,默认 14pt。
-    var logoSize: CGFloat = 14
-    /// 圆角半径,默认 6pt。
-    var cornerRadius: CGFloat = 6
-
-    /// Codex 的 tile 还原 OpenAI 官方品牌图标:白底黑 logo + 极细边框。
-    /// 其余地方(文字色、环形、图表)的 `Color.codexAccent` 是蓝紫(#718DFF / #8FA6FF),不受影响。
-    private var isOpenAIBrand: Bool { logoName == "codex" }
-
-    private var background: Color { isOpenAIBrand ? .white : tint }
-    private var foreground: Color { isOpenAIBrand ? .black : .white }
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(background)
-            .frame(width: size, height: size)
-            .overlay {
-                if isOpenAIBrand {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
-                }
-            }
-            .overlay(logoView)
-    }
-
-    @ViewBuilder
-    private var logoView: some View {
-        if let nsImage = LogoCache.image(named: logoName) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .renderingMode(.template)
-                .foregroundStyle(foreground)
-                .frame(width: logoSize, height: logoSize)
-        } else {
-            Text(fallback)
-                .font(.system(size: logoSize * 0.7, weight: .semibold))
-                .foregroundStyle(foreground)
-        }
-    }
-}
-
-private enum LogoCache {
-    private static let cache = NSCache<NSString, NSImage>()
-
-    static func image(named name: String) -> NSImage? {
-        if let cached = cache.object(forKey: name as NSString) { return cached }
-        guard let url = Bundle.main.url(forResource: name, withExtension: "svg"),
-              let image = NSImage(contentsOf: url)
-        else { return nil }
-        image.isTemplate = true
-        cache.setObject(image, forKey: name as NSString)
-        return image
-    }
-}
 
 // MARK: - ProgressRing (进度环)
 //
@@ -285,35 +163,6 @@ extension ProgressRing where Center == EmptyView {
     }
 }
 
-// MARK: - ProgressBar (横条)
-//
-// 见 docs/03-设计风格.md §11.4。
-// Popover weekly 5/2.5、HUD 4/2、Dense compact 3/1.5、BigStat 6/3。
-
-struct ProgressBar: View {
-    let value: Double
-    let tint: Color
-    var height: CGFloat = 5
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.18))
-
-                Capsule()
-                    .fill(tint)
-                    .frame(width: max(0, proxy.size.width * clampedValue))
-                    .animation(.easeOut(duration: 0.25), value: clampedValue)
-            }
-        }
-        .frame(height: height)
-    }
-
-    private var clampedValue: CGFloat {
-        max(0, min(1, CGFloat(value)))
-    }
-}
 
 // MARK: - Bilingual label helpers
 //

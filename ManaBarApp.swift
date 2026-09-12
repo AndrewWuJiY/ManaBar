@@ -42,6 +42,7 @@ private struct MenuBarLabelRoot: View {
         MenuBarLabel()
             .task {
                 await appState.bootstrap()
+                AppDelegate.attach(appState: appState)
                 FloatingPanelController.shared.attach(appState: appState)
                 FloatingPanelController.shared.sync()
             }

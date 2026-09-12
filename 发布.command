@@ -7,7 +7,16 @@ cd "$(dirname "$0")"
 # 清理沙盒会话可能残留的 git 锁文件
 rm -f .git/*.lock .git/objects/*/tmp_obj_* 2>/dev/null || true
 
-VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ManaBar.xcodeproj/project.pbxproj | head -1)
+# 各 target 的 MARKETING_VERSION 必须一致:Xcode 要求 app extension 的 CFBundleShortVersionString
+# 与宿主 App 相同,不一致会在构建期报警告。这里直接卡住,免得 head -1 取到 widget 的旧版本号打错 tag。
+VERSIONS=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ManaBar.xcodeproj/project.pbxproj | tr -d ' ' | sort -u)
+if [ "$(echo "$VERSIONS" | wc -l | tr -d ' ')" -ne 1 ]; then
+  echo "❌ 各 target 的 MARKETING_VERSION 不一致:"
+  echo "$VERSIONS" | sed 's/^/   /'
+  echo "   主 App 与 ManaBarWidgetExtension 必须同版本,请在 Xcode 里改成一致后重试。"
+  exit 1
+fi
+VERSION="$VERSIONS"
 TAG="v$VERSION"
 echo "▶ 发布版本: $TAG"
 
@@ -15,15 +24,19 @@ echo "▶ 发布版本: $TAG"
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "▶ 提交本地改动..."
   git add -A
-  git commit -m "release: v$VERSION — 额度时间线自动回退(5H→周) + Claude 凭据失效自愈
+  # ⚠️ 每次发版前更新这段说明,它会成为本次 release commit 的正文。
+  git commit -m "release: v$VERSION — 桌面小组件(WidgetKit)
 
-- 额度历史监测窗口自动回退:5H 优先,无 5H 窗口(Codex 已取消 5h 限制)时改记周额度;
-  样本/事件新增 window 字段,窗口切换只重置基线、不产生跨窗口假事件,旧数据自动兼容
-- 时间线 UI:标题改为「额度变化」,账号卡片新增窗口标签(5H/周),「当前」指标同步回退取值;
-  表格重置时间非当天显示 MM-dd HH:mm(周窗口约 7 天后重置,只显示时刻会误导),列宽 96→130pt
-- Claude 凭据自愈:无 refresh_token 时先重读存储、再后台委托 claude CLI 刷新;
-  凭据空壳/刷新被拒时转 CLI 兜底获取额度(10 分钟限频),登录失效给出重新登录提示
-- 同步 docs(技术实现/界面布局/产品需求/打包发布)与版本号 v$VERSION"
+- 新增 macOS 桌面小组件(仅中尺寸):两行显示 Codex / Claude Code 剩余额度、
+  重置倒计时与状态色,点按打开用量统计;主 App 未运行时显示「ManaBar 未运行」空态
+- 数据通路:新增 App Group 共享容器(group.659P79368S.com.andrewwujiy.manabar),
+  quota-cache.json 落点改为容器优先、旧路径回退并做一次单向迁移(只拷不删)
+- 小组件不查任何 API,由主 App 在每次额度落盘时写共享状态 + 5 分钟心跳推送 reload;
+  空态靠 timeline 预埋的到期 entry 自动翻转,不依赖主 App 退出时的通知
+- 新增 URL scheme manabar://stats,由 AppDelegate 处理(冷启动先缓冲再补发)
+- 抽出 Shared/ 供两个 target 共用:statusColor / ServiceTile / ProgressBar /
+  compactRelativeReset,Main/DesignSystem.swift 只留主窗口专用组件
+- 同步 docs(技术实现 §15 / 界面布局 §2A / 设计风格 §4.4 / 产品需求 §4A / README)与版本号 v$VERSION"
 fi
 
 # 1. 构建
@@ -50,15 +63,19 @@ git tag -f "$TAG"
 git push -f origin "$TAG"
 
 # 4. 创建 GitHub Release
+# ⚠️ 每次发版前更新这段,它会成为 GitHub Release 的正文。
 NOTES="## ManaBar $VERSION
 
-- 📈 **额度时间线自动回退**:适配 Codex 取消 5 小时限制,时间线不再空白——有 5H 额度时监测 5H,否则自动改为监测周额度;账号卡片标注当前窗口(5H / 周),窗口切换不产生假变动,历史数据自动兼容
-- 🕐 **重置时间更清晰**:时间线表格中非当天的重置时间显示为 \`MM-dd HH:mm\`(周额度约 7 天后重置,原先只显示时刻容易误读为当天)
-- 🔐 **Claude 凭据失效自愈**:凭据缺 refresh_token 或被清空(CLI 登出/掉线)时,自动重读存储并委托 claude CLI 后台刷新,仍不行则改走 CLI 兜底获取额度(10 分钟限频);登录失效时明确提示「请在终端运行 claude 重新登录」
+- 🖥️ **桌面小组件**:新增 macOS 系统小组件(中尺寸),两行显示 Codex 与 Claude Code 的剩余额度、重置倒计时与状态色;点按打开用量统计。在桌面空白处右键 →「编辑小组件」,搜索 ManaBar 即可添加
+- 🔌 **主 App 未运行时明确提示**:小组件显示「ManaBar 未运行」空态而非过期数字,点按即可启动——不让旧数据被误读为实时额度
+- ⚠️ **低额度形状冗余**:macOS 桌面小组件在点击桌面时会被系统去饱和、交通灯颜色失效,因此剩余 \`<20%\` 与耗尽两档额外显示警告符号
+- 🔄 小组件不查询任何 API:额度由主 App 写入 App Group 共享容器,小组件只读;主 App 每次额度落盘与 5 分钟心跳推送刷新
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:
-\`xattr -d com.apple.quarantine /Applications/ManaBar.app\`"
+\`xattr -d com.apple.quarantine /Applications/ManaBar.app\`
+
+添加小组件需要 App 位于 \`/Applications\`。"
 
 if command -v gh >/dev/null 2>&1; then
   echo "▶ 通过 gh 创建 Release..."

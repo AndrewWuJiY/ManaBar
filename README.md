@@ -7,7 +7,7 @@
 <p>
   <img alt="platform" src="https://img.shields.io/badge/macOS-14+-blue.svg">
   <img alt="swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.5-brightgreen.svg">
+  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-brightgreen.svg">
 </p>
 
 <p align="center">
@@ -18,6 +18,7 @@
 
 - **用量显示** —— Codex 与 Claude Code 的 5 小时 / 周窗口剩余额度,实时同步
 - **菜单栏 + 悬浮窗** —— 状态栏图标显示剩余百分比;可选桌面悬浮 HUD,可拖动、边缘吸附、置顶不抢焦
+- **桌面小组件** —— 系统小组件(中尺寸),两行显示 Codex 与 Claude Code 的剩余额度与重置倒计时;点按打开用量统计
 - **多 Codex 账号** —— 支持导入多个 Codex 账号,主副账号在 Popover 同屏展示
 - **Token 与费用统计** —— 按今天 / 昨天 / 本周 / 本月 / 本年 / 7 天 / 30 天 / 全部 / 自定义切换;KPI、堆叠柱状图、按服务占比、按模型明细
 - **丰富的设置** —— 账号开关、菜单栏显示项、悬浮窗、刷新间隔、重置时间显示、中英双语、开机自动启动
@@ -57,6 +58,8 @@
    ```
 
 3. 若本机无 `~/.claude/.credentials.json`,会弹出说明后请求 Keychain 授权,请选「**始终允许**」。
+
+4. (可选)添加桌面小组件:在桌面空白处**右键 → 编辑小组件**,搜索 `ManaBar`,把中尺寸小组件拖到桌面。小组件的数据由主 App 提供,**主 App 未运行时会显示「ManaBar 未运行」**,点按即可启动。
 
 ## 反馈
 

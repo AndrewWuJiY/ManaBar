@@ -6,11 +6,16 @@ final class Scheduler {
     private var quotaTask: Task<Void, Never>?
     private var usageTask: Task<Void, Never>?
     private var serviceStatusTask: Task<Void, Never>?
+    private var widgetHeartbeatTask: Task<Void, Never>?
     private(set) var quotaInterval: TimeInterval?
     private(set) var usageInterval: TimeInterval?
 
     /// statuspage.io 变化很慢,固定 5 分钟一次,不跟 quotaInterval 抖。
     private let serviceStatusInterval: TimeInterval = 5 * 60
+
+    /// 桌面小组件心跳。同样固定 5 分钟、不跟 quotaInterval 抖:
+    /// 小组件靠它把「主 App 未运行」空态的翻转时刻不断往后推,见 docs/草案-桌面小组件.md §4.1。
+    private let widgetHeartbeatInterval: TimeInterval = WidgetSharedStore.heartbeatInterval
 
     func start(appState: AppState, quotaInterval: TimeInterval?, usageInterval: TimeInterval?) {
         self.appState = appState
@@ -20,6 +25,7 @@ final class Scheduler {
         startQuotaLoop()
         startUsageLoop()
         startServiceStatusLoop()
+        startWidgetHeartbeatLoop()
     }
 
     func stop() {
@@ -29,6 +35,8 @@ final class Scheduler {
         usageTask = nil
         serviceStatusTask?.cancel()
         serviceStatusTask = nil
+        widgetHeartbeatTask?.cancel()
+        widgetHeartbeatTask = nil
     }
 
     /// 立即触发一次刷新（不打断现有周期）
@@ -74,6 +82,13 @@ final class Scheduler {
         }
     }
 
+    private func startWidgetHeartbeatLoop() {
+        let interval = widgetHeartbeatInterval
+        widgetHeartbeatTask = Task { [weak self] in
+            await self?.widgetHeartbeatLoop(interval: interval)
+        }
+    }
+
     private func quotaLoop(interval: TimeInterval) async {
         while !Task.isCancelled {
             let nanos = UInt64(interval * 1_000_000_000)
@@ -97,6 +112,20 @@ final class Scheduler {
             }
             guard let appState, !Task.isCancelled else { return }
             await appState.usageService.scanNow()
+        }
+    }
+
+    /// 心跳只写共享状态 + reload,不碰网络:主 App 空闲(额度没变化)时也要让小组件知道自己还活着。
+    private func widgetHeartbeatLoop(interval: TimeInterval) async {
+        while !Task.isCancelled {
+            let nanos = UInt64(interval * 1_000_000_000)
+            do {
+                try await Task.sleep(nanoseconds: nanos)
+            } catch {
+                return
+            }
+            guard let appState, !Task.isCancelled else { return }
+            appState.publishWidgetState(force: true)
         }
     }
 
