@@ -23,7 +23,7 @@ enum Pricing {
         "claude-opus-4-5":   .init(input: 5,   output: 25,  cacheRead: 0.50, cacheCreation: 6.25),
         "claude-opus-4-1":   .init(input: 15,  output: 75,  cacheRead: 1.50, cacheCreation: 18.75),
         "claude-opus-4":     .init(input: 15,  output: 75,  cacheRead: 1.50, cacheCreation: 18.75),
-        // Sonnet 5 为优惠期价(至 2026-08-31);2026-09-01 起官方标准价 $3/$15,届时需上调
+        // Sonnet 5 原定 2026-09-01 涨到 $3/$15 的计划已取消,$2/$10 即官方标准价,无需上调
         "claude-sonnet-5":   .init(input: 2,   output: 10,  cacheRead: 0.20, cacheCreation: 2.50),
         "claude-sonnet-4-7": .init(input: 3,   output: 15,  cacheRead: 0.30, cacheCreation: 3.75),
         "claude-sonnet-4-6": .init(input: 3,   output: 15,  cacheRead: 0.30, cacheCreation: 3.75),
@@ -52,6 +52,14 @@ enum Pricing {
         "gpt-5.6-sol":       .init(input: 5,    output: 30,  cacheRead: 0.50,  cacheCreation: 6.25),
         "gpt-5.6-terra":     .init(input: 2.50, output: 15,  cacheRead: 0.25,  cacheCreation: 3.125),
         "gpt-5.6-luna":      .init(input: 1,    output: 6,   cacheRead: 0.10,  cacheCreation: 1.25),
+
+        // —— GPT-6 系 ——
+        // Astra 官方 Standard 短上下文档（≤272k）：$10 in / $1 cache read / $12.50 cache write / $50 out。
+        // >272k 长上下文按整请求重计（input、cache 2x，output 1.5x）；Fast 模式 2x；Batch/Flex 0.5x。
+        // 与 5.6 系一致，本表仍只取 Standard 短上下文单档。
+        "gpt-6-astra":       .init(input: 10,   output: 50,  cacheRead: 1.00,  cacheCreation: 12.50),
+        // Codex 侧若出现带后缀的变体，官方未单独公布价，暂按 Astra 同价登记
+        "gpt-6-astra-codex": .init(input: 10,   output: 50,  cacheRead: 1.00,  cacheCreation: 12.50),
         "codex-mini-latest": .init(input: 1.50, output: 6,   cacheRead: 0.375, cacheCreation: 0)
         // codex-auto-review 内部 review，官方未公开计费；不入表 → cost=0，token 仍记录
     ]
