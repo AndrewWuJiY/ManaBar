@@ -25,18 +25,19 @@ if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others
   echo "▶ 提交本地改动..."
   git add -A
   # ⚠️ 每次发版前更新这段说明,它会成为本次 release commit 的正文。
-  git commit -m "release: v$VERSION — 桌面小组件(WidgetKit)
+  git commit -m "release: v$VERSION — CLI 凭据改为只读,修复 Claude CLI 隔几天掉线
 
-- 新增 macOS 桌面小组件(仅中尺寸):两行显示 Codex / Claude Code 剩余额度、
-  重置倒计时与状态色,点按打开用量统计;主 App 未运行时显示「ManaBar 未运行」空态
-- 数据通路:新增 App Group 共享容器(group.659P79368S.com.andrewwujiy.manabar),
-  quota-cache.json 落点改为容器优先、旧路径回退并做一次单向迁移(只拷不删)
-- 小组件不查任何 API,由主 App 在每次额度落盘时写共享状态 + 5 分钟心跳推送 reload;
-  空态靠 timeline 预埋的到期 entry 自动翻转,不依赖主 App 退出时的通知
-- 新增 URL scheme manabar://stats,由 AppDelegate 处理(冷启动先缓冲再补发)
-- 抽出 Shared/ 供两个 target 共用:statusColor / ServiceTile / ProgressBar /
-  compactRelativeReset,Main/DesignSystem.swift 只留主窗口专用组件
-- 同步 docs(技术实现 §15 / 界面布局 §2A / 设计风格 §4.4 / 产品需求 §4A / README)与版本号 v$VERSION"
+- 根因:ManaBar 过期时自行用 refresh_token 续期并回写钥匙串,而 refresh_token 一次性旋转,
+  与内存里持有旧 token 的 claude CLI 会话冲突,CLI 被 invalid_grant 顶掉线需重新 /login
+- ClaudeTokenRefresher 改只读:删除 OAuth 续期、回写、Coordinator / 软恢复;过期时重读存储,
+  仍过期则后台委托 claude CLI 刷新并走 CLI 兜底,保留已有快照
+- Codex 默认账号(~/.codex/auth.json)同样只读,过期时提示运行一次 codex;
+  手动导入的副账号是 ManaBar 自有副本,仍由 ManaBar 续期并只回写其 Keychain 条目
+- QuotaError 新增 tokenExpired(app),给出等待 CLI 续期的提示
+- 同步 docs(技术实现 §5 / §6.3 / §11 / §13 / §14.3、产品需求、打包发布)与版本号 v$VERSION
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Q55iS3m5Hp9Ei7EVrdsCb9"
 fi
 
 # 1. 构建
@@ -66,10 +67,10 @@ git push -f origin "$TAG"
 # ⚠️ 每次发版前更新这段,它会成为 GitHub Release 的正文。
 NOTES="## ManaBar $VERSION
 
-- 🖥️ **桌面小组件**:新增 macOS 系统小组件(中尺寸),两行显示 Codex 与 Claude Code 的剩余额度、重置倒计时与状态色;点按打开用量统计。在桌面空白处右键 →「编辑小组件」,搜索 ManaBar 即可添加
-- 🔌 **主 App 未运行时明确提示**:小组件显示「ManaBar 未运行」空态而非过期数字,点按即可启动——不让旧数据被误读为实时额度
-- ⚠️ **低额度形状冗余**:macOS 桌面小组件在点击桌面时会被系统去饱和、交通灯颜色失效,因此剩余 \`<20%\` 与耗尽两档额外显示警告符号
-- 🔄 小组件不查询任何 API:额度由主 App 写入 App Group 共享容器,小组件只读;主 App 每次额度落盘与 5 分钟心跳推送刷新
+- 🔐 **修复 Claude Code CLI 隔几天就要重新登录**:ManaBar 以前会在 token 过期时自己续期,和正在运行的 claude 会话抢同一个一次性 refresh_token,把 CLI 顶掉线。现在对 CLI 的登录凭据**只读不写**,续期完全交给 CLI
+- 🔐 **Codex 同样只读**:不再改写 \`~/.codex/auth.json\`;手动导入的 Codex 副账号仍由 ManaBar 自行续期(只写自己的钥匙串副本)
+- ⏳ CLI 长时间没运行、凭据过期时,额度保留上次数据并提示「运行一次 claude / codex 即可恢复」;Claude 会在后台自动唤起 CLI 刷新
+- 💰 价格表新增 GPT-6 Astra
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:

@@ -71,6 +71,9 @@ enum QuotaError: Error, CustomStringConvertible {
     /// 通常是 Claude Code CLI / Desktop / cc-switch 等其他客户端抢先刷新使旧 token 失效,
     /// 或用户主动退登 / 改密码。此时只能重新登录。
     case tokenRevoked
+    /// access_token 已过期。ManaBar 对 CLI 共享凭据只读、不自行续期,
+    /// 需等对应 CLI(claude / codex)下次运行时刷新写回。
+    case tokenExpired(QuotaApp)
 
     var description: String {
         switch self {
@@ -81,6 +84,11 @@ enum QuotaError: Error, CustomStringConvertible {
         case .tokenRefreshFailed(let msg): return "token refresh failed: \(msg)"
         case .tokenRevoked:
             return "Claude 登录已失效,请在终端运行 claude 重新登录后再回来刷新"
+        case .tokenExpired(let app):
+            switch app {
+            case .claude: return "Claude 凭据已过期,等待 Claude Code 续期(运行一次 claude 即可恢复)"
+            case .codex: return "Codex 凭据已过期,等待 Codex CLI 续期(运行一次 codex 即可恢复)"
+            }
         }
     }
 

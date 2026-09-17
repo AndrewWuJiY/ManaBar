@@ -6,8 +6,8 @@ import os
 /// 过滤示例:`subsystem:com.andrewwujiy.manabar process:ManaBar category:delegated-refresh`
 private let log = Logger(subsystem: "com.andrewwujiy.manabar", category: "delegated-refresh")
 
-/// 当 ManaBar 自家的 OAuth refresh 拿到 `invalid_grant`(refresh_token 被服务端拒)时,
-/// 直接唤起本机 `claude` CLI 跑一次 `/status`,让 CLI 用自己受信任的会话身份重新刷新
+/// ManaBar 对 Claude 凭据只读、不自行续期。access_token 过期且存储里也没有新值时,
+/// 唤起本机 `claude` CLI 跑一次 `/status`,让凭据的主人 CLI 用自己的会话身份刷新
 /// 并把新凭据写回 keychain / credentials.json,本进程随后重读即可恢复。
 ///
 /// 这是参考 CodexBar 的 `ClaudeOAuthDelegatedRefreshCoordinator` 思路的精简实现:
@@ -44,10 +44,10 @@ enum ClaudeDelegatedRefresh {
     }
 
     /// 后台启动委托刷新,**不等待结果**。专门给"不应阻塞 UI 的刷新调用方"用——
-    /// 比如用户点了刷新按钮、ManaBar 自家 OAuth 刚抛 tokenRevoked 这种场景。
+    /// 比如用户点了刷新按钮、access_token 过期返回 tokenExpired 这种场景。
     ///
     /// 行为:
-    /// - 启动后立刻返回,调用方继续走自己的失败路径(把 tokenRevoked 抛给 UI)
+    /// - 启动后立刻返回,调用方继续走自己的失败路径(把 tokenExpired 抛给 UI)
     /// - 后台 Coordinator 完成 PTY + 指纹观察后,如果成功 (.refreshed),会通过
     ///   `NotificationCenter` 发出 `.claudeDelegatedRefreshDidSucceed`,
     ///   AppState 收到后会自动再触发一次完整刷新,UI 自然更新到新数据。

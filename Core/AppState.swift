@@ -708,7 +708,7 @@ final class AppState {
         guard beginCodexRefresh(reason: reason) else { return }
         defer { codexRefreshState.inFlight = false }
 
-        guard var account = codexAccount else {
+        guard let account = codexAccount else {
             markCodexFailure("no codex account")
             return
         }
@@ -716,19 +716,11 @@ final class AppState {
             markCodexFailure(QuotaError.missingToken.description)
             return
         }
-        let refreshed = await CodexTokenRefresher.ensureFreshTokens(
-            currentAccessToken: token,
-            refreshToken: account.refreshToken,
-            idToken: account.idToken
-        )
+        // 默认账号的 ~/.codex/auth.json 与 codex CLI 共享,只读不续期,见 CodexTokenRefresher。
         let activeToken: String
-        switch refreshed {
+        switch CodexTokenRefresher.readOnlyAccessToken(token) {
         case .success(let t):
-            activeToken = t.accessToken
-            account.accessToken = t.accessToken
-            account.refreshToken = nonEmpty(t.refreshToken)
-            account.idToken = t.idToken
-            codexAccount = account
+            activeToken = t
         case .failure(let err):
             markCodexFailure(err.description)
             return
@@ -770,7 +762,7 @@ final class AppState {
             }
         case .failure(let err):
             markClaudeFailure(err.description, error: err)
-            // OAuth 主路走不通(凭据缺失 / 空壳 / 刷新被拒)时改走 CLI 兜底:
+            // OAuth 主路走不通(凭据缺失 / 空壳 / 已过期待 CLI 续期)时改走 CLI 兜底:
             // 新版 CLI 可能把凭据存到别处,此时本机 claude 会话通常仍然健康,
             // /usage 一样能拿到额度。受 claudeFallbackBackoffUntil(10 分钟)
             // 冷却保护,周期刷新触发也不会频繁唤起 CLI。
