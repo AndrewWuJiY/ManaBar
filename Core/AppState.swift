@@ -57,6 +57,10 @@ final class AppState {
     private var quotaCache = QuotaCachePayload()
     private var claudeFallbackBackoffUntil: Date?
 
+    /// 远程价格表（LiteLLM）最近一次成功拉取时间；nil = 本机从未拉取成功。
+    @ObservationIgnored private var remotePricingFetchedAt: Date?
+    @ObservationIgnored private var remotePricingInFlight = false
+
     /// `refreshNow()` 的去重锁。同一时刻只允许一个真正在跑的整体刷新;
     /// 期间额外的 `refreshNow()` 调用立即返回(no-op),不再排队。
     /// UI 的"刷新按钮"依然每点必转图标,只是不会真的发起重复请求。
@@ -79,6 +83,9 @@ final class AppState {
         publishWidgetState(force: true)
         loadQuotaHistory()
         reloadImportedCodexAccounts()
+        // 必须在 usageService.bootstrap 之前：先把上次缓存的远程价格表注入 Pricing，
+        // 指纹才与上次落盘的 usage-rollup 一致，启动不会误触发全量重算。
+        loadRemotePricingCache()
         usageService.bootstrap(appState: self)
         await loadCodex()
         maybeShowKeychainPrompt()
@@ -99,6 +106,8 @@ final class AppState {
         Task { await usageService.scanNow() }
         // 启动后异步拉一次服务状态;后续由 Scheduler 5 分钟刷新一次
         Task { await refreshServiceStatus() }
+        // 远程价格表:距上次成功拉取超过 12h 才真正请求;后续由 Scheduler 每小时检查一次
+        Task { await refreshRemotePricing() }
     }
 
     /// 设置变更后，把刷新间隔同步到 Scheduler
@@ -153,6 +162,46 @@ final class AppState {
         await loadClaudeQuota(reason: reason)
         await loadAllImportedCodexQuotas(reason: reason)
         logQuotaSummary()
+    }
+
+    /// 启动时同步读取远程价格表缓存并注入 Pricing(文件是解析后的精简表,很小)。
+    private func loadRemotePricingCache() {
+        guard let cache = RemotePricing.loadCache() else { return }
+        Pricing.applyRemote(RemotePricing.table(from: cache))
+        remotePricingFetchedAt = cache.fetchedAt
+        print("[pricing 价格] 使用缓存的远程价格表 using cached remote table: \(cache.models.count) models from \(cache.source), fetchedAt=\(cache.fetchedAt)")
+    }
+
+    /// 拉取 LiteLLM 远程价格表。距上次成功拉取不足 `RemotePricing.refreshInterval` 时直接返回。
+    /// 失败保留当前价格表(上次缓存或内置表),不清空;价格有变化 → 触发全量重扫重算历史花费。
+    func refreshRemotePricing() async {
+        if let last = remotePricingFetchedAt,
+           Date().timeIntervalSince(last) < RemotePricing.refreshInterval {
+            return
+        }
+        guard !remotePricingInFlight else { return }
+        remotePricingInFlight = true
+        defer { remotePricingInFlight = false }
+
+        do {
+            let payload = try await Task.detached(priority: .utility) {
+                let payload = try await RemotePricing.fetch()
+                do {
+                    try RemotePricing.saveCache(payload)
+                } catch {
+                    print("[pricing 价格] 远程价格表写盘失败 remote cache save failed: \(error)")
+                }
+                return payload
+            }.value
+            remotePricingFetchedAt = payload.fetchedAt
+            let changed = Pricing.applyRemote(RemotePricing.table(from: payload))
+            print("[pricing 价格] 远程价格表已更新 remote table fetched: \(payload.models.count) models from \(payload.source), changed=\(changed)")
+            if changed {
+                await usageService.rescanForPricingChange()
+            }
+        } catch {
+            print("[pricing 价格] 远程价格表不可用,沿用当前价格 remote pricing unavailable, keep current table: \(error)")
+        }
     }
 
     /// 拉取 OpenAI / Anthropic statuspage 状态。失败保留旧快照,不清空。

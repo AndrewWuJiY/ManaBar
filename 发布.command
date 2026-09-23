@@ -25,19 +25,19 @@ if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others
   echo "▶ 提交本地改动..."
   git add -A
   # ⚠️ 每次发版前更新这段说明,它会成为本次 release commit 的正文。
-  git commit -m "release: v$VERSION — CLI 凭据改为只读,修复 Claude CLI 隔几天掉线
+  git commit -m "release: v$VERSION — 价格表自动更新(LiteLLM 远程表) + 未定价标记
 
-- 根因:ManaBar 过期时自行用 refresh_token 续期并回写钥匙串,而 refresh_token 一次性旋转,
-  与内存里持有旧 token 的 claude CLI 会话冲突,CLI 被 invalid_grant 顶掉线需重新 /login
-- ClaudeTokenRefresher 改只读:删除 OAuth 续期、回写、Coordinator / 软恢复;过期时重读存储,
-  仍过期则后台委托 claude CLI 刷新并走 CLI 兜底,保留已有快照
-- Codex 默认账号(~/.codex/auth.json)同样只读,过期时提示运行一次 codex;
-  手动导入的副账号是 ManaBar 自有副本,仍由 ManaBar 续期并只回写其 Keychain 条目
-- QuotaError 新增 tokenExpired(app),给出等待 CLI 续期的提示
-- 同步 docs(技术实现 §5 / §6.3 / §11 / §13 / §14.3、产品需求、打包发布)与版本号 v$VERSION
+- 新增 RemotePricing:运行时从 LiteLLM model_prices_and_context_window.json 拉取 anthropic / openai
+  价格(GitHub raw → jsDelivr 兜底),12h 内不重复拉,Scheduler 每小时检查;解析结果缓存到
+  Application Support/ManaBar/remote-pricing.json,启动先用缓存
+- 远程优先、内置表兜底;PricingStore 加锁保存远程表与合并指纹;指纹变化 → 清空聚合并全量重算历史花费
+- scanNow 在扫描开始时固定指纹落盘,扫描中途价格更新时下一轮必然重算
+- 统计页明细 / 按模型:价格表查不到的模型显示「未定价」,不再显示 \$0.00
+- 内置表新增 Claude Opus 5.5、GPT-6 Sol / Luna
+- 同步 docs(产品需求、技术实现 §7.5 / §8 / §11 / §13、界面布局、设计风格词表、打包发布)与版本号 v$VERSION
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01Q55iS3m5Hp9Ei7EVrdsCb9"
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01SnsfSLe3mRit5yXMhoFvpX"
 fi
 
 # 1. 构建
@@ -67,10 +67,10 @@ git push -f origin "$TAG"
 # ⚠️ 每次发版前更新这段,它会成为 GitHub Release 的正文。
 NOTES="## ManaBar $VERSION
 
-- 🔐 **修复 Claude Code CLI 隔几天就要重新登录**:ManaBar 以前会在 token 过期时自己续期,和正在运行的 claude 会话抢同一个一次性 refresh_token,把 CLI 顶掉线。现在对 CLI 的登录凭据**只读不写**,续期完全交给 CLI
-- 🔐 **Codex 同样只读**:不再改写 \`~/.codex/auth.json\`;手动导入的 Codex 副账号仍由 ManaBar 自行续期(只写自己的钥匙串副本)
-- ⏳ CLI 长时间没运行、凭据过期时,额度保留上次数据并提示「运行一次 claude / codex 即可恢复」;Claude 会在后台自动唤起 CLI 刷新
-- 💰 价格表新增 GPT-6 Astra
+- 💰 **价格表自动更新**:启动时和之后每 12 小时从 LiteLLM 社区价格表拉取 Claude / OpenAI 模型价格,新模型、调价不用等发版;拉取失败沿用上次价格,离线也能用
+- 🔁 价格变化后自动按新价格重算全部历史花费
+- 🏷️ 查不到价格的模型显示「未定价」,不再显示 \$0.00 被误当成免费
+- ➕ 内置价格表新增 Claude Opus 5.5、GPT-6 Sol / Luna
 
 ### 安装
 下载 \`ManaBar.app.zip\`,解压拖入「应用程序」。首次启动被 Gatekeeper 拦下时右键 → 打开,或执行:

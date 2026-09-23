@@ -365,9 +365,10 @@ struct StatsView: View {
             breakdownTokenCell(bucket.outputTokens, width: 72)
             breakdownTokenCell(bucket.breakdownTotalTokens, width: 84)
 
-            Text(StatsFormatter.cost(bucket.costUSD))
-                .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.primary)
+            let priced = Pricing.hasPrice(model: bucket.model)
+            Text(priced ? StatsFormatter.cost(bucket.costUSD) : StatsFormatter.unpriced)
+                .font(.system(size: 11.5, weight: priced ? .semibold : .regular, design: priced ? .monospaced : .default))
+                .foregroundStyle(priced ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
                 .frame(width: 92, alignment: .trailing)
         }
         .padding(.horizontal, 10)
@@ -920,8 +921,10 @@ struct StatsView: View {
                             .font(.system(size: 10.5))
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
-                        Text(StatsFormatter.cost(row.totals.costUSD))
-                            .font(.system(size: 12.5, weight: .semibold))
+                        let priced = Pricing.hasPrice(model: row.model)
+                        Text(priced ? StatsFormatter.cost(row.totals.costUSD) : StatsFormatter.unpriced)
+                            .font(.system(size: 12.5, weight: priced ? .semibold : .regular))
+                            .foregroundStyle(priced ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
                             .monospacedDigit()
                             .frame(width: 96, alignment: .trailing)
                     }
@@ -1679,6 +1682,10 @@ private struct QuotaTimelineSection: Identifiable {
 // MARK: - Formatter
 
 enum StatsFormatter {
+    /// 价格表（远程 + 内置）里查不到的模型不显示 $0.00，避免被误读成免费。
+    @MainActor
+    static var unpriced: String { tr("Unpriced", "未定价") }
+
     static func cost(_ value: Decimal) -> String {
         let ns = NSDecimalNumber(decimal: value)
         let f = NumberFormatter()
