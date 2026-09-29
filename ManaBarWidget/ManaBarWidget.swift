@@ -108,7 +108,8 @@ struct Provider: TimelineProvider {
     /// 时可选链末端本身已是 Optional,`??` 的右侧永远取不到,Codex 这类没有 5h 限制的服务会显示 --%。
     private static func monitoredWindow(of record: QuotaCacheRecord?) -> QuotaWindow? {
         guard let snapshot = record?.snapshot else { return nil }
-        return snapshot.fiveHour ?? snapshot.weekly
+        // 重置时间已过的窗口按无数据处理(见 QuotaSnapshot.displayFiveHour)。
+        return snapshot.fiveHourUnlimited ? snapshot.displayWeekly() : snapshot.displayFiveHour()
     }
 }
 

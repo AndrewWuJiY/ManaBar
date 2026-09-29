@@ -388,7 +388,7 @@ private struct ServiceBlockView: View {
 
                 VStack(spacing: 1) {
                     HStack(spacing: 0) {
-                        ResetTimeText(resetsAt: snapshot?.fiveHour?.resetsAt)
+                        ResetTimeText(resetsAt: snapshot?.displayFiveHour()?.resetsAt)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
@@ -433,7 +433,7 @@ private struct ServiceBlockView: View {
                 .monospacedDigit()
                 .foregroundStyle(weeklyColor)
 
-            ResetTimeText(resetsAt: snapshot?.weekly?.resetsAt)
+            ResetTimeText(resetsAt: snapshot?.displayWeekly()?.resetsAt)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }
@@ -459,32 +459,32 @@ private struct ServiceBlockView: View {
 
     private var fiveHourRemaining: Double {
         if fiveHourUnlimited { return 100 }
-        return snapshot?.fiveHour?.remainingPercent ?? 0
+        return snapshot?.displayFiveHour()?.remainingPercent ?? 0
     }
 
     private var weeklyRemaining: Double {
-        snapshot?.weekly?.remainingPercent ?? 0
+        snapshot?.displayWeekly()?.remainingPercent ?? 0
     }
 
     private var fiveHourColor: Color {
         if fiveHourUnlimited { return statusColor(remainingPercent: 100, tint: tint) }
-        guard snapshot?.fiveHour != nil else { return .secondary }
+        guard snapshot?.displayFiveHour() != nil else { return .secondary }
         return statusColor(remainingPercent: fiveHourRemaining, tint: tint)
     }
 
     private var weeklyColor: Color {
-        guard snapshot?.weekly != nil else { return .secondary }
+        guard snapshot?.displayWeekly() != nil else { return .secondary }
         return statusColor(remainingPercent: weeklyRemaining, tint: tint)
     }
 
     private var fiveHourValueText: String {
         if fiveHourUnlimited { return "∞" }
-        guard let window = snapshot?.fiveHour else { return "--" }
+        guard let window = snapshot?.displayFiveHour() else { return "--" }
         return "\(Int(window.remainingPercent.rounded()))"
     }
 
     private var weeklyPercentText: String {
-        guard let window = snapshot?.weekly else { return "--%" }
+        guard let window = snapshot?.displayWeekly() else { return "--%" }
         return "\(Int(window.remainingPercent.rounded()))%"
     }
 

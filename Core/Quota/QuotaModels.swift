@@ -59,6 +59,17 @@ struct QuotaSnapshot: Sendable, Equatable, Codable {
     /// (2026-07 OpenAI 暂时移除 Plus/Business/Pro 的 5h 限制)。
     /// Popover / 菜单栏 / 悬浮窗 / 统计环据此显示 ∞,而不是 "--"。
     var fiveHourUnlimited: Bool { fiveHour == nil && weekly != nil }
+
+    /// 展示用窗口:重置时间已过 ⇒ 快照停在上个窗口,真实剩余未知,返回 nil 让各界面显示占位符,
+    /// 避免把过期百分比配 `<1m` 当实时数据展示。`fiveHourUnlimited` 仍按原始字段判断。
+    func displayFiveHour(now: Date = Date()) -> QuotaWindow? { Self.live(fiveHour, now: now) }
+    func displayWeekly(now: Date = Date()) -> QuotaWindow? { Self.live(weekly, now: now) }
+
+    private static func live(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
+        guard let window else { return nil }
+        if let resetsAt = window.resetsAt, resetsAt <= now { return nil }
+        return window
+    }
 }
 
 enum QuotaError: Error, CustomStringConvertible {

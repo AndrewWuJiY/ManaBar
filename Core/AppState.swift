@@ -56,6 +56,8 @@ final class AppState {
     private var didBootstrap = false
     private var quotaCache = QuotaCachePayload()
     private var claudeFallbackBackoffUntil: Date?
+    /// 最近一次 CLI 兜底失败时展示的错误文案;nil = 从未执行或上次成功。冷却期内据此决定展示内容。
+    private var claudeFallbackLastError: String?
 
     /// 远程价格表（LiteLLM）最近一次成功拉取时间；nil = 本机从未拉取成功。
     @ObservationIgnored private var remotePricingFetchedAt: Date?
@@ -795,9 +797,8 @@ final class AppState {
             return
         }
         guard account.accessToken?.isEmpty == false else {
-            markClaudeFailure(QuotaError.missingToken.description)
             // Keychain 条目可能只剩无 token 的空壳(新版 CLI 凭据已搬家),
-            // 同样交给 CLI 兜底。
+            // 交给 CLI 兜底;错误栏由兜底结果决定,避免兜底成功后仍挂着错误。
             await loadClaudeCLIFallback(apiError: .missingToken)
             return
         }
@@ -810,11 +811,10 @@ final class AppState {
                 claudeAccount = account
             }
         case .failure(let err):
-            markClaudeFailure(err.description, error: err)
             // OAuth 主路走不通(凭据缺失 / 空壳 / 已过期待 CLI 续期)时改走 CLI 兜底:
             // 新版 CLI 可能把凭据存到别处,此时本机 claude 会话通常仍然健康,
             // /usage 一样能拿到额度。受 claudeFallbackBackoffUntil(10 分钟)
-            // 冷却保护,周期刷新触发也不会频繁唤起 CLI。
+            // 冷却保护,周期刷新触发也不会频繁唤起 CLI。错误栏同样由兜底结果决定。
             await loadClaudeCLIFallback(apiError: err)
             return
         }
@@ -833,7 +833,11 @@ final class AppState {
     private func loadClaudeCLIFallback(apiError: QuotaError) async {
         let now = Date()
         if let claudeFallbackBackoffUntil, claudeFallbackBackoffUntil > now {
-            markClaudeFailure("\(apiError.description); cli fallback cooling down until \(claudeFallbackBackoffUntil)")
+            // 冷却期不是故障:上次兜底成功就保持现有快照、不报错;
+            // 上次失败则继续展示那次的真实原因。
+            if let lastError = claudeFallbackLastError {
+                markClaudeFailure(lastError)
+            }
             return
         }
 
@@ -841,9 +845,15 @@ final class AppState {
         let result = await ClaudeCLIFallbackQuotaClient.fetch()
         switch result {
         case .success(let snapshot):
+            claudeFallbackLastError = nil
             storeClaude(snapshot: snapshot, source: .cliFallback)
         case .failure(let err):
-            markClaudeFailure("\(apiError.description); cli fallback failed: \(err.description)", error: err)
+            // CLI 本身未登录时主路原因没有信息量,直接给出可操作的提示。
+            let message = err.isAuthRevoked
+                ? err.description
+                : "\(apiError.description); cli fallback failed: \(err.description)"
+            claudeFallbackLastError = message
+            markClaudeFailure(message, error: err)
         }
     }
 

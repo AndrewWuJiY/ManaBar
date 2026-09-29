@@ -169,7 +169,7 @@ enum ClaudeCLIResolver {
     /// - `$CLAUDE_CLI_PATH` 显式覆盖(测试 / 高级用户用)
     /// - 常见 PATH 位置
     /// - Claude Desktop 内嵌的 `claude-code/<ver>/claude.app/Contents/MacOS/claude`
-    static func resolve(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+    nonisolated static func resolve(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         if let override = environment["CLAUDE_CLI_PATH"],
            !override.isEmpty,
            FileManager.default.isExecutableFile(atPath: override) {
@@ -194,7 +194,7 @@ enum ClaudeCLIResolver {
         return nil
     }
 
-    private static func which(tool: String, environment: [String: String]) -> String? {
+    nonisolated private static func which(tool: String, environment: [String: String]) -> String? {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         proc.arguments = [tool]
@@ -222,7 +222,7 @@ enum ClaudeCLIResolver {
     /// 查找 Claude Desktop 内嵌的 CLI:
     /// `~/Library/Application Support/Claude/claude-code/<version>/claude.app/Contents/MacOS/claude`
     /// 版本目录可能有多个,选 mtime 最新的一个。
-    private static func resolveDesktopBundledCLI() -> String? {
+    nonisolated private static func resolveDesktopBundledCLI() -> String? {
         let root = URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent("Library/Application Support/Claude/claude-code")
         let fm = FileManager.default

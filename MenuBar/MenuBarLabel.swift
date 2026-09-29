@@ -126,13 +126,13 @@ enum MenuBarBadgeImage {
         // - 都显示模式:保留 ∞/WK,让两个窗口语义完整
         switch window {
         case .fiveHour:
-            if snap?.fiveHourUnlimited == true { return pctOrPlaceholder(snap?.weekly) }
-            return pctOrPlaceholder(snap?.fiveHour)
+            if snap?.fiveHourUnlimited == true { return pctOrPlaceholder(snap?.displayWeekly()) }
+            return pctOrPlaceholder(snap?.displayFiveHour())
         case .weekly:
-            return pctOrPlaceholder(snap?.weekly)
+            return pctOrPlaceholder(snap?.displayWeekly())
         case .both:
-            let fiveHourText = snap?.fiveHourUnlimited == true ? "∞" : pctOrPlaceholder(snap?.fiveHour)
-            return "\(fiveHourText)/\(pctOrPlaceholder(snap?.weekly))"
+            let fiveHourText = snap?.fiveHourUnlimited == true ? "∞" : pctOrPlaceholder(snap?.displayFiveHour())
+            return "\(fiveHourText)/\(pctOrPlaceholder(snap?.displayWeekly()))"
         }
     }
 

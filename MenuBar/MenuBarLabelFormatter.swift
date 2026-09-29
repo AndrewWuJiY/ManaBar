@@ -41,8 +41,8 @@ enum MenuBarLabelFormatter {
     private static func pickWindow(_ snap: QuotaSnapshot?, _ window: MenuBarWindow) -> QuotaWindow? {
         guard let snap else { return nil }
         switch window {
-        case .fiveHour: return snap.fiveHour
-        case .weekly: return snap.weekly
+        case .fiveHour: return snap.displayFiveHour()
+        case .weekly: return snap.displayWeekly()
         }
     }
 }

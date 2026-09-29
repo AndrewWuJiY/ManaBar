@@ -23,7 +23,7 @@ struct FloatingContentView: View {
                     logoName: "codex",
                     fallback: "C",
                     tint: .codexAccent,
-                    window: appState.codexQuota?.fiveHour ?? appState.codexQuota?.weekly,
+                    window: monitoredWindow(appState.codexQuota),
                     showReset: settings.floatingShowReset
                 )
             }
@@ -32,7 +32,7 @@ struct FloatingContentView: View {
                     logoName: "claude",
                     fallback: "K",
                     tint: .claudeAccent,
-                    window: appState.claudeQuota?.fiveHour ?? appState.claudeQuota?.weekly,
+                    window: monitoredWindow(appState.claudeQuota),
                     showReset: settings.floatingShowReset
                 )
             }
@@ -80,6 +80,12 @@ struct FloatingContentView: View {
                 Text(tr("Settings…", "设置…"))
             }
         }
+    }
+
+    /// 5h 优先、无 5h 限制时回退周窗口;重置时间已过的窗口按无数据处理(见 QuotaSnapshot.displayFiveHour)。
+    private func monitoredWindow(_ snapshot: QuotaSnapshot?) -> QuotaWindow? {
+        guard let snapshot else { return nil }
+        return snapshot.fiveHourUnlimited ? snapshot.displayWeekly() : snapshot.displayFiveHour()
     }
 }
 
