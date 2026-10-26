@@ -15,6 +15,7 @@
 		49C1B150000000000002AABB /* QuotaVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B150000000000002AAAA /* QuotaVisuals.swift */; };
 		49C1B151000000000002AABB /* codex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B140000000000001AAAA /* codex.svg */; };
 		49C1B152000000000002AABB /* claude.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B141000000000001AAAA /* claude.svg */; };
+		49C1B143000000000002AABB /* cursor.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B143000000000001AAAA /* cursor.svg */; };
 		446F37F63053F92200E0F752 /* WidgetSharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446F37F33053F92200E0F752 /* WidgetSharedState.swift */; };
 		446F38013053F97D00E0F752 /* QuotaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B120000000000001AAAA /* QuotaModels.swift */; };
 		446F38023053F99500E0F752 /* QuotaCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B106000000000001AAAA /* QuotaCache.swift */; };
@@ -29,6 +30,7 @@
 		49C1B102000000000001AABB /* JWT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B102000000000001AAAA /* JWT.swift */; };
 		49C1B103000000000001AABB /* CodexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B103000000000001AAAA /* CodexAuth.swift */; };
 		49C1B104000000000001AABB /* ClaudeAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B104000000000001AAAA /* ClaudeAuth.swift */; };
+		49C1B195000000000001AABB /* CursorAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B195000000000001AAAA /* CursorAuth.swift */; };
 		49C1B105000000000001AABB /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B105000000000001AAAA /* Settings.swift */; };
 		49C1B106000000000001AABB /* QuotaCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B106000000000001AAAA /* QuotaCache.swift */; };
 		49C1B107000000000001AABB /* ScanCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B107000000000001AAAA /* ScanCache.swift */; };
@@ -37,6 +39,7 @@
 		49C1B121000000000001AABB /* CodexTokenRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B121000000000001AAAA /* CodexTokenRefresher.swift */; };
 		49C1B122000000000001AABB /* CodexQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B122000000000001AAAA /* CodexQuotaClient.swift */; };
 		49C1B123000000000001AABB /* ClaudeQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B123000000000001AAAA /* ClaudeQuotaClient.swift */; };
+		49C1B128000000000001AABB /* CursorQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B128000000000001AAAA /* CursorQuotaClient.swift */; };
 		49C1B124000000000001AABB /* ClaudeCLIFallbackQuotaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */; };
 		49C1B125000000000001AABB /* ClaudeTokenRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */; };
 		49C1B126000000000001AABB /* ServiceStatusClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B126000000000001AAAA /* ServiceStatusClient.swift */; };
@@ -46,6 +49,7 @@
 		49C1B132000000000001AABB /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B132000000000001AAAA /* L10n.swift */; };
 		49C1B140000000000001AABB /* codex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B140000000000001AAAA /* codex.svg */; };
 		49C1B141000000000001AABB /* claude.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B141000000000001AAAA /* claude.svg */; };
+		49C1B143000000000001AABB /* cursor.svg in Resources */ = {isa = PBXBuildFile; fileRef = 49C1B143000000000001AAAA /* cursor.svg */; };
 		49C1B150000000000001AABB /* UsageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B150000000000001AAAA /* UsageModels.swift */; };
 		49C1B151000000000001AABB /* Pricing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B151000000000001AAAA /* Pricing.swift */; };
 		49C1B152000000000001AABB /* JSONLLineReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C1B152000000000001AAAA /* JSONLLineReader.swift */; };
@@ -112,6 +116,7 @@
 		49C1B102000000000001AAAA /* JWT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWT.swift; sourceTree = "<group>"; };
 		49C1B103000000000001AAAA /* CodexAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexAuth.swift; sourceTree = "<group>"; };
 		49C1B104000000000001AAAA /* ClaudeAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAuth.swift; sourceTree = "<group>"; };
+		49C1B195000000000001AAAA /* CursorAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorAuth.swift; sourceTree = "<group>"; };
 		49C1B105000000000001AAAA /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		49C1B106000000000001AAAA /* QuotaCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCache.swift; sourceTree = "<group>"; };
 		49C1B107000000000001AAAA /* ScanCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCache.swift; sourceTree = "<group>"; };
@@ -120,6 +125,7 @@
 		49C1B121000000000001AAAA /* CodexTokenRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexTokenRefresher.swift; sourceTree = "<group>"; };
 		49C1B122000000000001AAAA /* CodexQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexQuotaClient.swift; sourceTree = "<group>"; };
 		49C1B123000000000001AAAA /* ClaudeQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeQuotaClient.swift; sourceTree = "<group>"; };
+		49C1B128000000000001AAAA /* CursorQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorQuotaClient.swift; sourceTree = "<group>"; };
 		49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCLIFallbackQuotaClient.swift; sourceTree = "<group>"; };
 		49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenRefresher.swift; sourceTree = "<group>"; };
 		49C1B126000000000001AAAA /* ServiceStatusClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatusClient.swift; sourceTree = "<group>"; };
@@ -129,6 +135,7 @@
 		49C1B132000000000001AAAA /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		49C1B140000000000001AAAA /* codex.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex.svg; sourceTree = "<group>"; };
 		49C1B141000000000001AAAA /* claude.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = claude.svg; sourceTree = "<group>"; };
+		49C1B143000000000001AAAA /* cursor.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = cursor.svg; sourceTree = "<group>"; };
 		49C1B150000000000001AAAA /* UsageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModels.swift; sourceTree = "<group>"; };
 		49C1B151000000000001AAAA /* Pricing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pricing.swift; sourceTree = "<group>"; };
 		49C1B152000000000001AAAA /* JSONLLineReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLLineReader.swift; sourceTree = "<group>"; };
@@ -298,6 +305,7 @@
 				49C1B102000000000001AAAA /* JWT.swift */,
 				49C1B103000000000001AAAA /* CodexAuth.swift */,
 				49C1B104000000000001AAAA /* ClaudeAuth.swift */,
+				49C1B195000000000001AAAA /* CursorAuth.swift */,
 				49C1B191000000000001AAAA /* ImportedCodexAccount.swift */,
 				49C1B192000000000001AAAA /* ImportedCodexStore.swift */,
 			);
@@ -322,6 +330,7 @@
 				49C1B121000000000001AAAA /* CodexTokenRefresher.swift */,
 				49C1B122000000000001AAAA /* CodexQuotaClient.swift */,
 				49C1B123000000000001AAAA /* ClaudeQuotaClient.swift */,
+				49C1B128000000000001AAAA /* CursorQuotaClient.swift */,
 				49C1B124000000000001AAAA /* ClaudeCLIFallbackQuotaClient.swift */,
 				49C1B125000000000001AAAA /* ClaudeTokenRefresher.swift */,
 				49C1B126000000000001AAAA /* ServiceStatusClient.swift */,
@@ -335,6 +344,7 @@
 			children = (
 				49C1B140000000000001AAAA /* codex.svg */,
 				49C1B141000000000001AAAA /* claude.svg */,
+				49C1B143000000000001AAAA /* cursor.svg */,
 			);
 			path = Logos;
 			sourceTree = "<group>";
@@ -495,6 +505,7 @@
 			files = (
 				49C1B151000000000002AABB /* codex.svg in Resources */,
 				49C1B152000000000002AABB /* claude.svg in Resources */,
+				49C1B143000000000002AABB /* cursor.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,6 +516,7 @@
 				4931AC592FC02A4200EE598C /* Assets.xcassets in Resources */,
 				49C1B140000000000001AABB /* codex.svg in Resources */,
 				49C1B141000000000001AABB /* claude.svg in Resources */,
+				49C1B143000000000001AABB /* cursor.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -559,12 +571,14 @@
 				49C1B102000000000001AABB /* JWT.swift in Sources */,
 				49C1B103000000000001AABB /* CodexAuth.swift in Sources */,
 				49C1B104000000000001AABB /* ClaudeAuth.swift in Sources */,
+				49C1B195000000000001AABB /* CursorAuth.swift in Sources */,
 				49C1B105000000000001AABB /* Settings.swift in Sources */,
 				49C1B106000000000001AABB /* QuotaCache.swift in Sources */,
 				49C1B120000000000001AABB /* QuotaModels.swift in Sources */,
 				49C1B121000000000001AABB /* CodexTokenRefresher.swift in Sources */,
 				49C1B122000000000001AABB /* CodexQuotaClient.swift in Sources */,
 				49C1B123000000000001AABB /* ClaudeQuotaClient.swift in Sources */,
+				49C1B128000000000001AABB /* CursorQuotaClient.swift in Sources */,
 				49C1B124000000000001AABB /* ClaudeCLIFallbackQuotaClient.swift in Sources */,
 				49C1B125000000000001AABB /* ClaudeTokenRefresher.swift in Sources */,
 				49C1B126000000000001AABB /* ServiceStatusClient.swift in Sources */,

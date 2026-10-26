@@ -22,8 +22,10 @@ struct QuotaEntry: TimelineEntry {
     struct Payload {
         let codex: QuotaWindow?
         let claude: QuotaWindow?
+        let cursor: QuotaWindow?
         let showCodex: Bool
         let showClaude: Bool
+        let showCursor: Bool
     }
 }
 
@@ -96,8 +98,10 @@ struct Provider: TimelineProvider {
             payload: .init(
                 codex: monitoredWindow(of: cache.codex),
                 claude: monitoredWindow(of: cache.claude),
+                cursor: monitoredWindow(of: cache.cursor),
                 showCodex: state.showCodex,
-                showClaude: state.showClaude
+                showClaude: state.showClaude,
+                showCursor: state.showCursor
             )
         )
     }
@@ -108,8 +112,8 @@ struct Provider: TimelineProvider {
     /// 时可选链末端本身已是 Optional,`??` 的右侧永远取不到,Codex 这类没有 5h 限制的服务会显示 --%。
     private static func monitoredWindow(of record: QuotaCacheRecord?) -> QuotaWindow? {
         guard let snapshot = record?.snapshot else { return nil }
-        // 重置时间已过的窗口按无数据处理(见 QuotaSnapshot.displayFiveHour)。
-        return snapshot.fiveHourUnlimited ? snapshot.displayWeekly() : snapshot.displayFiveHour()
+        // 重置时间已过的窗口按无数据处理。Cursor 取账期,其余 5h 优先。
+        return snapshot.monitoredWindow()
     }
 }
 
@@ -138,9 +142,12 @@ struct ManaBarWidgetEntryView: View {
     }
 
     private func rows(_ payload: QuotaEntry.Payload) -> some View {
-        VStack(spacing: 0) {
+        let visible = [payload.showCodex, payload.showClaude, payload.showCursor].filter { $0 }.count
+        let compact = visible >= 3
+        let gap: CGFloat = compact ? 6 : 14
+        return VStack(spacing: 0) {
             Spacer(minLength: 0)
-            // Codex 永远排在 Claude 前(见 CLAUDE.md 实现约束)
+            // Codex、Claude、Cursor 依次排列。三行同时打开时略微收紧,medium 小组件才放得下。
             if payload.showCodex {
                 QuotaRow(
                     logoName: "codex",
@@ -148,11 +155,12 @@ struct ManaBarWidgetEntryView: View {
                     name: "Codex",
                     tint: .codexAccent,
                     window: payload.codex,
-                    now: entry.date
+                    now: entry.date,
+                    compact: compact
                 )
             }
-            if payload.showCodex && payload.showClaude {
-                Spacer(minLength: 16)
+            if payload.showCodex && (payload.showClaude || payload.showCursor) {
+                Spacer(minLength: gap)
             }
             if payload.showClaude {
                 QuotaRow(
@@ -161,10 +169,25 @@ struct ManaBarWidgetEntryView: View {
                     name: "Claude Code",
                     tint: .claudeAccent,
                     window: payload.claude,
-                    now: entry.date
+                    now: entry.date,
+                    compact: compact
                 )
             }
-            if !payload.showCodex && !payload.showClaude {
+            if payload.showClaude && payload.showCursor {
+                Spacer(minLength: gap)
+            }
+            if payload.showCursor {
+                QuotaRow(
+                    logoName: "cursor",
+                    fallback: "R",
+                    name: "Cursor",
+                    tint: .cursorAccent,
+                    window: payload.cursor,
+                    now: entry.date,
+                    compact: compact
+                )
+            }
+            if visible == 0 {
                 Text(entry.zh ? "未启用" : "No services")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
@@ -201,19 +224,20 @@ private struct QuotaRow: View {
     let window: QuotaWindow?
     /// 该 entry 代表的时刻,不是 Date()——倒计时按它计算才会随 timeline 推进。
     let now: Date
+    var compact: Bool = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: compact ? 10 : 12) {
             ServiceTile(
                 logoName: logoName,
                 fallback: fallback,
                 tint: tint,
-                size: 34,
-                logoSize: 21,
-                cornerRadius: 10
+                size: compact ? 22 : 34,
+                logoSize: compact ? 14 : 21,
+                cornerRadius: compact ? 6 : 10
             )
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: compact ? 3 : 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(name)
                         .font(.system(size: 13, weight: .medium))
@@ -240,7 +264,7 @@ private struct QuotaRow: View {
                     Spacer(minLength: 6)
 
                     Text(percentText)
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(size: compact ? 16 : 26, weight: .semibold))
                         .kerning(-0.5)
                         .monospacedDigit()
                         .foregroundStyle(.primary)
@@ -249,7 +273,7 @@ private struct QuotaRow: View {
                 }
 
                 // 进度条独占整行,右端与百分比对齐:两行等长,是这块里最强的对齐线。
-                ProgressBar(value: barValue, tint: barColor, height: 9)
+                ProgressBar(value: barValue, tint: barColor, height: compact ? 4 : 9)
             }
         }
     }
@@ -294,13 +318,15 @@ struct ManaBarWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             ManaBarWidgetEntryView(entry: entry)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .containerBackground(.fill.tertiary, for: .widget)
                 .widgetURL(URL(string: "manabar://stats"))
         }
         .configurationDisplayName("ManaBar")
-        .description("Codex 与 Claude Code 的剩余额度")
-        // 只做 medium:两行服务各需 tile + 名称 + 进度条 + 百分比 + 重置倒计时,
-        // small 放不下会退化成悬浮窗的阉割版,large 对这个数据量是浪费。见草案 §3.3。
+        .description("Codex、Claude Code 与 Cursor 的剩余额度")
+        // 只做 medium。三行时关掉系统内容边距,否则 Cursor 会被裁掉。
         .supportedFamilies([.systemMedium])
+        .contentMarginsDisabled()
     }
 }

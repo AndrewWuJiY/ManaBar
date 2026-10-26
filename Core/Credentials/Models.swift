@@ -19,6 +19,16 @@ struct CodexAccount: Sendable, Equatable {
     var idToken: String?
 }
 
+struct CursorAccount: Sendable, Equatable {
+    var source: CredentialSource
+    var email: String?
+    var planType: String?
+    var expiresAt: Date?
+    var expiredGuess: Bool
+    /// 仅内存使用,不打印 / 不持久化到 UserDefaults
+    var accessToken: String?
+}
+
 struct ClaudeAccount: Sendable, Equatable {
     var source: CredentialSource
     var email: String?

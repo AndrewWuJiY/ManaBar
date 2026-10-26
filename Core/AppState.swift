@@ -8,8 +8,10 @@ import WidgetKit
 final class AppState {
     var codexAccount: CodexAccount?
     var claudeAccount: ClaudeAccount?
+    var cursorAccount: CursorAccount?
     var codexError: String?
     var claudeError: String?
+    var cursorError: String?
 
     // MARK: 导入的 Codex 副账号
     //
@@ -36,12 +38,16 @@ final class AppState {
 
     var codexQuota: QuotaSnapshot?
     var claudeQuota: QuotaSnapshot?
+    var cursorQuota: QuotaSnapshot?
     var codexQuotaError: String?
     var claudeQuotaError: String?
+    var cursorQuotaError: String?
     var codexQuotaSource: QuotaSnapshotSource?
     var claudeQuotaSource: QuotaSnapshotSource?
+    var cursorQuotaSource: QuotaSnapshotSource?
     var codexRefreshState = QuotaRefreshState()
     var claudeRefreshState = QuotaRefreshState()
+    var cursorRefreshState = QuotaRefreshState()
     var quotaHistory = QuotaHistoryPayload()
 
     var codexTodayCost: Decimal?
@@ -92,6 +98,7 @@ final class AppState {
         await loadCodex()
         maybeShowKeychainPrompt()
         await loadClaude()
+        await loadCursor()
         logCredentialSummary()
 
         if !SettingsStore.shared.didCompleteOnboarding {
@@ -160,8 +167,10 @@ final class AppState {
     func refreshQuotas(reason: QuotaRefreshReason = .periodic) async {
         await loadCodex()
         await loadClaude()
+        await loadCursor()
         await loadCodexQuota(reason: reason)
         await loadClaudeQuota(reason: reason)
+        await loadCursorQuota(reason: reason)
         await loadAllImportedCodexQuotas(reason: reason)
         logQuotaSummary()
     }
@@ -242,6 +251,11 @@ final class AppState {
             source = claudeQuotaSource
             error = claudeQuotaError
             state = claudeRefreshState
+        case .cursor:
+            snapshot = cursorQuota
+            source = cursorQuotaSource
+            error = cursorQuotaError
+            state = cursorRefreshState
         }
 
         var parts: [String] = []
@@ -276,6 +290,12 @@ final class AppState {
             claudeQuotaSource = .cache
             claudeRefreshState.lastSuccessAt = record.updatedAt
             claudeRefreshState.source = .cache
+        }
+        if let record = quotaCache.cursor {
+            cursorQuota = record.snapshot
+            cursorQuotaSource = .cache
+            cursorRefreshState.lastSuccessAt = record.updatedAt
+            cursorRefreshState.source = .cache
         }
         for (id, record) in quotaCache.importedCodex ?? [:] {
             importedCodexQuotas[id] = record.snapshot
@@ -597,6 +617,7 @@ final class AppState {
                 heartbeatAt: Date(),
                 showCodex: settings.showCodex,
                 showClaude: settings.showClaude,
+                showCursor: settings.showCursor,
                 language: settings.resolvedLanguage == .zh ? "zh" : "en"
             )
         )
@@ -755,6 +776,68 @@ final class AppState {
         saveQuotaCache()
     }
 
+    private func loadCursor() async {
+        let needsPrompt = await Task.detached(priority: .utility) {
+            CursorAuth.storedTokenNeedsKeychain()
+        }.value
+        if needsPrompt, !SettingsStore.shared.didShowCursorKeychainPrompt {
+            explainCursorKeychainPrompt()
+        }
+        do {
+            let next = try await Task.detached(priority: .utility) {
+                try CursorAuth.load()
+            }.value
+            if cursorIdentityChanged(previous: cursorAccount, next: next) {
+                resetCursorQuotaState()
+            }
+            self.cursorAccount = next
+            self.cursorError = nil
+        } catch {
+            self.cursorAccount = nil
+            self.cursorError = Self.cursorLoadMessage(error)
+        }
+    }
+
+    /// Cursor 把 access token 用钥匙串「Cursor Safe Storage」加密。先说明,再让系统弹授权。
+    private func explainCursorKeychainPrompt() {
+        let alert = NSAlert()
+        alert.messageText = tr("Allow Keychain Access", "允许访问钥匙串")
+        alert.informativeText = tr(
+            "Cursor encrypts its sign-in with the Keychain item \"Cursor Safe Storage\". After you continue, macOS will ask for permission — choose \"Always Allow\".",
+            "Cursor 把登录信息加密存在钥匙串的「Cursor Safe Storage」里。点击「继续」后会弹出系统授权，请选择「始终允许」。"
+        )
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: tr("Continue", "继续"))
+        alert.runModal()
+        SettingsStore.shared.didShowCursorKeychainPrompt = true
+    }
+
+    private static func cursorLoadMessage(_ error: Error) -> String {
+        guard let cred = error as? CredentialError else { return "\(error)" }
+        switch cred {
+        case .keychainUnavailable:
+            return "需要允许读取钥匙串「Cursor Safe Storage」，请选择「始终允许」"
+        case .decodeFailed:
+            return "Cursor 登录信息无法解密，打开一次 Cursor 后再刷新"
+        default:
+            return cred.description
+        }
+    }
+
+    private func cursorIdentityChanged(previous: CursorAccount?, next: CursorAccount) -> Bool {
+        guard let previous else { return false }
+        return previous.email != next.email
+    }
+
+    private func resetCursorQuotaState() {
+        cursorQuota = nil
+        cursorQuotaSource = nil
+        cursorQuotaError = nil
+        cursorRefreshState = QuotaRefreshState()
+        quotaCache.cursor = nil
+        saveQuotaCache()
+    }
+
     private func loadCodexQuota(reason: QuotaRefreshReason) async {
         guard beginCodexRefresh(reason: reason) else { return }
         defer { codexRefreshState.inFlight = false }
@@ -857,6 +940,40 @@ final class AppState {
         }
     }
 
+    /// 账号开关关闭时不打 Cursor 的非公开接口。本地凭据仍会读,设置页能看到是否已登录。
+    private func loadCursorQuota(reason: QuotaRefreshReason) async {
+        guard SettingsStore.shared.showCursor else { return }
+        guard beginCursorRefresh(reason: reason) else { return }
+        defer { cursorRefreshState.inFlight = false }
+
+        guard let account = cursorAccount else {
+            markCursorFailure(cursorError ?? "no cursor account")
+            return
+        }
+        guard let token = account.accessToken, !token.isEmpty else {
+            markCursorFailure(QuotaError.missingToken.description)
+            return
+        }
+        if CursorAuth.isExpired(token) {
+            let err = QuotaError.tokenExpired(.cursor)
+            markCursorFailure(err.description, error: err)
+            return
+        }
+        let result = await CursorQuotaClient.fetch(accessToken: token)
+        switch result {
+        case .success(let snapshot):
+            var stored = snapshot
+            stored.planType = account.planType
+            storeCursor(snapshot: stored, source: .api)
+        case .failure(let err):
+            if err.isAuthFailure {
+                markCursorFailure(QuotaError.tokenExpired(.cursor).description, error: err)
+            } else {
+                markCursorFailure(err.description, error: err)
+            }
+        }
+    }
+
     private func beginCodexRefresh(reason: QuotaRefreshReason) -> Bool {
         let now = Date()
         guard !codexRefreshState.inFlight else { return false }
@@ -872,6 +989,24 @@ final class AppState {
         }
         codexRefreshState.inFlight = true
         codexRefreshState.lastAttemptAt = now
+        return true
+    }
+
+    private func beginCursorRefresh(reason: QuotaRefreshReason) -> Bool {
+        let now = Date()
+        guard !cursorRefreshState.inFlight else { return false }
+        if let backoffUntil = cursorRefreshState.backoffUntil, backoffUntil > now {
+            markCursorFailure(backoffMessage(until: backoffUntil))
+            return false
+        }
+        if reason == .periodic,
+           let lastSuccessAt = cursorRefreshState.lastSuccessAt,
+           now.timeIntervalSince(lastSuccessAt) < minSuccessInterval
+        {
+            return false
+        }
+        cursorRefreshState.inFlight = true
+        cursorRefreshState.lastAttemptAt = now
         return true
     }
 
@@ -907,6 +1042,19 @@ final class AppState {
         recordCodexQuotaHistory(snapshot: snapshot, sampledAt: updatedAt)
     }
 
+    private func storeCursor(snapshot: QuotaSnapshot, source: QuotaSnapshotSource) {
+        let updatedAt = Date()
+        cursorQuota = snapshot
+        cursorQuotaSource = source
+        cursorQuotaError = nil
+        cursorRefreshState.lastSuccessAt = updatedAt
+        cursorRefreshState.lastError = nil
+        cursorRefreshState.backoffUntil = nil
+        cursorRefreshState.source = source
+        quotaCache.cursor = QuotaCacheRecord(snapshot: snapshot, source: source, updatedAt: updatedAt)
+        saveQuotaCache()
+    }
+
     private func storeClaude(snapshot: QuotaSnapshot, source: QuotaSnapshotSource) {
         let updatedAt = Date()
         claudeQuota = snapshot
@@ -928,6 +1076,14 @@ final class AppState {
         codexRefreshState.lastError = message
         if error?.isRateLimited == true {
             codexRefreshState.backoffUntil = Date().addingTimeInterval(rateLimitBackoff)
+        }
+    }
+
+    private func markCursorFailure(_ message: String, error: QuotaError? = nil) {
+        cursorQuotaError = message
+        cursorRefreshState.lastError = message
+        if error?.isRateLimited == true {
+            cursorRefreshState.backoffUntil = Date().addingTimeInterval(rateLimitBackoff)
         }
     }
 
@@ -954,6 +1110,11 @@ final class AppState {
         } else {
             print("[Credentials 凭据] Claude 未加载: error=\(claudeError ?? "unknown")")
         }
+        if let c = cursorAccount {
+            print("[Credentials 凭据] Cursor: source=\(c.source.rawValue) email=\(c.email ?? "—") plan=\(c.planType ?? "—") expiredGuess=\(c.expiredGuess) hasAccessToken=\(c.accessToken != nil)")
+        } else {
+            print("[Credentials 凭据] Cursor 未加载: error=\(cursorError ?? "unknown")")
+        }
     }
 
     private func logQuotaSummary() {
@@ -969,12 +1130,21 @@ final class AppState {
         } else {
             print("[Quota 额度] Claude 拉取失败: error=\(claudeQuotaError ?? "unknown")")
         }
+        if !SettingsStore.shared.showCursor {
+            print("[Quota 额度] Cursor 未启用")
+        } else if let q = cursorQuota {
+            print("[Quota 额度] Cursor: source=\(cursorQuotaSource?.rawValue ?? "—") plan=\(q.planType ?? "—") \(format(q))")
+        } else {
+            print("[Quota 额度] Cursor 拉取失败: error=\(cursorQuotaError ?? "unknown")")
+        }
     }
 
     private func format(_ q: QuotaSnapshot) -> String {
         let parts = [
             q.fiveHour.map { "5h=\(format(window: $0))" },
-            q.weekly.map { "1w=\(format(window: $0))" }
+            q.weekly.map { "1w=\(format(window: $0))" },
+            q.billingCycle.map { "cycle=\(format(window: $0))" },
+            q.onDemand.map { "ondemand=\(format(window: $0))" }
         ].compactMap { $0 }
         return parts.joined(separator: " ")
     }

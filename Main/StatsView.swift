@@ -111,20 +111,23 @@ enum StatsServiceFilter: Hashable, CaseIterable {
     case all
     case codex
     case claude
+    case cursor
 
     var englishLabel: String {
         switch self {
         case .all: return "All"
         case .codex: return "Codex"
         case .claude: return "Claude Code"
+        case .cursor: return "Cursor"
         }
     }
 
     var chineseLabel: String {
         switch self {
         case .all: return "全部"
-        case .codex: return "OpenAI"
-        case .claude: return "Anthropic"
+        case .codex: return "Codex"
+        case .claude: return "Claude Code"
+        case .cursor: return "Cursor"
         }
     }
 
@@ -133,6 +136,7 @@ enum StatsServiceFilter: Hashable, CaseIterable {
         case .all: return nil
         case .codex: return .codexAccent
         case .claude: return .claudeAccent
+        case .cursor: return .cursorAccent
         }
     }
 }
@@ -173,15 +177,34 @@ struct StatsView: View {
     @State private var breakdownSortAscending: Bool = false
 
     var body: some View {
+        let settings = SettingsStore.shared
         HStack(spacing: 0) {
             sidebar
                 .frame(width: 200)
 
             Divider()
 
-            ScrollView {
-                mainContent
+            VStack(spacing: 0) {
+                statsToolbar
+                if range == .custom {
+                    customRangeRow
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .bottom) { Divider() }
+                }
+                ScrollView {
+                    mainContent
+                }
             }
+        }
+        .onChange(of: settings.showCodex) { _, on in
+            if !on, serviceFilter == .codex { serviceFilter = .all }
+        }
+        .onChange(of: settings.showClaude) { _, on in
+            if !on, serviceFilter == .claude { serviceFilter = .all }
+        }
+        .onChange(of: settings.showCursor) { _, on in
+            if !on, serviceFilter == .cursor { serviceFilter = .all }
         }
     }
 
@@ -198,41 +221,35 @@ struct StatsView: View {
     }
 
     private var overviewContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            topBar
-            if range == .custom { customRangeRow }
-
-            kpiRow.padding(.top, 6)
-
-            dailyUsagePanel
-
-            HStack(alignment: .top, spacing: 12) {
-                byServicePanel
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
-                currentLimitsPanel
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
+        VStack(alignment: .leading, spacing: 22) {
+            if visibleQuotaFilters.isEmpty {
+                placeholderHeight(220, message: tr("No services enabled", "未启用任何服务"))
+                    .ccPanel(cornerRadius: 12)
+            } else {
+                quotaSection
+                if spendApps.isEmpty {
+                    cursorSpendEmpty
+                } else {
+                    usageSection
+                }
             }
-
-            byModelPanel
         }
         .padding(20)
     }
 
     private var timelineContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Spacer()
-                rangePicker
-            }
-            if range == .custom { customRangeRow }
             timelineHeader
             if showHistoryStartNote { historyStartNote }
-            if timelineSections.isEmpty {
+            if timelineSections.isEmpty && !showsCursorHistoryNote {
                 placeholderHeight(220, message: tr("No accounts", "暂无账号"))
                     .ccPanel(cornerRadius: 12)
             } else {
                 ForEach(timelineSections) { section in
                     QuotaTimelineAccountPanel(section: section)
+                }
+                if showsCursorHistoryNote {
+                    cursorHistoryNote
                 }
             }
         }
@@ -243,23 +260,17 @@ struct StatsView: View {
 
     private var breakdownContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                localSpendNote
-                Spacer()
-                rangePicker
-                Button(action: exportBreakdownCSV) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "square.and.arrow.down")
-                        Text(tr("Export CSV", "导出 CSV"))
-                    }
-                    .font(.system(size: 12))
-                }
-                .controlSize(.small)
-                .disabled(breakdownRows.isEmpty)
-                .pointingHandCursor()
-            }
-            if range == .custom { customRangeRow }
-
+            if serviceFilter == .cursor {
+                placeholderHeight(
+                    220,
+                    message: tr(
+                        "Cursor has no local session logs",
+                        "Cursor 没有本地会话日志，花费明细只来自 Codex 和 Claude Code"
+                    )
+                )
+                .ccPanel(cornerRadius: 12)
+            } else {
+            localSpendNote
             VStack(alignment: .leading, spacing: 0) {
                 if breakdownRows.isEmpty {
                     placeholderHeight(220, message: tr("No data", "无数据"))
@@ -270,6 +281,7 @@ struct StatsView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .ccPanel(cornerRadius: 12)
+            }
         }
         .padding(20)
     }
@@ -470,42 +482,23 @@ struct StatsView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 16) {
             sidebarGroup(title: "Service", chinese: "服务") {
-                ForEach(StatsServiceFilter.allCases, id: \.self) { item in
+                sidebarItem(
+                    english: "All",
+                    chinese: "全部",
+                    active: serviceFilter == .all
+                ) {
+                    serviceFilter = .all
+                }
+                ForEach(enabledFilters, id: \.self) { item in
                     sidebarItem(
                         english: item.englishLabel,
                         chinese: item.chineseLabel,
                         tint: item.tint,
+                        trailing: sidebarPercent(item),
                         active: serviceFilter == item
                     ) {
                         serviceFilter = item
                     }
-                }
-            }
-
-            sidebarGroup(title: "View", chinese: "视图") {
-                sidebarItem(
-                    english: "Overview",
-                    chinese: "概览",
-                    icon: "rectangle.split.2x2",
-                    active: viewMode == .overview
-                ) {
-                    viewMode = .overview
-                }
-                sidebarItem(
-                    english: "Timeline",
-                    chinese: "时间线",
-                    icon: "chart.line.uptrend.xyaxis",
-                    active: viewMode == .timeline
-                ) {
-                    viewMode = .timeline
-                }
-                sidebarItem(
-                    english: "Breakdown",
-                    chinese: "明细",
-                    icon: "list.bullet",
-                    active: viewMode == .breakdown
-                ) {
-                    viewMode = .breakdown
                 }
             }
 
@@ -538,29 +531,32 @@ struct StatsView: View {
         english: String,
         chinese: String,
         tint: Color? = nil,
-        icon: String? = nil,
+        trailing: String? = nil,
         active: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 12))
-                        .frame(width: 13, height: 13)
-                        .foregroundStyle(active ? Color.white : Color.secondary)
-                } else if let tint {
-                    ServiceMark(color: tint, size: 8)
+                if let tint {
+                    ServiceMark(color: active ? .white : tint, size: 8)
                         .frame(width: 13, height: 13, alignment: .center)
                 } else {
                     Color.clear.frame(width: 13, height: 13)
                 }
 
                 Text(tr(english, chinese))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(active ? Color.white : Color.primary)
+                    .lineLimit(1)
 
-                Spacer()
+                Spacer(minLength: 6)
+
+                if let trailing {
+                    Text(trailing)
+                        .font(.system(size: 12))
+                        .monospacedDigit()
+                        .foregroundStyle(active ? Color.white.opacity(0.88) : Color.secondary)
+                }
             }
             .padding(.vertical, 5)
             .padding(.horizontal, 8)
@@ -574,22 +570,49 @@ struct StatsView: View {
         .pointingHandCursor()
     }
 
-    // MARK: Top bar (segmented + custom)
+    // MARK: Toolbar
 
-    private var rangePicker: some View {
-        Picker("", selection: $range) {
-            ForEach(StatsRange.allCases, id: \.self) { r in
-                Text(tr(r.englishLabel, r.chineseLabel)).tag(r)
+    private var statsToolbar: some View {
+        HStack(spacing: 8) {
+            Picker("", selection: $viewMode) {
+                Text(tr("Overview", "概览")).tag(StatsViewMode.overview)
+                Text(tr("Timeline", "时间轴")).tag(StatsViewMode.timeline)
+                Text(tr("Breakdown", "明细")).tag(StatsViewMode.breakdown)
             }
+            .pickerStyle(.segmented)
+            .fixedSize()
+
+            Spacer(minLength: 12)
+
+            if viewMode == .breakdown {
+                Button(action: exportBreakdownCSV) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.down")
+                        Text(tr("Export CSV", "导出 CSV"))
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(breakdownRows.isEmpty || serviceFilter == .cursor)
+                .pointingHandCursor()
+            }
+
+            Picker("", selection: $range) {
+                ForEach(StatsRange.allCases, id: \.self) { item in
+                    Text(tr(item.englishLabel, item.chineseLabel)).tag(item)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
         }
-        .pickerStyle(.segmented)
-        .fixedSize()
+        .padding(.horizontal, 16)
+        .frame(height: 42)
+        .overlay(alignment: .bottom) { Divider() }
     }
 
-    /// Overview / Breakdown 顶部左上角常显说明。
-    /// Claude 花费统计本机 CLI + 桌面 App 会话,网页/移动端消耗只反映在额度环、不计入花费,故点名说明;
-    /// Codex 无此口径差异。Popover 侧自 v1.0.2 起不再单独标注,完整口径说明只保留在这里。
-    /// 不用 hover(主窗口虽为常规窗口,`.help()` 在 .accessory 应用里仍不稳),直接可见。
+    /// Claude 花费统计本机 CLI + 桌面 App 会话,网页/移动端消耗只反映在额度环、不计入花费。
+    /// 放在「本地用量」标题下。不用 hover(`.help()` 在 .accessory 应用里仍不稳)。
     private var localSpendNote: some View {
         HStack(spacing: 4) {
             Image(systemName: "info.circle")
@@ -604,14 +627,6 @@ struct StatsView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var topBar: some View {
-        HStack(spacing: 12) {
-            localSpendNote
-            Spacer()
-            rangePicker
-        }
-    }
-
     private var customRangeRow: some View {
         HStack(spacing: 12) {
             DatePicker(tr("From", "起"), selection: $customFrom, displayedComponents: .date)
@@ -624,121 +639,333 @@ struct StatsView: View {
         .foregroundStyle(.secondary)
     }
 
-    // MARK: KPI row
+    // MARK: Overview
 
-    private var kpiRow: some View {
-        HStack(spacing: 12) {
-            KPICard(
-                english: "Total tokens",
-                chinese: "总 Tokens",
-                value: StatsFormatter.compactToken(currentTotalsAll.totalTokens),
-                delta: deltaPercent(current: Double(currentTotalsAll.totalTokens),
-                                    previous: Double(previousTotalsAll.totalTokens)),
-                tint: nil
+    private var quotaSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(
+                title: tr("Current quota", "当前额度"),
+                subtitle: tr(
+                    "Live remaining. It does not follow the date range. Click a card to focus that service.",
+                    "实时剩余，不跟下面的日期走。点一张卡片只看这个服务。"
+                )
             )
-            KPICard(
-                english: "Total spend",
-                chinese: "总花费",
-                value: StatsFormatter.cost(currentTotalsAll.costUSD),
-                delta: deltaPercent(current: currentTotalsAll.costUSD.doubleValue,
-                                    previous: previousTotalsAll.costUSD.doubleValue),
-                tint: nil
-            )
-            KPICard(
-                english: "Codex",
-                chinese: "OpenAI",
-                value: StatsFormatter.cost(currentTotals(.codex).costUSD),
-                delta: deltaPercent(current: currentTotals(.codex).costUSD.doubleValue,
-                                    previous: previousTotals(.codex).costUSD.doubleValue),
+            quotaGrid
+        }
+    }
+
+    @ViewBuilder
+    private var quotaGrid: some View {
+        let items = visibleQuotaFilters
+        if items.count <= 1, let only = items.first {
+            quotaCard(only)
+                .frame(maxWidth: 380, alignment: .leading)
+        } else {
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(.flexible(), spacing: 12, alignment: .top),
+                    count: max(items.count, 1)
+                ),
+                spacing: 12
+            ) {
+                ForEach(items, id: \.self) { item in
+                    quotaCard(item)
+                }
+            }
+        }
+    }
+
+    private func quotaCard(_ filter: StatsServiceFilter) -> QuotaHeroCard {
+        switch filter {
+        case .codex:
+            return standardQuotaCard(
+                filter: .codex,
+                snapshot: appState.codexQuota,
+                title: "Codex",
+                plan: accountPlan(appState.codexAccount?.planType),
+                logoName: "codex",
+                fallback: "C",
                 tint: .codexAccent
             )
-            KPICard(
-                english: "Claude Code",
-                chinese: "Anthropic",
-                value: StatsFormatter.cost(currentTotals(.claude).costUSD),
-                delta: deltaPercent(current: currentTotals(.claude).costUSD.doubleValue,
-                                    previous: previousTotals(.claude).costUSD.doubleValue),
+        case .claude:
+            return standardQuotaCard(
+                filter: .claude,
+                snapshot: appState.claudeQuota,
+                title: "Claude Code",
+                plan: accountPlan(appState.claudeAccount?.subscriptionType),
+                logoName: "claude",
+                fallback: "K",
                 tint: .claudeAccent
             )
+        case .cursor:
+            return cursorQuotaCard()
+        case .all:
+            return cursorQuotaCard()
         }
     }
 
-    // MARK: Daily usage panel
+    private func standardQuotaCard(
+        filter: StatsServiceFilter,
+        snapshot: QuotaSnapshot?,
+        title: String,
+        plan: String,
+        logoName: String,
+        fallback: String,
+        tint: Color
+    ) -> QuotaHeroCard {
+        let unlimited = snapshot?.fiveHourUnlimited == true
+        let primary = snapshot?.monitoredWindow()
+        let weekly = unlimited ? nil : snapshot?.displayWeekly()
+        let windowLabel = unlimited
+            ? tr("Weekly · no 5h cap", "周额度 · 无 5 小时限制")
+            : tr("5 hours", "5 小时")
+        let reset = primary.map { formatResetHint($0.resetsAt) }
+            ?? tr("Shown after refresh", "刷新后显示")
+        return QuotaHeroCard(
+            title: title,
+            plan: plan,
+            logoName: logoName,
+            fallback: fallback,
+            tint: tint,
+            windowLabel: windowLabel,
+            resetText: reset,
+            remaining: primary?.remainingPercent,
+            weeklyRemaining: weekly?.remainingPercent,
+            weeklyLabel: weekly == nil ? nil : tr("Weekly", "周额度"),
+            action: { focus(filter) }
+        )
+    }
 
-    private var dailyUsagePanel: some View {
-        Panel(title: "Daily usage", chinese: "每日用量", right: AnyView(
-            HStack(spacing: 8) {
-                LegendChip(color: .codexAccent, label: "Codex")
-                LegendChip(color: .claudeAccent, label: "Claude")
+    private func cursorQuotaCard() -> QuotaHeroCard {
+        let cycle = appState.cursorQuota?.displayBillingCycle()
+        let onDemand = appState.cursorQuota?.displayOnDemand()
+        let unsupported = cursorUnsupported
+        return QuotaHeroCard(
+            title: "Cursor",
+            plan: cursorPlanLine,
+            logoName: "cursor",
+            fallback: "R",
+            tint: .cursorAccent,
+            logoSize: 11,
+            windowLabel: unsupported ? tr("Unsupported", "暂不支持") : tr("Billing cycle", "账期"),
+            resetText: cycle.map { formatResetHint($0.resetsAt) }
+                ?? tr("Shown here after a refresh", "查询后显示在这里"),
+            remaining: cycle?.remainingPercent,
+            extraRemaining: onDemand?.remainingPercent,
+            extraLabel: onDemand == nil ? nil : tr("On-demand left", "按量剩余"),
+            action: { focus(.cursor) }
+        )
+    }
+
+    private var cursorSpendEmpty: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(tr("Cursor has no local usage", "Cursor 没有本地用量"))
+                .font(.system(size: 13, weight: .semibold))
+            Text(tr(
+                "The billing cycle is above. This page does not count its spend, and there is no per-model breakdown.",
+                "账期剩余就在上面。这里不统计它的花费，也没有按模型的明细。"
+            ))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ccPanel(cornerRadius: 12)
+    }
+
+    private var usageSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(
+                title: tr("Local usage", "本地用量"),
+                subtitle: usageSubtitle
+            )
+            localSpendNote
+                .padding(.bottom, 4)
+            metricStrip
+            compositionCard
+                .padding(.top, 4)
+        }
+    }
+
+    private var metricStrip: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(metricItems.enumerated()), id: \.element.id) { index, item in
+                metricCell(label: item.label, value: item.value, delta: item.delta)
+                    .overlay(alignment: .leading) {
+                        if index > 0 {
+                            Rectangle()
+                                .fill(Color.primary.opacity(0.12))
+                                .frame(width: 0.5)
+                        }
+                    }
             }
-        )) {
-            VStack(spacing: 6) {
-                if dailySamples.isEmpty {
-                    placeholderHeight(160, message: tr("No data", "无数据"))
-                } else {
-                    DailyUsageChart(samples: dailySamples)
-                        .frame(height: 160)
+        }
+        .ccPanel(cornerRadius: 12)
+    }
+
+    private func metricCell(label: String, value: String, delta: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 22, weight: .semibold))
+                .kerning(-0.4)
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+            if let delta {
+                Text(formatSpendDelta(delta))
+                    .font(.system(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(delta > 0 ? Color.green : Color.red)
+            } else {
+                Color.clear.frame(height: 14)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var compositionCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(tr("Composition", "构成"))
+                .font(.system(size: 13, weight: .semibold))
+            Text(dailySamples.count < 2
+                 ? tr("Spend share for this range.", "这个范围的花费占比。")
+                 : tr("Stacked by day. Codex on the bottom, Claude Code on top.", "按天堆叠，Codex 在下，Claude Code 在上。"))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .padding(.top, 3)
+                .padding(.bottom, 12)
+
+            shareBar
+            shareLegend
+                .padding(.top, 10)
+
+            if dailySamples.count > 1 {
+                DailyUsageChart(samples: dailySamples)
+                    .frame(height: 160)
+                    .padding(.top, 6)
+            }
+
+            compositionModels
+                .padding(.top, 8)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ccPanel(cornerRadius: 12)
+    }
+
+    private var shareBar: some View {
+        let parts = spendShares
+        let total = parts.reduce(0) { $0 + $1.value }
+        return Group {
+            if total <= 0 {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.18))
+                    .frame(height: 10)
+            } else {
+                GeometryReader { proxy in
+                    let gaps = CGFloat(max(parts.count - 1, 0)) * 3
+                    let usable = max(0, proxy.size.width - gaps)
+                    HStack(spacing: 3) {
+                        ForEach(parts, id: \.app) { part in
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(part.app == .codex ? Color.codexAccent : Color.claudeAccent)
+                                .frame(width: max(6, usable * CGFloat(part.value / total)))
+                        }
+                    }
                 }
+                .frame(height: 10)
             }
         }
     }
 
-    // MARK: By service panel
-
-    private var byServicePanel: some View {
-        Panel(title: "By service", chinese: "按服务") {
-            VStack(alignment: .leading, spacing: 4) {
-                ByServiceRow(
-                    title: "Codex",
-                    subtitle: "OpenAI",
-                    tint: .codexAccent,
-                    value: currentTotals(.codex).costUSD,
-                    totalValue: currentTotalsAll.costUSD,
-                    tokens: currentTotals(.codex).totalTokens
-                )
-                ByServiceRow(
-                    title: "Claude Code",
-                    subtitle: "Anthropic",
-                    tint: .claudeAccent,
-                    value: currentTotals(.claude).costUSD,
-                    totalValue: currentTotalsAll.costUSD,
-                    tokens: currentTotals(.claude).totalTokens
-                )
+    private var shareLegend: some View {
+        let parts = spendShares
+        let total = parts.reduce(0) { $0 + $1.value }
+        return HStack(spacing: 16) {
+            ForEach(parts, id: \.app) { part in
+                let pct = total > 0 ? Int((part.value / total * 100).rounded()) : 0
+                HStack(spacing: 6) {
+                    ServiceMark(
+                        color: part.app == .codex ? .codexAccent : .claudeAccent,
+                        size: 8
+                    )
+                    Text(part.app == .codex ? "Codex" : "Claude Code")
+                    Text(StatsFormatter.cost(currentTotals(part.app).costUSD))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .monospacedDigit()
+                    Text("· \(pct)%")
+                        .monospacedDigit()
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
             }
+            Spacer(minLength: 0)
         }
     }
 
-    // MARK: Current limits panel
-
-    private var currentLimitsPanel: some View {
-        Panel(title: "Current limits", chinese: "当前限额") {
-            VStack(spacing: 4) {
-                LimitRingRow(label: "Codex 5H", window: appState.codexQuota?.displayFiveHour(), tint: .codexAccent,
-                             unlimited: appState.codexQuota?.fiveHourUnlimited == true)
-                LimitRingRow(label: "Codex WK", window: appState.codexQuota?.displayWeekly(), tint: .codexAccent)
-                LimitRingRow(label: "Claude 5H", window: appState.claudeQuota?.displayFiveHour(), tint: .claudeAccent,
-                             unlimited: appState.claudeQuota?.fiveHourUnlimited == true)
-                LimitRingRow(label: "Claude WK", window: appState.claudeQuota?.displayWeekly(), tint: .claudeAccent)
+    private var compositionModels: some View {
+        VStack(spacing: 0) {
+            if spendModelRows.isEmpty {
+                VStack(spacing: 4) {
+                    Text(tr("No usage in this range", "这个范围没有用量"))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(tr("Try another date, or confirm the service is enabled.", "换一个日期，或确认服务已经打开。"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
+            } else {
+                ForEach(Array(spendModelRows.enumerated()), id: \.element.id) { index, row in
+                    VStack(spacing: 0) {
+                    if index > 0 { Divider() }
+                    HStack(spacing: 10) {
+                        ServiceMark(
+                            color: row.app == .codex ? .codexAccent : .claudeAccent,
+                            size: 8
+                        )
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(row.model)
+                                .font(.system(size: 13, weight: .semibold))
+                                .lineLimit(1)
+                            Text("\(tr("in", "入")) \(StatsFormatter.compactToken(row.totals.inputWithCacheTokens)) · \(tr("out", "出")) \(StatsFormatter.compactToken(row.totals.outputTokens))")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Spacer(minLength: 8)
+                        let priced = Pricing.hasPrice(model: row.model)
+                        Text(priced ? StatsFormatter.cost(row.totals.costUSD) : StatsFormatter.unpriced)
+                            .font(.system(size: 13, weight: priced ? .semibold : .regular))
+                            .foregroundStyle(priced ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
+                            .monospacedDigit()
+                    }
+                    .padding(.vertical, 10)
+                    }
+                }
             }
         }
+        .overlay(alignment: .top) { Divider() }
     }
 
-    // MARK: By model panel(保留旧的按模型聚合)
-
-    private var byModelPanel: some View {
-        Panel(title: "By model", chinese: "按模型") {
-            VStack(alignment: .leading, spacing: 10) {
-                if serviceFilter != .claude {
-                    modelGroup(title: "Codex", tint: .codexAccent, rows: modelRows(for: .codex))
-                }
-                if serviceFilter != .codex && serviceFilter != .claude {
-                    Divider()
-                }
-                if serviceFilter != .codex {
-                    modelGroup(title: "Claude", tint: .claudeAccent, rows: modelRows(for: .claude))
-                }
-            }
+    private func sectionHeader(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+            Text(subtitle)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.horizontal, 2)
     }
 
     // MARK: Timeline
@@ -796,10 +1023,32 @@ struct StatsView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    private var showsCursorHistoryNote: Bool {
+        guard settingsStore.showCursor else { return false }
+        return serviceFilter == .all || serviceFilter == .cursor
+    }
+
+    private var cursorHistoryNote: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(tr("Cursor does not keep quota history", "Cursor 不记录额度历史"))
+                .font(.system(size: 13, weight: .semibold))
+            Text(tr(
+                "This view keeps Codex and Claude Code window changes. Use the current billing cycle for Cursor.",
+                "这里只保留 Codex 和 Claude Code 的窗口变化。Cursor 看当前账期即可。"
+            ))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ccPanel(cornerRadius: 12)
+    }
+
     private var timelineSections: [QuotaTimelineSection] {
         var sections: [QuotaTimelineSection] = []
 
-        if serviceFilter != .claude {
+        if serviceFilter != .claude && serviceFilter != .cursor && settingsStore.showCodex {
             let key = QuotaHistoryAccountKey.codexPrimary(accountId: appState.codexAccount?.accountId)
             if shouldShowTimelineSection(key: key, snapshot: appState.codexQuota, accountExists: appState.codexAccount != nil) {
                 sections.append(timelineSection(
@@ -821,7 +1070,7 @@ struct StatsView: View {
             }
         }
 
-        if serviceFilter != .codex {
+        if serviceFilter != .codex && serviceFilter != .cursor && settingsStore.showClaude {
             let key = QuotaHistoryAccountKey.claudePrimary()
             if shouldShowTimelineSection(key: key, snapshot: appState.claudeQuota, accountExists: appState.claudeAccount != nil) {
                 sections.append(timelineSection(
@@ -936,6 +1185,145 @@ struct StatsView: View {
 
     // MARK: Data helpers
 
+    private var settingsStore: SettingsStore { SettingsStore.shared }
+
+    private var enabledFilters: [StatsServiceFilter] {
+        var items: [StatsServiceFilter] = []
+        if settingsStore.showCodex { items.append(.codex) }
+        if settingsStore.showClaude { items.append(.claude) }
+        if settingsStore.showCursor { items.append(.cursor) }
+        return items
+    }
+
+    private var visibleQuotaFilters: [StatsServiceFilter] {
+        switch serviceFilter {
+        case .all:
+            return enabledFilters
+        default:
+            return enabledFilters.contains(serviceFilter) ? [serviceFilter] : []
+        }
+    }
+
+    private var spendApps: [UsageApp] {
+        visibleQuotaFilters.compactMap { filter in
+            switch filter {
+            case .codex: return .codex
+            case .claude: return .claude
+            case .all, .cursor: return nil
+            }
+        }
+    }
+
+    private func sidebarPercent(_ filter: StatsServiceFilter) -> String {
+        let snapshot: QuotaSnapshot?
+        switch filter {
+        case .all:
+            return ""
+        case .codex:
+            snapshot = appState.codexQuota
+        case .claude:
+            snapshot = appState.claudeQuota
+        case .cursor:
+            snapshot = appState.cursorQuota
+        }
+        guard let window = snapshot?.monitoredWindow() else { return "—" }
+        return "\(Int(window.remainingPercent.rounded()))%"
+    }
+
+    private func focus(_ filter: StatsServiceFilter) {
+        serviceFilter = serviceFilter == filter ? .all : filter
+    }
+
+    private func accountPlan(_ raw: String?) -> String {
+        if let raw, !raw.isEmpty { return raw }
+        return tr("This Mac", "本机账号")
+    }
+
+    private var cursorUnsupported: Bool {
+        guard appState.cursorQuota?.displayBillingCycle() == nil else { return false }
+        let error = appState.cursorQuotaError ?? ""
+        return error.contains("暂不支持")
+            || error.localizedCaseInsensitiveContains("unsupported")
+            || error.contains("没有个人")
+    }
+
+    private var cursorPlanLine: String {
+        if appState.cursorQuota?.displayBillingCycle() != nil {
+            return accountPlan(appState.cursorAccount?.planType)
+        }
+        if let error = appState.cursorQuotaError, !error.isEmpty {
+            return error
+        }
+        if appState.cursorAccount?.accessToken?.isEmpty == false {
+            return tr("Signed in. Quota hasn't come back yet.", "已登录，额度尚未返回")
+        }
+        return tr("Not detected", "未识别")
+    }
+
+    private var usageSubtitle: String {
+        let rangeName = tr(range.englishLabel, range.chineseLabel)
+        if range == .thisWeek, dailySamples.count <= 1 {
+            return "\(rangeName) · \(tr("The week starts on Monday. Only one day has usage so far.", "本周从周一开始，目前只有一天有用量。"))"
+        }
+        return "\(rangeName) · \(tr("Local logs, summed by day. Cursor is not included.", "本机日志按天汇总。Cursor 不计入。"))"
+    }
+
+    private func formatSpendDelta(_ value: Double) -> String {
+        let arrow = value > 0 ? "↑" : "↓"
+        return "\(arrow) \(String(format: "%.1f", Swift.abs(value)))%"
+    }
+
+    private var metricItems: [MetricItem] {
+        var items: [MetricItem] = [
+            MetricItem(
+                id: "tokens",
+                label: "Tokens",
+                value: StatsFormatter.compactToken(currentTotalsAll.totalTokens),
+                delta: deltaPercent(
+                    current: Double(currentTotalsAll.totalTokens),
+                    previous: Double(previousTotalsAll.totalTokens)
+                )
+            )
+        ]
+        if spendApps.count == 2 {
+            items.append(MetricItem(
+                id: "spend",
+                label: tr("Spend", "花费"),
+                value: StatsFormatter.cost(currentTotalsAll.costUSD),
+                delta: deltaPercent(
+                    current: currentTotalsAll.costUSD.doubleValue,
+                    previous: previousTotalsAll.costUSD.doubleValue
+                )
+            ))
+        }
+        for app in spendApps {
+            items.append(MetricItem(
+                id: app.rawValue,
+                label: app == .codex ? "Codex" : "Claude Code",
+                value: StatsFormatter.cost(currentTotals(app).costUSD),
+                delta: deltaPercent(
+                    current: currentTotals(app).costUSD.doubleValue,
+                    previous: previousTotals(app).costUSD.doubleValue
+                )
+            ))
+        }
+        return items
+    }
+
+    private var spendShares: [SpendShare] {
+        spendApps.map { app in
+            SpendShare(app: app, value: currentTotals(app).costUSD.doubleValue)
+        }
+    }
+
+    private var spendModelRows: [SpendModelRow] {
+        spendApps.flatMap { app in
+            modelRows(for: app).map {
+                SpendModelRow(app: app, model: $0.model, totals: $0.totals)
+            }
+        }
+    }
+
     private var rangeBounds: (from: Date, to: Date) {
         range.bounds(customFrom: customFrom, customTo: customTo)
     }
@@ -946,16 +1334,9 @@ struct StatsView: View {
 
     private var filteredBuckets: [UsageBucket] {
         let (from, to) = rangeBounds
-        let buckets = appState.usageService.aggregator.snapshot()
-            .filter { $0.day >= from && $0.day < to }
-        switch serviceFilter {
-        case .all:
-            return buckets
-        case .codex:
-            return buckets.filter { $0.app == .codex }
-        case .claude:
-            return buckets.filter { $0.app == .claude }
-        }
+        let apps = Set(spendApps)
+        return appState.usageService.aggregator.snapshot()
+            .filter { $0.day >= from && $0.day < to && apps.contains($0.app) }
     }
 
     private var currentTotalsAll: UsageTotals {
@@ -972,14 +1353,11 @@ struct StatsView: View {
 
     private var previousTotalsAll: UsageTotals {
         guard let bounds = previousRangeBounds else { return .zero }
+        let apps = Set(spendApps)
         let buckets = appState.usageService.aggregator.snapshot()
-            .filter { $0.day >= bounds.from && $0.day < bounds.to }
+            .filter { $0.day >= bounds.from && $0.day < bounds.to && apps.contains($0.app) }
         var t = UsageTotals.zero
-        for b in buckets {
-            if serviceFilter == .codex && b.app != .codex { continue }
-            if serviceFilter == .claude && b.app != .claude { continue }
-            t.add(b)
-        }
+        for b in buckets { t.add(b) }
         return t
     }
 
@@ -1031,6 +1409,134 @@ struct StatsView: View {
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
             .frame(height: height)
+    }
+}
+
+// MARK: - Overview models
+
+private struct MetricItem: Identifiable {
+    let id: String
+    let label: String
+    let value: String
+    let delta: Double?
+}
+
+private struct SpendShare {
+    let app: UsageApp
+    let value: Double
+}
+
+private struct SpendModelRow: Identifiable {
+    var id: String { "\(app.rawValue)|\(model)" }
+    let app: UsageApp
+    let model: String
+    let totals: UsageTotals
+}
+
+private struct QuotaHeroCard: View {
+    let title: String
+    let plan: String
+    let logoName: String
+    let fallback: String
+    let tint: Color
+    var logoSize: CGFloat = 13
+    let windowLabel: String
+    let resetText: String
+    let remaining: Double?
+    var weeklyRemaining: Double? = nil
+    var weeklyLabel: String? = nil
+    var extraRemaining: Double? = nil
+    var extraLabel: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 10) {
+                    ServiceTile(
+                        logoName: logoName,
+                        fallback: fallback,
+                        tint: tint,
+                        size: 22,
+                        logoSize: logoSize,
+                        cornerRadius: 6
+                    )
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        Text(plan)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    Spacer(minLength: 8)
+                    ring
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(windowLabel)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Text(resetText)
+                        .font(.system(size: 12))
+                        .monospacedDigit()
+                        .lineLimit(2)
+                }
+                .padding(.top, 12)
+
+                if let weeklyRemaining, let weeklyLabel {
+                    meter(label: weeklyLabel, percent: weeklyRemaining)
+                }
+                if let extraRemaining, let extraLabel {
+                    meter(label: extraLabel, percent: extraRemaining)
+                }
+                if weeklyLabel == nil && extraLabel == nil {
+                    meter(label: " ", percent: 0)
+                        .opacity(0)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .ccPanel(cornerRadius: 12)
+        }
+        .buttonStyle(.plain)
+        .pointingHandCursor()
+    }
+
+    private var ring: some View {
+        ProgressRing(value: (remaining ?? 0) / 100, tint: ringColor, diameter: 58, stroke: 5) {
+            Text(remaining.map { "\(Int($0.rounded()))" } ?? "—")
+                .font(.system(size: 13, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private var ringColor: Color {
+        guard let remaining else { return Color.secondary.opacity(0.35) }
+        if remaining > 50 { return tint }
+        if remaining < 10 { return statusColor(remainingPercent: 0, tint: tint) }
+        return statusColor(remainingPercent: remaining, tint: tint)
+    }
+
+    private func meter(label: String, percent: Double) -> some View {
+        let color = statusColor(remainingPercent: percent, tint: tint)
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(percent.rounded()))%")
+                    .font(.system(size: 12, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(color)
+            }
+            ProgressBar(value: percent / 100, tint: color, height: 5)
+        }
+        .padding(.top, 12)
     }
 }
 
@@ -1101,7 +1607,7 @@ private struct KPICard: View {
                     Text(formatDelta(delta))
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(delta >= 0 ? Color.red : Color.green)
+                        .foregroundStyle(delta > 0 ? Color.green : Color.red)
                 }
             }
         }
@@ -1270,19 +1776,23 @@ private struct QuotaTimelineAccountPanel: View {
             }
             Spacer()
             timelineMetric(label: tr("Current", "当前"), value: currentText)
-            timelineMetric(label: tr("Net", "净变"), value: StatsFormatter.quotaDelta(section.totalDelta))
+            timelineMetric(
+                label: tr("Net", "净变"),
+                value: StatsFormatter.quotaDelta(section.totalDelta),
+                valueColor: section.totalDelta < 0 ? .red : .green
+            )
             timelineMetric(label: tr("Latest", "最近"), value: latestText)
         }
     }
 
-    private func timelineMetric(label: String, value: String) -> some View {
+    private func timelineMetric(label: String, value: String, valueColor: Color = .primary) -> some View {
         VStack(alignment: .trailing, spacing: 1) {
             Text(label)
                 .font(.system(size: 9.5))
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.system(size: 11.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(valueColor)
         }
     }
 
@@ -1310,6 +1820,7 @@ private struct QuotaTimelineAccountPanel: View {
 private struct QuotaTimelineChart: View {
     let events: [QuotaChangeEvent]
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
     @State private var hovered: QuotaChangeEvent?
 
     /// 给 X 轴首尾各留约 4% padding,避免首点贴着 Y 轴标签、尾点贴着右缘。
@@ -1340,19 +1851,21 @@ private struct QuotaTimelineChart: View {
 
     var body: some View {
         Chart(events) { event in
+            AreaMark(
+                x: .value("Time", event.sampledAt),
+                yStart: .value("Base", 0),
+                yEnd: .value("Remaining", event.afterRemainingPercent)
+            )
+            .foregroundStyle(tint.opacity(0.12))
+            .interpolationMethod(.linear)
+
             LineMark(
                 x: .value("Time", event.sampledAt),
                 y: .value("Remaining", event.afterRemainingPercent)
             )
             .foregroundStyle(tint)
             .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
-
-            PointMark(
-                x: .value("Time", event.sampledAt),
-                y: .value("Remaining", event.afterRemainingPercent)
-            )
-            .foregroundStyle(tint)
-            .symbolSize(30)
+            .interpolationMethod(.linear)
         }
         .chartXScale(domain: xDomain)
         .chartYScale(domain: 0...100)
@@ -1380,6 +1893,16 @@ private struct QuotaTimelineChart: View {
         }
         .chartOverlay { proxy in
             GeometryReader { geo in
+                if let anchor = proxy.plotFrame {
+                    let plot = geo[anchor]
+                    ForEach(events) { event in
+                        if let xPos = proxy.position(forX: event.sampledAt),
+                           let yPos = proxy.position(forY: event.afterRemainingPercent) {
+                            timelineDot
+                                .position(x: plot.minX + xPos, y: plot.minY + yPos)
+                        }
+                    }
+                }
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
@@ -1395,11 +1918,6 @@ private struct QuotaTimelineChart: View {
                    let xPos = proxy.position(forX: hovered.sampledAt) {
                     let plot = geo[anchor]
                     let yPos = proxy.position(forY: hovered.afterRemainingPercent) ?? 0
-                    Circle()
-                        .fill(tint)
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
-                        .position(x: plot.minX + xPos, y: plot.minY + yPos)
                     ChartCallout(lines: calloutLines(hovered))
                         .position(
                             x: clampX(plot.minX + xPos, in: plot),
@@ -1408,6 +1926,18 @@ private struct QuotaTimelineChart: View {
                 }
             }
         }
+    }
+
+    /// 样式稿的点:直径 6.4pt 的实心圆,1.5pt 卡片色描边,把点和折线、面积隔开。
+    private var timelineDot: some View {
+        Circle()
+            .fill(tint)
+            .frame(width: 6.4, height: 6.4)
+            .overlay(Circle().stroke(dotRing, lineWidth: 1.5))
+    }
+
+    private var dotRing: Color {
+        colorScheme == .dark ? Color(white: 0.22) : .white
     }
 
     private func event(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> QuotaChangeEvent? {

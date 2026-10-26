@@ -14,13 +14,34 @@ struct WidgetSharedState: Codable, Sendable, Equatable {
     /// (被强杀或崩溃时更是如此),所以改由小组件在 timeline 里预埋一个到期翻转的 entry。
     var heartbeatAt: Date
 
-    /// 服务显示开关。取全局的 showCodex / showClaude,**不**跟悬浮窗的 floatingShow* 联动:
+    /// 服务显示开关。取全局的 showCodex / showClaude / showCursor,**不**跟悬浮窗的 floatingShow* 联动:
     /// 用户关掉悬浮窗的某一行,不代表也想让小组件少一行。
     var showCodex: Bool
     var showClaude: Bool
+    var showCursor: Bool
 
     /// "zh" / "en"。小组件进程里没有 SettingsStore,靠这个字段选词。
     var language: String
+
+    init(heartbeatAt: Date, showCodex: Bool, showClaude: Bool, showCursor: Bool, language: String) {
+        self.version = 1
+        self.heartbeatAt = heartbeatAt
+        self.showCodex = showCodex
+        self.showClaude = showClaude
+        self.showCursor = showCursor
+        self.language = language
+    }
+
+    /// 旧的 widget-state.json 没有 showCursor。缺字段按关闭处理,避免整份状态解码失败后小组件翻空态。
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        heartbeatAt = try container.decode(Date.self, forKey: .heartbeatAt)
+        showCodex = try container.decode(Bool.self, forKey: .showCodex)
+        showClaude = try container.decode(Bool.self, forKey: .showClaude)
+        showCursor = try container.decodeIfPresent(Bool.self, forKey: .showCursor) ?? false
+        language = try container.decode(String.self, forKey: .language)
+    }
 }
 
 enum WidgetSharedStore {

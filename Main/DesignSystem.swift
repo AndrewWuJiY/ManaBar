@@ -3,9 +3,11 @@ import AppKit
 
 // MARK: - Product accent colors
 //
-// Codex / Claude 识别色定义在 Asset Catalog (CodexAccent / ClaudeAccent)。
-// 浅色 #718DFF / #D97757,深色 #8FA6FF / #E68A6E。
-// Xcode 自动从 .xcassets 生成 `Color.codexAccent` / `Color.claudeAccent`,直接使用即可。
+// Codex / Claude / Cursor 识别色定义在 Asset Catalog
+// (CodexAccent / ClaudeAccent / CursorAccent)。
+// 浅色 #718DFF / #D97757 / #1C1C1E,深色 #8FA6FF / #E68A6E / #E6E6EA。
+// Cursor 的 tile 不铺这块颜色,见 ServiceTile:浅色黑底、深色白底。
+// Xcode 自动生成 `Color.codexAccent` / `Color.claudeAccent` / `Color.cursorAccent`。
 // 见 docs/03-设计风格.md §4.2。
 
 

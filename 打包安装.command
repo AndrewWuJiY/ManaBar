@@ -18,6 +18,7 @@ if ! xcodebuild -project ManaBar.xcodeproj \
   -scheme ManaBar \
   -configuration Release \
   -derivedDataPath build/DerivedData \
+  -allowProvisioningUpdates \
   build > "$LOG" 2>&1; then
   echo "❌ 构建失败,错误摘要:"
   grep -E "error:" "$LOG" | head -20

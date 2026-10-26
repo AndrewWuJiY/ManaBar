@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ManaBar 样式稿</title>
+<style>
+  :root {
+    color-scheme: light;
+    --window: #f5f5f7;
+    --card: #ffffff;
+    --popover: rgba(255,255,255,.9);
+    --text: #1d1d1f;
+    --secondary: rgba(60,60,67,.62);
+    --tertiary: rgba(60,60,67,.38);
+    --line: rgba(0,0,0,.1);
+    --fill: rgba(120,120,128,.12);
+    --track: rgba(120,120,128,.16);
+    --blue: #007aff;
+    --sidebar: rgba(0,0,0,.035);
+    --hover: rgba(0,0,0,.05);
+    --shadow: 0 18px 50px rgba(0,0,0,.18);
+    --codex: #718DFF;
+    --claude: #D97757;
+    --ink: #1c1c1e;
+    --up: #248a3d;
+    --down: #d70015;
+    --hud: rgba(255,255,255,.62);
+    --widget: rgba(255,255,255,.78);
+    --menu: rgba(255,255,255,.55);
+    --menu-line: rgba(0,0,0,.08);
+    --seg: #ffffff;
+    --desktop: radial-gradient(1100px 520px at 8% -10%, #f8f5ef 0%, transparent 55%),
+               linear-gradient(165deg, #d7e4f6 0%, #e6e3f3 40%, #f3ece3 100%);
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --window: #1e1e20;
+    --card: #2c2c2e;
+    --popover: rgba(44,44,46,.9);
+    --text: #f5f5f7;
+    --secondary: rgba(235,235,245,.6);
+    --tertiary: rgba(235,235,245,.35);
+    --line: rgba(255,255,255,.1);
+    --fill: rgba(120,120,128,.28);
+    --track: rgba(255,255,255,.12);
+    --blue: #0a84ff;
+    --sidebar: rgba(255,255,255,.03);
+    --hover: rgba(255,255,255,.06);
+    --shadow: 0 18px 50px rgba(0,0,0,.45);
+    --codex: #8FA6FF;
+    --claude: #E68A6E;
+    --ink: #E6E6EA;
+    --up: #30d158;
+    --down: #ff453a;
+    --hud: rgba(28,28,30,.66);
+    --widget: rgba(36,36,38,.78);
+    --menu: rgba(22,22,24,.55);
+    --menu-line: rgba(255,255,255,.08);
+    --seg: #636366;
+    --desktop: radial-gradient(900px 480px at 80% 0%, #2c364c 0%, transparent 55%),
+               linear-gradient(165deg, #171a22 0%, #221f29 52%, #1c1c1e 100%);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: #0e0e10;
+    display: flex;
+    flex-direction: column;
+    min-width: 980px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  [hidden] { display: none !important; }
+  .desktop { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--desktop); }
+  .menubar {
+    height: 28px; flex: none;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 12px;
+    background: var(--menu);
+    backdrop-filter: blur(22px) saturate(1.4);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+    border-bottom: 0.5px solid var(--menu-line);
+    font-weight: 500;
+    user-select: none;
+  }
+  .menubar .app { font-weight: 700; }
+  .menubar .menus { display: flex; gap: 16px; color: var(--secondary); font-weight: 500; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .menubar .ghost { color: var(--secondary); font-weight: 500; font-variant-numeric: tabular-nums; }
+  #status-item {
+    display: flex; align-items: center; gap: 8px;
+    height: 22px; padding: 0 7px; border-radius: 5px; color: var(--text);
+  }
+  #status-item:hover, #status-item.open { background: var(--fill); }
+  .mb-seg { display: flex; align-items: center; gap: 4px; }
+  .mb-segs { display: flex; align-items: center; gap: 9px; }
+  .mb-segs.compact { gap: 6px; }
+  .logo { width: 14px; height: 14px; display: block; }
+  .mb-seg .logo { width: 15px; height: 15px; }
+  .mb-seg .logo.cursor { width: 12px; height: 12px; }
+  .mb-num { font-size: 13px; font-weight: 560; letter-spacing: -0.02em; }
+  .stage { flex: 1; min-height: 0; position: relative; }
+  .window {
+    position: absolute; top: 22px; left: 22px; bottom: 22px;
+    width: min(1040px, calc(100% - 300px));
+    background: var(--window);
+    border-radius: 12px;
+    box-shadow: var(--shadow), 0 0 0 0.5px rgba(0,0,0,.12);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    min-width: 680px;
+  }
+  [data-theme="dark"] .window { box-shadow: var(--shadow), 0 0 0 0.5px rgba(255,255,255,.12); }
+  .titlebar {
+    height: 52px; flex: none; position: relative;
+    display: flex; align-items: center;
+    border-bottom: 0.5px solid var(--line);
+  }
+  .lights { display: flex; gap: 8px; margin-left: 20px; }
+  .light {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 9px; line-height: 1; color: rgba(0,0,0,.55); font-weight: 700;
+  }
+  .light span { opacity: 0; }
+  .lights:hover .light span { opacity: 1; }
+  .light.r { background: #ff5f57; }
+  .light.y { background: #febc2e; }
+  .light.g { background: #28c840; }
+  .title-seg {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    display: flex; padding: 2px; border-radius: 8px; background: var(--fill);
+  }
+  .title-seg button, .seg button {
+    border: 0; background: transparent; height: 24px; padding: 0 12px;
+    border-radius: 6px; font-size: 12px; font-weight: 560; color: var(--text);
+  }
+  .title-seg button.on, .seg button.on {
+    background: var(--seg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.05);
+  }
+  .body { flex: 1; min-height: 0; display: flex; }
+  .sidebar {
+    width: 200px; flex: none;
+    background: var(--sidebar);
+    border-right: 0.5px solid var(--line);
+    padding: 10px 0 16px;
+    overflow: auto;
+  }
+  .side-label {
+    margin: 8px 18px 4px;
+    font-size: 11px; font-weight: 600; color: var(--tertiary);
+  }
+  .side-item {
+    width: calc(100% - 16px);
+    margin: 1px 8px; height: 28px; padding: 0 8px;
+    border: 0; border-radius: 6px; background: transparent;
+    display: flex; align-items: center; gap: 8px;
+    text-align: left; color: var(--text); font-size: 13px;
+  }
+  .side-item:hover:not(.on) { background: var(--hover); }
+  .side-item.on { background: var(--blue); color: white; }
+  .side-item .sn { min-width: 0; }
+  .side-item .tail { margin-left: auto; color: var(--secondary); font-size: 12px; }
+  .side-item.on .tail, .side-item.on .sico { color: rgba(255,255,255,.88); }
+  .dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+  .dot.codex { background: var(--codex); }
+  .dot.claude { background: var(--claude); }
+  .dot.cursor { background: var(--ink); }
+  .side-item.on .dot { background: white; }
+  .sico { width: 15px; height: 15px; color: var(--secondary); flex: none; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .toolbar {
+    height: 42px; flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px;
+    border-bottom: 0.5px solid var(--line);
+  }
+  .seg { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--fill); }
+  .spacer { flex: 1; }
+  .rangewrap { position: relative; }
+  .menu-btn, .export-btn {
+    height: 26px; border: 0; border-radius: 6px; background: var(--fill);
+    display: inline-flex; align-items: center; gap: 4px; padding: 0 8px 0 10px;
+    font-size: 12px; font-weight: 560;
+  }
+  .export-btn { padding: 0 10px; }
+  .export-btn:disabled { opacity: .4; cursor: default; }
+  .uico { width: 14px; height: 14px; }
+  .range-pop {
+    position: absolute; top: 30px; right: 0; width: 148px; z-index: 6;
+    padding: 4px; border-radius: 10px;
+    background: var(--popover);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.18), 0 0 0 0.5px rgba(0,0,0,.08);
+  }
+  .range-pop button {
+    display: flex; width: 100%; height: 26px; align-items: center;
+    border: 0; background: transparent; border-radius: 6px;
+    padding: 0 8px; font-size: 13px; text-align: left;
+  }
+  .range-pop button:hover, .range-pop button.on { background: var(--blue); color: white; }
+  .custom-row {
+    display: flex; gap: 12px; align-items: center;
+    padding: 8px 16px; border-bottom: 0.5px solid var(--line);
+    font-size: 12px; color: var(--secondary);
+  }
+  .custom-row input { height: 22px; border-radius: 6px; border: 0.5px solid var(--line); background: var(--card); padding: 0 6px; }
+  .content { flex: 1; min-height: 0; overflow: auto; padding: 18px 20px 28px; }
+  .content::-webkit-scrollbar { width: 10px; }
+  .content::-webkit-scrollbar-thumb { background: rgba(120,120,128,.35); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+  .section-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 2px 8px; }
+  .section-h h2 { margin: 0; font-size: 15px; letter-spacing: -0.02em; }
+  .section-h p, .note { margin: 3px 0 0; font-size: 12px; color: var(--secondary); }
+  .qcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .qcards.single { grid-template-columns: minmax(220px, 380px); }
+  .qcard {
+    background: var(--card); border: 0.5px solid var(--line); border-radius: 12px;
+    padding: 14px; text-align: left; width: 100%;
+  }
+  .qcard:hover { border-color: rgba(0,0,0,.18); }
+  [data-theme="dark"] .qcard:hover { border-color: rgba(255,255,255,.2); }
+  .qtop { display: flex; gap: 10px; align-items: center; }
+  .qmeta { min-width: 0; flex: 1; }
+  .qname { font-weight: 600; letter-spacing: -0.01em; }
+  .qplan { font-size: 11px; color: var(--secondary); margin-top: 1px; }
+  .qbody { margin-top: 12px; }
+  .qwin { font-size: 12px; color: var(--secondary); }
+  .qreset { margin-top: 2px; font-size: 12px; }
+  .qweek { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--secondary); }
+  .qweek b { color: var(--text); font-weight: 600; }
+  .track { height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; margin-top: 6px; }
+  .track > i { display: block; height: 100%; border-radius: 3px; }
+  .ring { position: relative; flex: none; }
+  .ring svg { width: 100%; height: 100%; display: block; }
+  .ring b {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 13px; letter-spacing: -0.03em;
+  }
+  .tile {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: grid; place-items: center; color: white; flex: none;
+  }
+  .tile .logo { width: 13px; height: 13px; }
+  .tile.cursor .logo { width: 11px; height: 11px; }
+  .tile.sm { width: 18px; height: 18px; border-radius: 5px; }
+  .tile.sm .logo { width: 11px; height: 11px; }
+  .tile.sm.cursor .logo { width: 10px; height: 10px; }
+  .tile.codex { background: var(--codex); }
+  .tile.claude { background: var(--claude); }
+  .tile.cursor { background: var(--ink); color: #fff; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,.25); }
+  [data-theme="dark"] .tile.cursor { color: #1c1c1e; box-shadow: inset 0 0 0 0.5px rgba(255,255,255,.35); }
+  .gap { height: 22px; }
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--card); border: 0.5px solid var(--line); border-radius: 12px; overflow: hidden;
+  }
+  .metrics.two { grid-template-columns: 1fr 1fr; }
+  .metrics > div { padding: 12px 14px 13px; border-right: 0.5px solid var(--line); }
+  .metrics > div:last-child { border-right: 0; }
+  .mk { font-size: 11px; color: var(--secondary); }
+  .mv { margin-top: 2px; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+  .md { min-height: 16px; margin-top: 2px; font-size: 11px; font-weight: 650; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .card {
+    background: var(--card); border: 0.5px solid var(--line); border-radius: 12px;
+    padding: 14px 16px 8px;
+  }
+  .card h3 { margin: 0; font-size: 13px; letter-spacing: -0.01em; }
+  .card .sub { margin: 3px 0 12px; color: var(--secondary); font-size: 12px; }
+  .sharebar { display: flex; height: 10px; gap: 3px; }
+  .sharebar i { display: block; border-radius: 5px; min-width: 6px; }
+  .legend { display: flex; gap: 16px; margin: 10px 0 4px; font-size: 12px; color: var(--secondary); }
+  .legend b { color: var(--text); font-weight: 600; }
+  .legend .dot { display: inline-block; margin-right: 6px; vertical-align: 0; }
+  svg.chart { width: 100%; height: auto; display: block; margin-top: 6px; }
+  .mlist { margin-top: 8px; border-top: 0.5px solid var(--line); }
+  .mrow { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 0.5px solid var(--line); }
+  .mrow:first-child { border-top: 0; }
+  .mrow .mn { font-weight: 600; }
+  .mrow .ms { font-size: 11px; color: var(--tertiary); margin-top: 2px; }
+  .mrow .mc { margin-left: auto; font-weight: 600; font-size: 14px; }
+  .empty {
+    min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 4px; color: var(--secondary); padding: 24px 12px;
+  }
+  .empty b { color: var(--text); font-size: 13px; }
+  .empty p { margin: 0; font-size: 12px; max-width: 320px; line-height: 1.45; }
+  .tblock { margin-bottom: 12px; }
+  .thead { display: flex; align-items: flex-start; gap: 12px; }
+  .thead .who { font-weight: 650; }
+  .badge {
+    display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 650;
+    color: var(--secondary); background: var(--fill); border-radius: 20px; padding: 1px 6px;
+    vertical-align: 1px;
+  }
+  .kpis { margin-left: auto; display: flex; gap: 18px; }
+  .kpis div { text-align: right; }
+  .kpis span { display: block; font-size: 10px; color: var(--tertiary); }
+  .kpis b { font-size: 13px; font-weight: 650; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 7px 8px; text-align: left; white-space: nowrap; }
+  th {
+    font-size: 11px; font-weight: 650; color: var(--secondary);
+    border: 0; background: transparent; cursor: pointer;
+  }
+  th.num, td.num { text-align: right; }
+  td { font-size: 12px; border-top: 0.5px solid var(--line); }
+  tbody tr:hover td { background: var(--hover); }
+  tr.foot td { font-weight: 650; background: var(--fill); }
+  .svc { display: inline-flex; align-items: center; gap: 6px; }
+  .more {
+    margin: 4px 0 8px; border: 0; background: transparent; color: var(--blue);
+    font-size: 12px; font-weight: 560; padding: 0;
+  }
+  .form { max-width: 640px; }
+  .group { margin-bottom: 22px; }
+  .group h3 { margin: 0 4px 4px; font-size: 13px; }
+  .group .desc { margin: 0 4px 8px; font-size: 12px; color: var(--secondary); line-height: 1.4; }
+  .gbody { background: var(--card); border: 0.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .grow { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-top: 0.5px solid var(--line); }
+  .grow:first-child { border-top: 0; }
+  .gl { flex: 1; min-width: 0; }
+  .gt { font-size: 13px; }
+  .gd { margin-top: 2px; font-size: 11px; color: var(--tertiary); line-height: 1.35; }
+  .switch {
+    width: 32px; height: 20px; border-radius: 11px; border: 0; padding: 0;
+    background: rgba(120,120,128,.32); position: relative; flex: none;
+  }
+  .switch i {
+    position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+    background: white; box-shadow: 0 1px 3px rgba(0,0,0,.28); transition: left .15s ease;
+  }
+  .switch.on { background: #34c759; }
+  .switch.on i { left: 14px; }
+  .switch:disabled { opacity: .4; cursor: default; }
+  .check {
+    width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(120,120,128,.55);
+    background: transparent; display: grid; place-items: center; color: white; padding: 0; flex: none;
+  }
+  .check.on { background: var(--blue); border-color: var(--blue); }
+  .check:disabled { opacity: .35; }
+  select {
+    height: 24px; border-radius: 6px; border: 0.5px solid var(--line);
+    background: var(--card); padding: 0 6px; font-size: 12px;
+  }
+  input[type="range"] { width: 140px; accent-color: var(--blue); }
+  .add {
+    width: 100%; border: 0; background: transparent; color: var(--blue);
+    text-align: left; padding: 10px 14px; font-weight: 560;
+  }
+  .iconbtn {
+    width: 26px; height: 22px; border: 0; border-radius: 6px; background: transparent;
+    display: grid; place-items: center; color: var(--secondary); padding: 0;
+  }
+  .iconbtn:hover { background: var(--fill); color: var(--text); }
+  .iconbtn.on { color: var(--blue); }
+  .iconbtn.spin .uico { animation: spin .7s linear 1; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #popover {
+    position: fixed; z-index: 30; width: 340px; max-height: calc(100vh - 96px); overflow: auto;
+    border-radius: 14px; background: var(--popover);
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    box-shadow: 0 18px 50px rgba(0,0,0,.22), 0 0 0 0.5px rgba(0,0,0,.08);
+  }
+  .ph { display: flex; align-items: center; gap: 8px; padding: 12px 12px 10px; border-bottom: 0.5px solid var(--line); }
+  .pt { font-weight: 650; letter-spacing: -0.01em; }
+  .ps { font-size: 11px; color: var(--secondary); margin-top: 1px; }
+  .pactions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+  .live { width: 7px; height: 7px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52,199,89,.16); margin-right: 4px; }
+  .block { padding: 12px 16px 14px; }
+  .sep { height: 0.5px; background: var(--line); margin: 0 16px; }
+  .bhead { display: flex; gap: 8px; align-items: center; }
+  .bname { font-weight: 650; letter-spacing: -0.01em; }
+  .bplan { font-size: 11px; color: var(--secondary); }
+  .breset { margin-left: auto; font-size: 11px; color: var(--secondary); }
+  .bbody { display: flex; gap: 14px; margin-top: 12px; align-items: center; }
+  .bright { flex: 1; min-width: 0; }
+  .wlab { display: flex; justify-content: space-between; font-size: 12px; color: var(--secondary); margin-bottom: 4px; }
+  .wlab b { font-weight: 650; }
+  .stats2 { display: flex; gap: 14px; margin-top: 9px; }
+  .stats2 b { display: block; font-size: 12px; font-weight: 600; }
+  .stats2 span { font-size: 10px; color: var(--tertiary); }
+  .err { margin-top: 8px; font-size: 12px; color: var(--secondary); }
+  .extra { padding: 8px 16px 10px; }
+  .exh { font-size: 11px; color: var(--tertiary); font-weight: 650; display: flex; justify-content: space-between; }
+  .exrow { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 12px; }
+  .exrow span { margin-left: auto; color: var(--secondary); }
+  .exrow span + span { margin-left: 0; }
+  .exrow b { font-weight: 600; }
+  #widget, #hud { position: absolute; right: 16px; width: 250px; user-select: none; }
+  #widget { top: 16px; cursor: pointer; }
+  #hud { top: 196px; cursor: grab; }
+  #widget, #hud, .sheet {
+    border: 0.5px solid rgba(255,255,255,.35);
+  }
+  #widget {
+    background: var(--widget);
+    backdrop-filter: blur(22px) saturate(1.4);
+    border-radius: 20px; padding: 12px 12px 8px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.14);
+  }
+  #widget h4 { margin: 0 2px 8px; font-size: 12px; color: var(--secondary); font-weight: 650; }
+  .wrow { display: flex; gap: 8px; align-items: center; padding: 5px 2px; }
+  .wmid { flex: 1; min-width: 0; }
+  .wname { font-size: 12px; font-weight: 650; display: flex; justify-content: space-between; gap: 6px; }
+  .wname span, .wright small { color: var(--secondary); font-weight: 500; font-size: 10px; }
+  .wbar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 4px; overflow: hidden; }
+  .wbar i { display: block; height: 100%; border-radius: 2px; }
+  .wright { width: 52px; text-align: right; }
+  .wright b { display: block; font-size: 13px; letter-spacing: -0.03em; }
+  #hud {
+    background: var(--hud);
+    backdrop-filter: blur(22px) saturate(1.4);
+    border-radius: 14px; padding: 10px 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.18);
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .hudrow { display: flex; align-items: center; gap: 8px; }
+  .hudbar { flex: 1; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+  .hudbar i { display: block; height: 100%; border-radius: 2px; }
+  .hudp { width: 42px; text-align: right; font-weight: 650; font-size: 13px; letter-spacing: -0.03em; }
+  #hudmenu {
+    position: fixed; z-index: 40; min-width: 160px; padding: 4px; border-radius: 10px;
+    background: var(--popover); backdrop-filter: blur(20px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.2), 0 0 0 0.5px rgba(0,0,0,.08);
+  }
+  #hudmenu button {
+    display: block; width: 100%; text-align: left; height: 26px; border: 0; background: transparent;
+    border-radius: 6px; padding: 0 8px; font-size: 13px;
+  }
+  #hudmenu button:hover { background: var(--blue); color: white; }
+  .sheet-dim {
+    position: absolute; inset: 0; z-index: 8;
+    background: rgba(0,0,0,.18);
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 54px;
+  }
+  .sheet {
+    width: 420px; background: var(--window); border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.28);
+    padding: 16px;
+  }
+  .sheet h3 { margin: 0 0 4px; font-size: 15px; }
+  .sheet p { margin: 0 0 10px; color: var(--secondary); font-size: 12px; }
+  .sheet textarea {
+    width: 100%; height: 120px; border-radius: 8px; border: 0.5px solid var(--line);
+    background: var(--card); color: var(--text); padding: 8px; resize: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  }
+  .sheet-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .btn {
+    height: 28px; padding: 0 12px; border-radius: 7px; border: 0; font-weight: 560;
+  }
+  .btn.ghost { background: var(--fill); }
+  .btn.primary { background: var(--blue); color: white; }
+  #toast {
+    position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+    z-index: 70; background: rgba(30,30,32,.92); color: white;
+    padding: 8px 12px; border-radius: 10px; font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  }
+  #tip {
+    position: fixed; z-index: 80; pointer-events: none;
+    background: rgba(30,30,32,.94); color: white;
+    font-size: 12px; padding: 6px 8px; border-radius: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .review {
+    flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: #1d1d1f; color: #f5f5f7; font-size: 12px;
+  }
+  .review b { font-size: 12px; }
+  .review .rlab { color: rgba(255,255,255,.55); }
+  .review .rhint { color: rgba(255,255,255,.62); margin-left: auto; }
+  .rseg { display: inline-flex; background: #2c2c2e; border-radius: 7px; padding: 2px; }
+  .rseg button {
+    border: 0; background: transparent; color: #f5f5f7; height: 24px; padding: 0 8px;
+    border-radius: 5px; font-size: 12px;
+  }
+  .rseg button.on { background: #0a84ff; }
+  .swap { border-bottom: 0.5px dotted var(--tertiary); }
+  .pos { color: var(--up); }
+  .neg { color: var(--down); }
+  .banner {
+    margin: 0 0 12px; padding: 8px 10px; border-radius: 8px;
+    background: var(--fill); color: var(--secondary); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-codex" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 1.6 14.5 9.5 22.4 12 14.5 14.5 12 22.4 9.5 14.5 1.6 12 9.5 9.5Z"/>
+  </symbol>
+  <symbol id="i-claude" viewBox="0 0 100 100">
+    <path fill="currentColor" d="M25.7146 63.2153L41.4393 54.3917L41.7025 53.6226L41.4393 53.1976H40.6705L38.0394 53.0359L29.054 52.7929L21.2624 52.4691L13.7134 52.0644L11.8111 51.6594L10.0303 49.3118L10.2123 48.138L11.8111 47.0657L14.0981 47.2681L19.1574 47.6119L26.7467 48.138L32.2516 48.4618L40.4073 49.3118H41.7025L41.8846 48.7857L41.4393 48.4618L41.0955 48.138L33.243 42.8155L24.7432 37.1894L20.2909 33.9513L17.8824 32.3119L16.6684 30.774L16.1422 27.4147L18.328 25.0062L21.2624 25.2088L22.0112 25.4112L24.9861 27.6979L31.3407 32.616L39.6381 38.7273L40.8525 39.7391L41.3381 39.395L41.399 39.1523L40.8525 38.2415L36.3394 30.0858L31.5227 21.7883L29.3775 18.3478L28.811 16.2837C28.6087 15.4334 28.4669 14.7252 28.4669 13.8549L30.9563 10.4753L32.3321 10.0303L35.6515 10.4756L37.0479 11.6897L39.112 16.4052L42.4513 23.8327L47.6321 33.9313L49.15 36.9265L49.9594 39.6991L50.2632 40.5491H50.7894V40.0632L51.2141 34.3766L52.0035 27.3944L52.7726 18.4087L53.0358 15.8793L54.2905 12.8435L56.7795 11.2041L58.7224 12.135L60.3212 14.422L60.0986 15.899L59.1474 22.0718L57.2857 31.7458L56.0713 38.2218H56.7795L57.5892 37.4121L60.8677 33.061L66.3723 26.18L68.801 23.448L71.6342 20.4325L73.4556 18.9957H76.8962L79.4255 22.7601L78.2926 26.6456L74.7509 31.1384L71.8163 34.943L67.607 40.6097L64.9758 45.1431L65.2188 45.5072L65.8464 45.4466L75.358 43.4228L80.4984 42.4917L86.6304 41.4393L89.4033 42.7346L89.7065 44.0502L88.6135 46.7419L82.0566 48.3607L74.3662 49.8989L62.9118 52.6109L62.77 52.7121L62.9321 52.9144L68.0925 53.4L70.2987 53.5214H75.7021L85.7601 54.2702L88.3912 56.0108L89.9697 58.1358L89.7065 59.7545L85.6589 61.8189L80.1949 60.5236L67.4452 57.4881L63.0735 56.3952H62.4665V56.7596L66.1093 60.3213L72.7877 66.3523L81.1461 74.1236L81.5707 76.0462L80.4984 77.5638L79.3649 77.4021L72.0186 71.8772L69.1854 69.3879L62.77 63.9844H62.3453V64.5509L63.8223 66.7164L71.6342 78.4544L72.0389 82.0567L71.4725 83.2308L69.4487 83.939L67.2222 83.534L62.6485 77.1189L57.9333 69.8937L54.1284 63.4177L53.6631 63.6809L51.4167 87.8651L50.3644 89.0995L47.9356 90.0303L45.9121 88.4924L44.8392 86.0031L45.9118 81.0852L47.2071 74.6701L48.2594 69.5699L49.2106 63.2356L49.7773 61.131L49.7367 60.9892L49.2715 61.0498L44.4954 67.607L37.23 77.4224L31.4825 83.5746L30.1063 84.1211L27.7181 82.8864L27.9408 80.6805L29.2763 78.7177L37.2297 68.5988L42.026 62.3248L45.1227 58.7025L45.1024 58.176H44.9204L23.7917 71.8975L20.0274 72.3831L18.4083 70.8655L18.6106 68.3761L19.3798 67.5664L25.7343 63.195L25.7146 63.2153Z"/>
+  </symbol>
+  <symbol id="i-cursor" viewBox="0 0 532.09 532.09">
+    <g transform="translate(32.68 0)">
+      <path fill="currentColor" d="M457.43,125.94L244.42,2.96c-6.84-3.95-15.28-3.95-22.12,0L9.3,125.94c-5.75,3.32-9.3,9.46-9.3,16.11v247.99c0,6.65,3.55,12.79,9.3,16.11l213.01,122.98c6.84,3.95,15.28,3.95,22.12,0l213.01-122.98c5.75-3.32,9.3-9.46,9.3-16.11v-247.99c0-6.65-3.55-12.79-9.3-16.11h-.01ZM444.05,151.99l-205.63,356.16c-1.39,2.4-5.06,1.42-5.06-1.36v-233.21c0-4.66-2.49-8.97-6.53-11.31L24.87,145.67c-2.4-1.39-1.42-5.06,1.36-5.06h411.26c5.84,0,9.49,6.33,6.57,11.39h-.01Z"/>
+    </g>
+  </symbol>
+</svg>
+<div class="desktop">
+  <div class="menubar" id="menubar"></div>
+  <div class="stage" id="stage"></div>
+</div>
+<div id="popover" hidden></div>
+<div id="toast" hidden></div>
+<div id="tip" hidden></div>
+<div class="review" id="review"></div>
+<script>
+const NAME = { codex: "Codex", claude: "Claude Code", cursor: "Cursor" };
+const PLAN = { codex: "OpenAI", claude: "Anthropic", cursor: "Cursor" };
+const RANGES = [
+  ["today", "今天"], ["yesterday", "昨天"], ["week", "本周"], ["month", "本月"],
+  ["year", "本年"], ["7d", "7 天"], ["30d", "30 天"], ["all", "全部"], ["custom", "自定义"]
+];
+const DAYS = [
+  { day: "2026-10-20", codex: 4.2, claude: 11.4, real: false },
+  { day: "2026-10-21", codex: 8.6, claude: 9.2, real: false },
+  { day: "2026-10-22", codex: 3.1, claude: 16.8, real: false },
+  { day: "2026-10-23", codex: 7.4, claude: 8.1, real: false },
+  { day: "2026-10-24", codex: 5.5, claude: 14.2, real: false },
+  { day: "2026-10-25", codex: 2.8, claude: 22.56, real: false },
+  { day: "2026-10-26", codex: 6.8, claude: 13.24, real: true }
+];
+const TODAY_ROWS = [
+  { day: "2026-10-26", service: "codex", model: "gpt-6.1-sol", inn: 2288700, cr: 18910100, cw: 0, out: 51900, total: 21250700, cost: 6.8, sample: false },
+  { day: "2026-10-26", service: "claude", model: "claude-opus-5-5", inn: 476, cr: 32291000, cw: 814300, out: 136200, total: 33241976, cost: 13.24, sample: false }
+];
+const COX = [
+  { t: "13:19", d: -7, after: 41, reset: "13:20" },
+  { t: "13:21", d: 59, after: 100, reset: "18:21" },
+  { t: "13:23", d: -1, after: 99, reset: "18:23" },
+  { t: "13:36", d: -1, after: 98, reset: "18:23" },
+  { t: "13:42", d: -1, after: 94, reset: "18:23" },
+  { t: "13:54", d: -1, after: 91, reset: "18:23" },
+  { t: "14:49", d: 9, after: 100, reset: "19:09" },
+  { t: "15:04", d: -1, after: 99, reset: "19:56" },
+  { t: "15:29", d: -1, after: 98, reset: "19:55" },
+  { t: "15:48", d: -3, after: 96, reset: "19:55" },
+  { t: "15:50", d: -2, after: 93, reset: "19:55" },
+  { t: "15:55", d: -1, after: 92, reset: "19:56" }
+];
+const CLAUDE_EV = [
+  { t: "10:18", d: -1, after: 73, reset: "10:30" },
+  { t: "10:34", d: 27, after: 100, reset: "—" },
+  { t: "10:55", d: -1, after: 98, reset: "15:30" },
+  { t: "11:13", d: -1, after: 96, reset: "15:30" },
+  { t: "12:22", d: -1, after: 94, reset: "15:29" },
+  { t: "12:30", d: -4, after: 90, reset: "15:29" },
+  { t: "15:22", d: -1, after: 88, reset: "15:29" },
+  { t: "15:31", d: 12, after: 100, reset: "—" },
+  { t: "15:48", d: -2, after: 98, reset: "20:30" },
+  { t: "15:55", d: -1, after: 97, reset: "20:30" },
+  { t: "15:59", d: -2, after: 94, reset: "20:29" },
+  { t: "16:02", d: -2, after: 92, reset: "20:30" }
+];
+const state = {
+  themeMode: "light",
+  theme: "light",
+  tab: "stats",
+  view: "overview",
+  service: "all",
+  range: "today",
+  rangeOpen: false,
+  from: "2026-10-20",
+  to: "2026-10-26",
+  settings: "accounts",
+  show: { codex: true, claude: true, cursor: false },
+  hudOn: true,
+  hudRows: { codex: true, claude: true, cursor: true },
+  cursorMode: "wait",
+  period: "5h",
+  resetFormat: "remain",
+  privacy: true,
+  statusDot: true,
+  launch: true,
+  opacity: 1,
+  quotaEvery: "2",
+  usageEvery: "2",
+  popover: false,
+  refreshing: false,
+  refreshed: "32 秒前已刷新",
+  sheet: false,
+  extras: [],
+  sortKey: "day",
+  sortDir: -1,
+  timelineMore: {},
+  hudTop: null,
+  hudLeft: null,
+  hudMenu: null
+};
+let keepScroll = false;
+
+function applyTheme() {
+  const dark = state.themeMode === "dark" || (state.themeMode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  state.theme = dark ? "dark" : "light";
+  document.documentElement.dataset.theme = state.theme;
+}
+function enabled() { return ["codex", "claude", "cursor"].filter((id) => state.show[id]); }
+function logo(id, cls) { return `<svg class="logo ${cls || ""} ${id === "cursor" ? "cursor" : ""}"><use href="#i-${id}"></use></svg>`; }
+function uiIcon(name) {
+  const p = {
+    chart: '<path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="12" width="2.4" height="5"/><rect x="11" y="8" width="2.4" height="9"/><rect x="15" y="10" width="2.4" height="7"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
+    hud: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6"/><path d="M7 14h10"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/>',
+    power: '<path d="M12 3v7"/><path d="M7.2 6.4a7 7 0 1 0 9.6 0"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    check: '<path d="m5 12 5 5 9-10"/>'
+  }[name];
+  return `<svg class="uico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+function sideIcon(name) {
+  const p = {
+    accounts: '<circle cx="12" cy="8" r="3.2"/><path d="M5.2 19.2c1.1-3 3.2-4.4 6.8-4.4s5.7 1.4 6.8 4.4"/>',
+    menubar: '<rect x="3" y="4.5" width="18" height="13" rx="2"/><path d="M3 8.5h18"/>',
+    floating: '<rect x="5" y="7" width="14" height="11" rx="2"/><path d="M9 7V5.2h6"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
+    general: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/>'
+  }[name];
+  return `<svg class="sico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+function statusColor(p) {
+  if (p <= 0) return state.theme === "dark" ? "#FF7A90" : "#FF4D6D";
+  if (p < 20) return state.theme === "dark" ? "#FFA15F" : "#E06015";
+  if (p <= 50) return state.theme === "dark" ? "#FFE27A" : "#B27C00";
+  return state.theme === "dark" ? "#B4B4BA" : "#48484D";
+}
+function brand(id) { return id === "codex" ? "var(--codex)" : id === "claude" ? "var(--claude)" : "var(--ink)"; }
+function ringPaint(id, p, mode) {
+  if (p == null) return "var(--track)";
+  if (mode === "status" || p <= 50) return statusColor(p);
+  return brand(id);
+}
+function fmtToken(n) {
+  if (n == null) return "—";
+  if (n === 0) return "0";
+  if (Math.abs(n) < 10000) return Math.round(n).toLocaleString("en-US");
+  let s = (Math.round((n / 10000) * 100) / 100).toFixed(2);
+  s = s.replace(/0$/, "").replace(/\.0$/, "");
+  return s + "万";
+}
+function fmtCost(n) { return n == null ? "—" : "$" + n.toFixed(2); }
+function fmtPct(n, compact) {
+  if (n == null) return "—";
+  return compact ? String(n) : n + "%";
+}
+function live(id) {
+  if (id === "codex") return { h5: 92, week: 99, h5r: "3 小时 32 分", h5e: "19:56", wr: "6 天 22 小时", we: "11月2日 14:20" };
+  if (id === "claude") return { h5: 92, week: 90, h5r: "4 小时 6 分", h5e: "20:30", wr: "5 天 22 小时", we: "11月1日 14:20" };
+  if (state.cursorMode === "sample") return { cycle: 74, cr: "12 天", ce: "11月7日", od: 82 };
+  return null;
+}
+function menuBits(id) {
+  const compact = enabled().length >= 3;
+  if (id === "cursor") {
+    const q = live("cursor");
+    if (!q || state.cursorMode === "unsupported") return "—";
+    return fmtPct(q.cycle, compact);
+  }
+  const q = live(id);
+  if (state.period === "week") return fmtPct(q.week, compact);
+  if (state.period === "both") return compact ? `${q.h5}/${q.week}` : `${q.h5}/${q.week}%`;
+  return fmtPct(q.h5, compact);
+}
+function sidePct(id) {
+  if (id === "cursor") {
+    const q = live("cursor");
+    if (!q || state.cursorMode === "unsupported") return "—";
+    return q.cycle + "%";
+  }
+  return live(id).h5 + "%";
+}
+function resetHTML(remain, exact) {
+  if (!remain) return "";
+  const shown = state.resetFormat === "exact" ? exact : remain;
+  const alt = state.resetFormat === "exact" ? remain : exact;
+  return `<span class="swap" data-alt="${alt}">${shown}</span>`;
+}
+function ring(id, percent, size, mode) {
+  const known = percent != null;
+  const p = known ? Math.max(0, Math.min(100, percent)) : 0;
+  const color = ringPaint(id, known ? p : null, mode);
+  const label = known ? String(Math.round(p)) : "—";
+  return `<div class="ring" style="width:${size}px;height:${size}px">
+    <svg viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="15.2" fill="none" stroke="var(--track)" stroke-width="3"></circle>
+      <circle cx="18" cy="18" r="15.2" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"
+        stroke-dasharray="${p} ${100 - p}" pathLength="100" transform="rotate(-90 18 18)"></circle>
+    </svg><b class="num">${label}</b></div>`;
+}
+function bar(p, color) {
+  return `<div class="track"><i style="width:${Math.max(0, Math.min(100, p))}%;background:${color}"></i></div>`;
+}
+function daysForRange() {
+  if (state.range === "today" || state.range === "week") return DAYS.filter((d) => d.real);
+  if (state.range === "yesterday") return DAYS.filter((d) => d.day === "2026-10-25");
+  if (state.range === "custom") return DAYS.filter((d) => d.day >= state.from && d.day <= state.to);
+  return DAYS;
+}
+function fakeRow(day, service, cost) {
+  const total = Math.round(cost * 2700000);
+  const out = Math.round(total * 0.02);
+  const cr = Math.round(total * 0.72);
+  const cw = Math.round(total * 0.04);
+  const inn = Math.max(0, total - out - cr - cw);
+  return { day, service, model: service === "codex" ? "gpt-6.1-sol" : "claude-opus-5-5", inn, cr, cw, out, total, cost, sample: true };
+}
+function rowsFor(days) {
+  const rows = [];
+  days.forEach((d) => {
+    if (d.real) rows.push(...TODAY_ROWS);
+    else {
+      if (state.show.codex) rows.push(fakeRow(d.day, "codex", d.codex));
+      if (state.show.claude) rows.push(fakeRow(d.day, "claude", d.claude));
+    }
+  });
+  return rows.filter((r) => state.show[r.service] && (state.service === "all" || state.service === r.service));
+}
+function sortRows(rows) {
+  const key = state.sortKey;
+  const dir = state.sortDir;
+  return rows.slice().sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    if (a.service !== b.service) return a.service === "codex" ? -1 : 1;
+    return b.cost - a.cost;
+  });
+}
+function spendValue(day, id) {
+  if (!state.show[id]) return 0;
+  if (state.service !== "all" && state.service !== id) return 0;
+  return day[id] || 0;
+}
+function rangeLabel() { return (RANGES.find((r) => r[0] === state.range) || RANGES[0])[1]; }
+function rangeNote(days) {
+  if (state.range === "week") return "本周从周一开始，目前只有今天。";
+  if (days.some((d) => !d.real)) return "除今天以外是示例数据，用来看多日柱图。Cursor 没有本地日志，不计入。";
+  return "本机日志按天汇总，不含网页和移动端。Cursor 不计入。";
+}
+function deltaHTML(n) {
+  if (n == null) return `<div class="md"></div>`;
+  const up = n > 0;
+  return `<div class="md num ${up ? "up" : "down"}">${up ? "↑" : "↓"} ${Math.abs(n).toFixed(1)}%</div>`;
+}
+function showDeltas(days) {
+  return (state.range === "today" || state.range === "week") && days.every((d) => d.real) && state.service === "all" && state.show.codex && state.show.claude;
+}
+
+function menuHTML() {
+  const ids = enabled();
+  const compact = ids.length >= 3;
+  const segs = ids.length
+    ? `<div class="mb-segs ${compact ? "compact" : ""}">${ids.map((id) => `<span class="mb-seg">${logo(id)}<span class="mb-num num">${menuBits(id)}</span></span>`).join("")}</div>`
+    : `<span class="mb-seg">${logo("codex")}</span>`;
+  return `
+    <span class="app">ManaBar</span>
+    <span class="menus"><span>文件</span><span>编辑</span><span>显示</span><span>窗口</span><span>帮助</span></span>
+    <span class="right">
+      <button id="status-item" class="${state.popover ? "open" : ""}" data-act="toggle-popover" title="ManaBar">${segs}</button>
+      <span class="ghost">10月26日 周一 16:24</span>
+    </span>`;
+}
+function sidebarHTML() {
+  if (state.tab === "settings") {
+    const items = [["accounts", "账号"], ["menubar", "菜单栏"], ["floating", "悬浮窗"], ["refresh", "刷新"], ["general", "通用"]];
+    return `<div class="side-label">设置</div>` + items.map(([id, name]) =>
+      `<button class="side-item ${state.settings === id ? "on" : ""}" data-act="settings-nav" data-id="${id}" data-keep="1">${sideIcon(id)}<span class="sn">${name}</span></button>`
+    ).join("");
+  }
+  const ids = [["all", "全部"]].concat(enabled().map((id) => [id, NAME[id]]));
+  return `<div class="side-label">服务</div>` + ids.map(([id, name]) => {
+    const mark = id === "all" ? "" : `<i class="dot ${id}"></i>`;
+    const tail = id === "all" ? "" : `<span class="tail num">${sidePct(id)}</span>`;
+    return `<button class="side-item ${state.service === id ? "on" : ""}" data-act="service" data-id="${id}">${mark}<span class="sn">${name}</span>${tail}</button>`;
+  }).join("");
+}
+function toolbarHTML() {
+  if (state.tab !== "stats") return "";
+  const views = [["overview", "概览"], ["timeline", "时间轴"], ["detail", "明细"]];
+  const menu = state.rangeOpen ? `<div class="range-pop">${RANGES.map(([id, name]) => `<button class="${state.range === id ? "on" : ""}" data-act="range" data-id="${id}">${name}</button>`).join("")}</div>` : "";
+  const exp = state.view === "detail" ? `<button class="export-btn" data-act="export">导出 CSV</button>` : "";
+  const custom = state.range === "custom" ? `<div class="custom-row"><span>起</span><input type="date" value="${state.from}" data-change="from"><span>止</span><input type="date" value="${state.to}" data-change="to"></div>` : "";
+  return `<div class="toolbar">
+      <div class="seg">${views.map(([id, name]) => `<button class="${state.view === id ? "on" : ""}" data-act="view" data-id="${id}">${name}</button>`).join("")}</div>
+      <div class="spacer"></div>
+      ${exp}
+      <div class="rangewrap">
+        <button class="menu-btn" data-act="toggle-range" data-keep="1">${rangeLabel()} ${uiIcon("chev")}</button>
+        ${menu}
+      </div>
+    </div>${custom}`;
+}
+function quotaCard(id) {
+  if (id === "cursor") {
+    const q = live("cursor");
+    const waiting = state.cursorMode === "wait";
+    const bad = state.cursorMode === "unsupported";
+    const pct = q ? q.cycle : null;
+    const plan = bad ? "没有个人包含额度" : waiting ? "已登录，额度尚未返回" : "示例额度";
+    const win = bad ? "暂不支持" : "账期";
+    const reset = q ? resetHTML(q.cr + "后重置", q.ce) : (waiting ? "查询后显示在这里" : "打开后查询当前账期");
+    const od = q && q.od != null ? `<div class="qweek"><span>按量剩余</span><b class="num">${q.od}%</b></div>${bar(q.od, statusColor(q.od))}` : "";
+    return `<button class="qcard" data-act="service" data-id="cursor">
+      <div class="qtop"><div class="tile cursor">${logo("cursor")}</div><div class="qmeta"><div class="qname">Cursor</div><div class="qplan">${plan}</div></div>${ring("cursor", pct, 58, "brand")}</div>
+      <div class="qbody"><div class="qwin">${win}</div><div class="qreset">${reset}</div>${od}</div>
+    </button>`;
+  }
+  const q = live(id);
+  const primary = state.period === "week" ? q.week : q.h5;
+  const win = state.period === "week" ? "周额度" : "5 小时";
+  const remain = state.period === "week" ? q.wr : q.h5r;
+  const exact = state.period === "week" ? q.we : q.h5e;
+  const weekColor = statusColor(q.week);
+  return `<button class="qcard" data-act="service" data-id="${id}">
+    <div class="qtop"><div class="tile ${id}">${logo(id)}</div><div class="qmeta"><div class="qname">${NAME[id]}</div><div class="qplan">${state.privacy ? PLAN[id] : PLAN[id] + " · 本机账号"}</div></div>${ring(id, primary, 58, "brand")}</div>
+    <div class="qbody"><div class="qwin">${win}</div><div class="qreset">${resetHTML(remain + "后重置", exact)}</div>
+      <div class="qweek"><span>周额度</span><b class="num" style="color:${weekColor}">${q.week}%</b></div>
+      ${bar(q.week, weekColor)}
+    </div>
+  </button>`;
+}
+function usageChart(days) {
+  if (days.length < 2) return "";
+  const w = 640, h = 214, l = 44, r = 8, t = 12, b = 26;
+  const iw = w - l - r, ih = h - t - b;
+  const vals = days.map((d) => spendValue(d, "codex") + spendValue(d, "claude"));
+  const max = Math.max(...vals, 1);
+  const yMax = Math.max(8, Math.ceil(max / 4) * 4);
+  const slot = iw / days.length;
+  const bw = Math.min(22, slot * 0.62);
+  const y = (v) => t + ih - (v / yMax) * ih;
+  const base = t + ih;
+  const grids = [0, 0.5, 1].map((g) => {
+    const yy = y(yMax * g);
+    const lab = g === 0 ? "0" : "$" + (yMax * (1 - g) === yMax ? yMax : +(yMax * (1 - g)).toFixed(0));
+    const value = yMax * (1 - g);
+    return `<line x1="${l}" x2="${w - r}" y1="${y(value)}" y2="${y(value)}" stroke="var(--line)"></line>
+      <text x="${l - 6}" y="${y(value) + 3}" text-anchor="end" font-size="10" fill="var(--tertiary)">${value === 0 ? "0" : "$" + value}</text>`;
+  }).join("");
+  const cols = days.map((d, i) => {
+    const cx = l + slot * i + slot / 2;
+    const cv = spendValue(d, "codex");
+    const lv = spendValue(d, "claude");
+    const x = cx - bw / 2;
+    const h1 = (cv / yMax) * ih;
+    const h2 = (lv / yMax) * ih;
+    const tip = `${d.day.slice(5)} · Codex ${fmtCost(cv)} · Claude ${fmtCost(lv)}${d.real ? "" : " · 示例"}`;
+    const y2 = base - h1 - h2;
+    const y1 = base - h1;
+    return `<g data-tip="${tip}">
+      <rect x="${cx - slot / 2}" y="${t}" width="${slot}" height="${ih}" fill="transparent"></rect>
+      ${h1 ? `<rect x="${x}" y="${y1}" width="${bw}" height="${h1}" rx="${h2 ? 0 : 4}" fill="var(--codex)"></rect>` : ""}
+      ${h2 ? `<rect x="${x}" y="${y2}" width="${bw}" height="${Math.max(h2 - (h1 ? 1.5 : 0), 0)}" rx="4" fill="var(--claude)"></rect>` : ""}
+      <text x="${cx}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--tertiary)">${d.day.slice(5).replace("-", "/")}</text>
+    </g>`;
+  }).join("");
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${grids}${cols}</svg>`;
+}
+function lineChart(events, color) {
+  const w = 640, h = 200, l = 36, r = 12, t = 14, b = 24;
+  const iw = w - l - r, ih = h - t - b;
+  const minT = 10 * 60, maxT = 16 * 60 + 30;
+  const xOf = (hm) => { const [hh, mm] = hm.split(":").map(Number); return l + ((hh * 60 + mm - minT) / (maxT - minT)) * iw; };
+  const yOf = (p) => t + ((100 - p) / 100) * ih;
+  const pts = events.map((e) => ({ ...e, x: xOf(e.t), y: yOf(e.after) }));
+  const line = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${pts[0].x.toFixed(1)},${(t + ih).toFixed(1)} ${line} ${pts[pts.length - 1].x.toFixed(1)},${(t + ih).toFixed(1)}`;
+  const grids = [0, 20, 50, 80, 100].map((v) => `<line x1="${l}" x2="${w - r}" y1="${yOf(v)}" y2="${yOf(v)}" stroke="var(--line)"></line><text x="${l - 6}" y="${yOf(v) + 3}" text-anchor="end" font-size="10" fill="var(--tertiary)">${v}</text>`).join("");
+  const ticks = ["10:00", "12:00", "14:00", "16:00"].map((hm) => `<text x="${xOf(hm)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="var(--tertiary)">${hm}</text>`).join("");
+  const dots = pts.map((p) => `<g data-tip="${p.t} · 剩余 ${p.after}% · ${p.d > 0 ? "+" : ""}${p.d}%"><circle cx="${p.x}" cy="${p.y}" r="8" fill="transparent"></circle><circle class="dot" cx="${p.x}" cy="${p.y}" r="3.2" fill="${color}" stroke="var(--card)" stroke-width="1.5"></circle></g>`).join("");
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${grids}<polygon points="${area}" fill="${color}" opacity="0.12"></polygon><polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>${dots}${ticks}</svg>`;
+}
+function overviewHTML() {
+  const ids = state.service === "all" ? enabled() : enabled().filter((id) => id === state.service);
+  if (!ids.length) return emptyBlock("未启用任何服务", "到「设置 → 账号」打开 Codex、Claude Code 或 Cursor。");
+  const cards = `<div class="section-h"><div><h2>当前额度</h2><p>实时剩余，不跟下面的日期走。点一张卡片只看这个服务。</p></div></div>
+    <div class="qcards ${ids.length === 1 ? "single" : ""}">${ids.map(quotaCard).join("")}</div>`;
+  const spendIds = ids.filter((id) => id !== "cursor");
+  if (!spendIds.length) {
+    return cards + `<div class="gap"></div><div class="card"><div class="empty"><b>Cursor 没有本地用量</b><p>账期剩余就在上面。这里不统计它的花费，也没有按模型的明细。</p></div></div>`;
+  }
+  const days = daysForRange();
+  const rows = rowsFor(days).filter((r) => spendIds.includes(r.service));
+  const tokens = rows.reduce((s, r) => s + r.total, 0);
+  const by = { codex: 0, claude: 0 };
+  days.forEach((d) => { by.codex += spendValue(d, "codex"); by.claude += spendValue(d, "claude"); });
+  const cost = by.codex + by.claude;
+  const deltas = showDeltas(days);
+  const cells = [];
+  cells.push(`<div><div class="mk">Tokens</div><div class="mv num">${fmtToken(tokens)}</div>${deltaHTML(deltas ? 25.2 : null)}</div>`);
+  if (spendIds.length === 2) cells.push(`<div><div class="mk">花费</div><div class="mv num">${fmtCost(cost)}</div>${deltaHTML(deltas ? 12 : null)}</div>`);
+  spendIds.forEach((id) => cells.push(`<div><div class="mk">${NAME[id]}</div><div class="mv num">${fmtCost(by[id])}</div>${deltaHTML(deltas && id === "claude" ? -41.3 : null)}</div>`));
+  const share = cost ? spendIds.map((id) => `<i style="flex:${by[id] || 0.001};background:${brand(id)}"></i>`).join("") : "";
+  const legend = spendIds.map((id) => {
+    const pct = cost ? Math.round(by[id] / cost * 100) : 0;
+    return `<span><i class="dot ${id}"></i>${NAME[id]} <b class="num">${fmtCost(by[id])}</b> · ${pct}%</span>`;
+  }).join("");
+  const models = [];
+  spendIds.forEach((id) => {
+    const mine = rows.filter((r) => r.service === id);
+    const map = new Map();
+    mine.forEach((r) => {
+      const g = map.get(r.model) || { model: r.model, inn: 0, cr: 0, out: 0, cost: 0 };
+      g.inn += r.inn; g.cr += r.cr; g.out += r.out; g.cost += r.cost;
+      map.set(r.model, g);
+    });
+    map.forEach((g) => {
+      models.push(`<div class="mrow"><i class="dot ${id}"></i><div><div class="mn">${g.model}</div><div class="ms num">入 ${fmtToken(g.inn + g.cr)} · 出 ${fmtToken(g.out)}</div></div><div class="mc num">${fmtCost(g.cost)}</div></div>`);
+    });
+  });
+  return `${cards}<div class="gap"></div>
+    <div class="section-h"><div><h2>本地用量</h2><p>${rangeLabel()} · ${rangeNote(days)}</p></div></div>
+    <div class="metrics ${cells.length === 2 ? "two" : ""}">${cells.join("")}</div>
+    <div class="gap" style="height:12px"></div>
+    <div class="card">
+      <h3>构成</h3>
+      <p class="sub">${days.length < 2 ? "今天的花费占比。" : "按天堆叠，Codex 在下，Claude Code 在上。"}</p>
+      <div class="sharebar">${share}</div>
+      <div class="legend">${legend}</div>
+      ${usageChart(days)}
+      <div class="mlist">${models.join("") || `<div class="empty"><b>这个范围没有用量</b><p>换一个日期，或确认服务已经打开。</p></div>`}</div>
+    </div>`;
+}
+function emptyBlock(title, text) { return `<div class="card"><div class="empty"><b>${title}</b><p>${text}</p></div></div>`; }
+function eventTable(id, events) {
+  const more = state.timelineMore[id];
+  const list = events.slice().reverse();
+  const shown = more ? list : list.slice(0, 8);
+  const rows = shown.map((e) => `<tr>
+    <td class="num">${e.t}</td>
+    <td class="num ${e.d < 0 ? "neg" : "pos"}">${e.d > 0 ? "+" : ""}${e.d}%</td>
+    <td class="num" style="color:${statusColor(e.after)}">${e.after}%</td>
+    <td class="num">${e.reset}</td>
+  </tr>`).join("");
+  const btn = list.length > 8 ? `<button class="more" data-act="more" data-id="${id}" data-keep="1">${more ? "收起" : `显示全部 ${list.length} 条`}</button>` : "";
+  return `<table><thead><tr><th class="num">时间</th><th class="num">变动</th><th class="num">剩余</th><th class="num">重置</th></tr></thead><tbody>${rows}</tbody></table>${btn}`;
+}
+function timelineBlock(id, events, label) {
+  const q = live(id);
+  const net = events.reduce((s, e) => s + e.d, 0);
+  const last = events[events.length - 1];
+  const netText = (net > 0 ? "+" : "") + net + "%";
+  return `<div class="card tblock">
+    <div class="thead">
+      <div><i class="dot ${id}" style="display:inline-block;margin-right:6px"></i><span class="who">${NAME[id]}</span><span class="badge">5 小时</span>
+        <div class="sub" style="margin:4px 0 0">${label}</div></div>
+      <div class="kpis">
+        <div><span>当前</span><b class="num">${q.h5}%</b></div>
+        <div><span>净变</span><b class="num ${net < 0 ? "neg" : "pos"}">${netText}</b></div>
+        <div><span>最近</span><b class="num">${last.t}</b></div>
+      </div>
+    </div>
+    ${lineChart(events, id === "codex" ? "var(--codex)" : "var(--claude)")}
+    ${eventTable(id, events)}
+  </div>`;
+}
+function timelineHTML() {
+  const ids = state.service === "all" ? enabled() : enabled().filter((id) => id === state.service);
+  if (!ids.length) return emptyBlock("未启用任何服务", "到「设置 → 账号」打开一个服务。");
+  const note = (state.range === "today" || state.range === "week")
+    ? "只画出额度发生变化的时间点。有 5 小时额度时看 5 小时。"
+    : "下面仍是今天的变动。其他日期没有接上历史，样式稿不另编一条曲线。";
+  const parts = [`<div class="section-h"><div><h2>额度变化</h2><p>${note}</p></div></div>`];
+  if (ids.includes("codex")) parts.push(timelineBlock("codex", COX, "主账号"));
+  state.extras.forEach((ex, i) => {
+    if (ids.includes("codex")) parts.push(`<div class="card tblock"><div class="thead"><div><span class="who">Codex · ${ex.name}</span><span class="badge">5 小时</span></div></div><div class="empty"><b>这个账号还没有变动</b><p>样式稿只放了主账号今天的曲线。</p></div></div>`);
+  });
+  if (ids.includes("claude")) parts.push(timelineBlock("claude", CLAUDE_EV, "Claude Code"));
+  if (ids.includes("cursor")) parts.push(emptyBlock("Cursor 不记录额度历史", "这里只保留 Codex 和 Claude Code 的窗口变化。Cursor 看当前账期即可。"));
+  if (parts.length === 1) parts.push(emptyBlock("这个范围没有曲线", "换一个服务看看。"));
+  return parts.join("");
+}
+function detailHTML() {
+  const days = daysForRange();
+  const rows = sortRows(rowsFor(days));
+  if (!enabled().some((id) => id !== "cursor") || (state.service === "cursor")) {
+    return emptyBlock("没有可列出的明细", "Cursor 没有本地会话日志。花费明细只来自 Codex 和 Claude Code。");
+  }
+  if (!rows.length) return emptyBlock("这个范围没有记录", "换一个日期，或确认服务已经打开。");
+  const cols = [["day", "日期", ""], ["service", "服务", ""], ["model", "模型", ""], ["inn", "输入", "num"], ["cr", "缓存读", "num"], ["cw", "缓存写", "num"], ["out", "输出", "num"], ["total", "总计", "num"], ["cost", "花费", "num"]];
+  const head = cols.map(([key, name, cls]) => {
+    const mark = state.sortKey === key ? (state.sortDir < 0 ? " ↓" : " ↑") : "";
+    return `<th class="${cls}" data-act="sort" data-id="${key}" data-keep="1">${name}${mark}</th>`;
+  }).join("");
+  const body = rows.map((r) => `<tr>
+    <td class="num">${r.day}</td>
+    <td><span class="svc"><i class="dot ${r.service}"></i>${NAME[r.service].replace(" Code", "")}</span></td>
+    <td>${r.model}</td>
+    <td class="num">${fmtToken(r.inn)}</td><td class="num">${fmtToken(r.cr)}</td><td class="num">${fmtToken(r.cw)}</td>
+    <td class="num">${fmtToken(r.out)}</td><td class="num">${fmtToken(r.total)}</td><td class="num">${fmtCost(r.cost)}</td>
+  </tr>`).join("");
+  const sum = (k) => rows.reduce((s, r) => s + r[k], 0);
+  const foot = `<tr class="foot"><td colspan="3">合计 · ${rows.length} 行</td>
+    <td class="num">${fmtToken(sum("inn"))}</td><td class="num">${fmtToken(sum("cr"))}</td><td class="num">${fmtToken(sum("cw"))}</td>
+    <td class="num">${fmtToken(sum("out"))}</td><td class="num">${fmtToken(sum("total"))}</td><td class="num">${fmtCost(sum("cost"))}</td></tr>`;
+  const sample = rows.some((r) => r.sample);
+  return `<div class="section-h"><div><h2>明细</h2><p>${rangeLabel()} · ${sample ? "含示例日期。" : ""}点列表头排序。合计和概览对得上。</p></div></div>
+    <div class="card" style="padding-top:8px"><table><thead><tr>${head}</tr></thead><tbody>${body}${foot}</tbody></table></div>`;
+}
+function switchHTML(on, act, id, keep) {
+  return `<button class="switch ${on ? "on" : ""}" data-act="${act}" data-id="${id || ""}" ${keep ? 'data-keep="1"' : ""} role="switch" aria-checked="${on}"><i></i></button>`;
+}
+function checkHTML(on, act, id, disabled) {
+  return `<button class="check ${on ? "on" : ""}" data-act="${act}" data-id="${id}" data-keep="1" ${disabled ? "disabled" : ""}>${on ? uiIcon("check") : ""}</button>`;
+}
+function settingsHTML() {
+  const account = (id, desc) => `<div class="grow">
+      <div class="tile ${id}">${logo(id)}</div>
+      <div class="gl"><div class="gt">${NAME[id]} · ${PLAN[id]}</div><div class="gd">${desc}</div></div>
+      <span style="font-size:12px;color:#34c759">● 已登录</span>
+      ${switchHTML(state.show[id], "toggle-show", id, true)}
+    </div>`;
+  const cursorDesc = !state.show.cursor
+    ? "默认关闭。打开后只显示账期剩余，不统计花费。"
+    : state.cursorMode === "sample" ? "样式稿正在演示 74% 的账期剩余。"
+    : state.cursorMode === "unsupported" ? "这个账号没有个人包含额度，界面会写暂不支持。"
+    : "已打开。额度还没有返回，各处先显示 —。";
+  const extras = state.extras.map((ex, i) => `<div class="grow"><div class="gl"><div class="gt">${ex.name}</div><div class="gd">示例 · 5 小时 ${ex.h5}% · 周 ${ex.week}%</div></div><button class="iconbtn" data-act="remove-extra" data-id="${i}" data-keep="1" title="移除">−</button></div>`).join("");
+  const pages = {
+    accounts: `<div class="group"><h3>账号</h3><p class="desc">自动检测这台 Mac 上已经登录的服务。关掉之后，菜单栏、弹出窗口、悬浮窗和统计都不再出现。</p>
+      <div class="gbody">
+        ${account("codex", "读取 ~/.codex。弹出窗口在隐私模式打开时不显示邮箱。")}
+        ${account("claude", "读取本机 Claude Code 凭据。")}
+        ${account("cursor", cursorDesc).replace("● 已登录", "● 已登录")}
+      </div></div>
+      <div class="group"><h3>其他 Codex 账号</h3><p class="desc">粘贴 auth.json，只查看额度。</p>
+      <div class="gbody">${extras}<button class="add" data-act="open-sheet">＋ 添加 Codex 账号</button></div></div>`,
+    menubar: `<div class="group"><h3>菜单栏</h3><p class="desc">图标顺序固定为 Codex、Claude Code、Cursor。三个同时打开时，百分比去掉 %，避免菜单栏过宽。</p>
+      <div class="gbody">
+        <div class="grow"><div class="gl"><div class="gt">显示额度</div><div class="gd">跟账号开关走。Cursor 固定显示账期，不参加下面的周期。</div></div></div>
+        <div class="grow"><div class="gl"><div class="gt">额度周期</div><div class="gd">菜单栏和悬浮窗里 Codex、Claude 看哪个窗口。</div></div>
+          <div class="seg">${[["5h", "5 小时"], ["week", "周"], ["both", "两者"]].map(([id, name]) => `<button class="${state.period === id ? "on" : ""}" data-act="period" data-id="${id}" data-keep="1">${name}</button>`).join("")}</div>
+        </div>
+      </div></div>`,
+    floating: `<div class="group"><h3>桌面悬浮窗</h3><p class="desc">贴在桌面上的小窗。全局快捷键 ⌃⌥F，右键可以关掉。</p>
+      <div class="gbody">
+        <div class="grow"><div class="gl"><div class="gt">显示悬浮窗</div></div>${switchHTML(state.hudOn, "toggle-hud", "", true)}</div>
+        <div class="grow"><div class="gl"><div class="gt">显示 Codex</div></div>${checkHTML(state.hudRows.codex, "toggle-hudrow", "codex", !state.show.codex)}</div>
+        <div class="grow"><div class="gl"><div class="gt">显示 Claude Code</div></div>${checkHTML(state.hudRows.claude, "toggle-hudrow", "claude", !state.show.claude)}</div>
+        <div class="grow"><div class="gl"><div class="gt">显示 Cursor</div><div class="gd">账号打开后才有效。</div></div>${checkHTML(state.hudRows.cursor, "toggle-hudrow", "cursor", !state.show.cursor)}</div>
+        <div class="grow"><div class="gl"><div class="gt">不透明度</div></div><input type="range" min="0.45" max="1" step="0.05" value="${state.opacity}" data-change="opacity"><span id="op-lab" class="num">${Math.round(state.opacity * 100)}%</span></div>
+      </div></div>`,
+    refresh: `<div class="group"><h3>刷新</h3><p class="desc">后台轮询。样式稿不会真的发请求。</p>
+      <div class="gbody">
+        <div class="grow"><div class="gl"><div class="gt">额度刷新</div></div>
+          <select data-change="quotaEvery">${["1", "2", "3", "5", "10"].map((n) => `<option ${state.quotaEvery === n ? "selected" : ""}>${n}</option>`).join("")}</select><span>分钟</span></div>
+        <div class="grow"><div class="gl"><div class="gt">日志扫描</div></div>
+          <select data-change="usageEvery">${["1", "2", "3", "5", "10"].map((n) => `<option ${state.usageEvery === n ? "selected" : ""}>${n}</option>`).join("")}</select><span>分钟</span></div>
+        <div class="grow"><div class="gl"><div class="gt">重置时间</div><div class="gd">悬停在时间上会临时换成另一种写法。</div></div>
+          <div class="seg">${[["remain", "剩余"], ["exact", "时刻"]].map(([id, name]) => `<button class="${state.resetFormat === id ? "on" : ""}" data-act="reset-format" data-id="${id}" data-keep="1">${name}</button>`).join("")}</div>
+        </div>
+        <div class="grow"><div class="gl"><div class="gt">服务状态圆点</div><div class="gd">弹出窗口里 OpenAI / Anthropic 的状态。</div></div>${switchHTML(state.statusDot, "toggle-bool", "statusDot", true)}</div>
+        <div class="grow"><div class="gl"><div class="gt">上次刷新</div></div><span class="num" style="color:var(--secondary)">${state.refreshed}</span></div>
+      </div></div>`,
+    general: `<div class="group"><h3>通用</h3><div class="gbody">
+        <div class="grow"><div class="gl"><div class="gt">隐私模式</div><div class="gd">弹出窗口里不显示主账号邮箱。</div></div>${switchHTML(state.privacy, "toggle-bool", "privacy", true)}</div>
+        <div class="grow"><div class="gl"><div class="gt">开机自动启动</div></div>${switchHTML(state.launch, "toggle-bool", "launch", true)}</div>
+        <div class="grow"><div class="gl"><div class="gt">外观</div></div>
+          <div class="seg">${[["system", "跟随系统"], ["light", "浅色"], ["dark", "深色"]].map(([id, name]) => `<button class="${state.themeMode === id ? "on" : ""}" data-act="theme" data-id="${id}" data-keep="1">${name}</button>`).join("")}</div>
+        </div>
+        <div class="grow"><div class="gl"><div class="gt">语言</div></div>
+          <select data-change="lang"><option value="zh" selected>跟随系统 · 中文</option><option value="en">English</option></select></div>
+        <div class="grow"><div class="gl"><div class="gt">版本</div></div><span class="num" style="color:var(--secondary)">样式稿</span></div>
+      </div></div>`
+  };
+  return `<div class="form">${pages[state.settings] || pages.accounts}</div>${state.sheet ? sheetHTML() : ""}`;
+}
+function sheetHTML() {
+  return `<div class="sheet-dim" data-act="close-sheet"><div class="sheet" data-act="noop">
+    <h3>添加 Codex 账号</h3>
+    <p>粘贴 auth.json。样式稿不解析内容，保存后只放一个示例账号，方便看弹出窗口里的「其他账号」。</p>
+    <textarea id="json" placeholder='{ "tokens": { } }'></textarea>
+    <div class="sheet-actions"><button class="btn ghost" data-act="close-sheet">取消</button><button class="btn primary" data-act="save-sheet">添加</button></div>
+  </div></div>`;
+}
+function contentHTML() {
+  if (state.tab === "settings") return settingsHTML();
+  if (state.view === "timeline") return timelineHTML();
+  if (state.view === "detail") return detailHTML();
+  return overviewHTML();
+}
+function widgetHTML() {
+  const ids = enabled().filter((id) => state.hudRows[id] || true).filter((id) => state.show[id]);
+  const rows = ids.map((id) => {
+    if (id === "cursor") {
+      const q = live("cursor");
+      const p = q && state.cursorMode !== "unsupported" ? q.cycle : null;
+      return widgetRow(id, "账期", p, p == null ? "—" : (state.cursorMode === "sample" ? "12 天" : "等待"));
+    }
+    const q = live(id);
+    const p = state.period === "week" ? q.week : q.h5;
+    const reset = state.period === "week" ? q.wr : q.h5r;
+    return widgetRow(id, state.period === "week" ? "周" : "5 小时", p, reset);
+  }).join("");
+  const body = ids.length ? rows : `<div class="empty" style="min-height:88px"><b>未启用</b></div>`;
+  return `<button id="widget" data-act="widget">${`<h4>额度</h4>`}${body}</button>`;
+}
+function widgetRow(id, win, p, reset) {
+  const color = p == null ? "var(--track)" : (p > 50 ? brand(id) : statusColor(p));
+  return `<div class="wrow"><div class="tile sm ${id}">${logo(id)}</div><div class="wmid"><div class="wname">${NAME[id].replace(" Code", "")}<span>${win}</span></div><div class="wbar"><i style="width:${p || 0}%;background:${color}"></i></div></div><div class="wright"><b class="num">${p == null ? "—" : p + "%"}</b><small class="num">${reset}</small></div></div>`;
+}
+function hudHTML() {
+  if (!state.hudOn) return "";
+  const ids = enabled().filter((id) => state.hudRows[id]);
+  if (!ids.length) return "";
+  const rows = ids.map((id) => {
+    let p = null;
+    if (id === "cursor") {
+      const q = live("cursor");
+      p = q && state.cursorMode !== "unsupported" ? q.cycle : null;
+    } else {
+      const q = live(id);
+      p = state.period === "week" ? q.week : q.h5;
+    }
+    const color = p == null ? "var(--track)" : statusColor(p);
+    const text = p == null ? "—" : (enabled().length >= 3 ? String(p) : p + "%");
+    return `<div class="hudrow"><div class="tile sm ${id}">${logo(id)}</div><div class="hudbar"><i style="width:${p || 0}%;background:${color}"></i></div><div class="hudp num">${text}</div></div>`;
+  }).join("");
+  return `<div id="hud">${rows}</div>`;
+}
+function windowHTML() {
+  return `<div class="window">
+    <div class="titlebar">
+      <div class="lights"><div class="light r"><span>×</span></div><div class="light y"><span>−</span></div><div class="light g"><span>+</span></div></div>
+      <div class="title-seg">
+        <button class="${state.tab === "stats" ? "on" : ""}" data-act="tab" data-id="stats">用量统计</button>
+        <button class="${state.tab === "settings" ? "on" : ""}" data-act="tab" data-id="settings">设置</button>
+      </div>
+    </div>
+    <div class="body">
+      <aside class="sidebar">${sidebarHTML()}</aside>
+      <div class="main">${toolbarHTML()}<div class="content">${contentHTML()}</div></div>
+    </div>
+  </div>${widgetHTML()}${hudHTML()}`;
+}
+function popoverBlock(id) {
+  if (id === "cursor") {
+    const q = live("cursor");
+    const bad = state.cursorMode === "unsupported";
+    const pct = q && !bad ? q.cycle : null;
+    const plan = bad ? "暂不支持" : state.cursorMode === "wait" ? "已登录" : "Pro · 示例";
+    const od = q && q.od != null ? `<div class="wlab" style="margin-top:8px"><span>OD · 按量</span><b class="num" style="color:${statusColor(q.od)}">${q.od}%</b></div>${bar(q.od, statusColor(q.od))}` : "";
+    return `<div class="block"><div class="bhead"><div class="tile cursor">${logo("cursor")}</div><div><div class="bname">Cursor</div><div class="bplan">${plan}</div></div><div class="breset">${q ? resetHTML(q.cr, q.ce) : "等待数据"}</div></div>
+      <div class="bbody">${ring("cursor", pct, 54, "status")}<div class="bright"><div class="wlab"><span>CYCLE · 账期</span><b class="num" style="color:${pct == null ? "inherit" : statusColor(pct)}">${pct == null ? "—" : pct + "%"}</b></div>${pct == null ? "" : bar(pct, statusColor(pct))}${od}</div></div>
+      ${bad ? `<div class="err">没有个人包含额度，暂不支持。</div>` : state.cursorMode === "wait" ? `<div class="err">额度尚未返回。花费不在这里显示。</div>` : ""}</div>`;
+  }
+  const q = live(id);
+  const row = TODAY_ROWS.find((r) => r.service === id);
+  const dot = state.statusDot ? `<i class="live" title="正常" style="margin-left:auto;box-shadow:none"></i>` : `<span style="margin-left:auto"></span>`;
+  return `<div class="block"><div class="bhead"><div class="tile ${id}">${logo(id)}</div><div><div class="bname">${NAME[id]}</div><div class="bplan">${state.privacy ? PLAN[id] : PLAN[id] + " · 本机账号"}</div></div>${dot}<div class="breset">${resetHTML(q.h5r, q.h5e)}</div></div>
+    <div class="bbody">${ring(id, q.h5, 54, "status")}<div class="bright">
+      <div class="wlab"><span>周额度</span><b class="num" style="color:${statusColor(q.week)}">${q.week}%</b></div>
+      ${bar(q.week, statusColor(q.week))}
+      <div class="stats2"><div><b class="num">${fmtToken(row.total)}</b><span>今日 tokens</span></div><div><b class="num">${fmtCost(row.cost)}</b><span>今日花费</span></div></div>
+    </div></div></div>`;
+}
+function popoverHTML() {
+  const ids = enabled();
+  let body;
+  if (!ids.length) body = `<div class="empty"><b>未启用任何服务</b><p>到「设置 → 账号」开启。</p></div>`;
+  else {
+    const chunks = [];
+    ids.forEach((id, i) => {
+      if (i) chunks.push(`<div class="sep"></div>`);
+      chunks.push(popoverBlock(id));
+      if (id === "codex" && state.extras.length) {
+        chunks.push(`<div class="sep"></div><div class="extra"><div class="exh">其他账号<span>${state.extras.length}</span></div>${state.extras.map((ex) => `<div class="exrow"><b>${ex.name}</b><span class="num">5 小时 ${ex.h5}%</span><span class="num">周 ${ex.week}%</span></div>`).join("")}</div>`);
+      }
+    });
+    body = chunks.join("");
+  }
+  return `<div class="ph"><div><div class="pt">用量</div><div class="ps">${state.refreshed}</div></div><div class="pactions">
+      <i class="live" title="在线"></i>
+      <button class="iconbtn" data-act="open-stats" title="查看统计">${uiIcon("chart")}</button>
+      <button class="iconbtn ${state.refreshing ? "spin" : ""}" data-act="refresh" title="立即刷新">${uiIcon("refresh")}</button>
+      <button class="iconbtn ${state.hudOn ? "on" : ""}" data-act="toggle-hud" data-keep="1" title="${state.hudOn ? "隐藏悬浮窗 (⌃⌥F)" : "显示悬浮窗 (⌃⌥F)"}">${uiIcon("hud")}</button>
+      <button class="iconbtn" data-act="open-settings" title="设置">${uiIcon("gear")}</button>
+      <button class="iconbtn" data-act="quit" title="退出">${uiIcon("power")}</button>
+    </div></div>${body}`;
+}
+function reviewHTML() {
+  const mode = state.show.cursor ? state.cursorMode : "off";
+  const cur = [["off", "关闭"], ["wait", "等待数据"], ["sample", "示例 74%"], ["unsupported", "暂不支持"]];
+  const themes = [["light", "浅色"], ["dark", "深色"], ["system", "跟随系统"]];
+  return `<b>样式稿</b><span class="rlab">Cursor 数据</span><div class="rseg">${cur.map(([id, name]) => `<button class="${mode === id ? "on" : ""}" data-act="cursor-preview" data-id="${id}">${name}</button>`).join("")}</div>
+    <span class="rlab">外观</span><div class="rseg">${themes.map(([id, name]) => `<button class="${state.themeMode === id ? "on" : ""}" data-act="theme" data-id="${id}">${name}</button>`).join("")}</div>
+    <span class="rhint">点菜单栏右侧额度。悬浮窗可拖，右键可关。今天的数字按你的统计对齐；更早的日期是示例。</span>`;
+}
+function placePopover() {
+  const pop = document.getElementById("popover");
+  const item = document.getElementById("status-item");
+  if (!pop || !item || pop.hidden) return;
+  const r = item.getBoundingClientRect();
+  const width = 340;
+  let left = r.right - width;
+  left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+  pop.style.left = left + "px";
+  pop.style.top = (r.bottom + 8) + "px";
+}
+function placeHud() {
+  const hud = document.getElementById("hud");
+  if (!hud || state.hudLeft == null) return;
+  hud.style.left = state.hudLeft + "px";
+  hud.style.top = state.hudTop + "px";
+  hud.style.right = "auto";
+  hud.style.opacity = state.opacity;
+}
+function render() {
+  const prev = document.querySelector(".content");
+  const top = keepScroll && prev ? prev.scrollTop : 0;
+  keepScroll = false;
+  document.getElementById("menubar").innerHTML = menuHTML();
+  document.getElementById("stage").innerHTML = windowHTML();
+  const pop = document.getElementById("popover");
+  pop.hidden = !state.popover;
+  pop.innerHTML = popoverHTML();
+  document.getElementById("review").innerHTML = reviewHTML();
+  const hudMenu = document.getElementById("hudmenu");
+  if (state.hudMenu) {
+    let el = hudMenu;
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "hudmenu";
+      document.body.appendChild(el);
+    }
+    el.hidden = false;
+    el.style.left = state.hudMenu.x + "px";
+    el.style.top = state.hudMenu.y + "px";
+    el.innerHTML = `<button data-act="hud-close">关闭悬浮窗</button><button data-act="hud-settings">设置…</button>`;
+  } else if (hudMenu) hudMenu.hidden = true;
+  const next = document.querySelector(".content");
+  if (next) next.scrollTop = top;
+  const hud = document.getElementById("hud");
+  if (hud) hud.style.opacity = state.opacity;
+  placeHud();
+  placePopover();
+}
+function rerender(opts) {
+  keepScroll = !!(opts && opts.keepScroll);
+  render();
+}
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.hidden = false;
+  el.textContent = msg;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { el.hidden = true; }, 2200);
+}
+function doRefresh() {
+  if (state.refreshing) return;
+  state.refreshing = true;
+  rerender({ keepScroll: true });
+  setTimeout(() => {
+    state.refreshing = false;
+    state.refreshed = "刚刚已刷新";
+    rerender({ keepScroll: true });
+    toast("已刷新。样式稿不会请求接口");
+  }, 700);
+}
+function toggleService(id) {
+  state.show[id] = !state.show[id];
+  if (!state.show[id] && state.service === id) state.service = "all";
+}
+function setCursorPreview(id) {
+  if (id === "off") state.show.cursor = false;
+  else { state.show.cursor = true; state.cursorMode = id; }
+  if (!state.show.cursor && state.service === "cursor") state.service = "all";
+}
+function handle(el) {
+  const act = el.dataset.act;
+  const id = el.dataset.id;
+  let scroll = el.dataset.keep === "1";
+  switch (act) {
+    case "noop": return;
+    case "toggle-popover": state.popover = !state.popover; state.rangeOpen = false; break;
+    case "open-stats": state.tab = "stats"; state.view = "overview"; state.popover = false; break;
+    case "open-settings": state.tab = "settings"; state.popover = false; break;
+    case "refresh": doRefresh(); return;
+    case "quit": toast("样式稿不会退出 ManaBar"); return;
+    case "tab": state.tab = id; state.popover = false; break;
+    case "view": state.view = id; state.rangeOpen = false; break;
+    case "service":
+      state.service = state.service === id && id !== "all" ? "all" : id;
+      state.tab = "stats";
+      break;
+    case "settings-nav": state.settings = id; scroll = true; break;
+    case "toggle-range": state.rangeOpen = !state.rangeOpen; scroll = true; break;
+    case "range": state.range = id; state.rangeOpen = false; break;
+    case "toggle-show": toggleService(id); scroll = true; break;
+    case "toggle-hud": state.hudOn = !state.hudOn; scroll = true; break;
+    case "toggle-hudrow": state.hudRows[id] = !state.hudRows[id]; scroll = true; break;
+    case "toggle-bool": state[id] = !state[id]; scroll = true; break;
+    case "period": state.period = id; scroll = true; break;
+    case "reset-format": state.resetFormat = id; scroll = true; break;
+    case "theme": state.themeMode = id; applyTheme(); scroll = true; break;
+    case "cursor-preview": setCursorPreview(id); break;
+    case "export": toast("正式版会保存 manabar-usage-2026-10-26.csv"); return;
+    case "sort":
+      if (state.sortKey === id) state.sortDir *= -1;
+      else { state.sortKey = id; state.sortDir = id === "day" || id === "model" || id === "service" ? 1 : -1; }
+      scroll = true;
+      break;
+    case "more": state.timelineMore[id] = !state.timelineMore[id]; scroll = true; break;
+    case "open-sheet": state.sheet = true; scroll = true; break;
+    case "close-sheet": state.sheet = false; scroll = true; break;
+    case "save-sheet": {
+      const v = document.querySelector("#json")?.value.trim();
+      if (!v) { toast("先粘贴一段 auth.json"); return; }
+      const n = state.extras.length + 1;
+      state.extras.push({ name: n === 1 ? "codex-work" : "codex-" + n, h5: 74, week: 48 });
+      state.sheet = false;
+      toast("已放入示例账号");
+      break;
+    }
+    case "remove-extra": state.extras.splice(Number(id), 1); scroll = true; break;
+    case "widget": state.tab = "stats"; state.view = "overview"; break;
+    case "hud-close": state.hudOn = false; state.hudMenu = null; break;
+    case "hud-settings": state.tab = "settings"; state.settings = "floating"; state.hudMenu = null; break;
+    default: return;
+  }
+  rerender({ keepScroll: scroll });
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#hudmenu")) {
+    const actEl = e.target.closest("[data-act]");
+    if (actEl) handle(actEl);
+    return;
+  }
+  const actEl = e.target.closest("[data-act]");
+  let dirty = false;
+  if (state.popover && !e.target.closest("#popover") && !e.target.closest("#status-item")) { state.popover = false; dirty = true; }
+  if (state.rangeOpen && !e.target.closest(".rangewrap")) { state.rangeOpen = false; dirty = true; }
+  if (state.hudMenu && !e.target.closest("#hudmenu")) { state.hudMenu = null; dirty = true; }
+  if (actEl) { handle(actEl); return; }
+  if (dirty) rerender({ keepScroll: true });
+});
+document.addEventListener("change", (e) => {
+  const key = e.target.dataset.change;
+  if (!key) return;
+  if (key === "from" || key === "to") state[key] = e.target.value;
+  else if (key === "quotaEvery" || key === "usageEvery") { state[key] = e.target.value; toast("已记下间隔"); }
+  else if (key === "lang") { if (e.target.value !== "zh") toast("样式稿只做了中文"); }
+  else return;
+  rerender({ keepScroll: true });
+});
+document.addEventListener("input", (e) => {
+  if (e.target.dataset.change !== "opacity") return;
+  state.opacity = Number(e.target.value);
+  const hud = document.getElementById("hud");
+  if (hud) hud.style.opacity = state.opacity;
+  const lab = document.getElementById("op-lab");
+  if (lab) lab.textContent = Math.round(state.opacity * 100) + "%";
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  state.popover = false; state.rangeOpen = false; state.sheet = false; state.hudMenu = null;
+  rerender({ keepScroll: true });
+});
+document.addEventListener("mouseover", (e) => {
+  const el = e.target.closest(".swap");
+  if (!el || el.dataset.hot) return;
+  el.dataset.hot = "1";
+  el.dataset.base = el.textContent;
+  el.textContent = el.dataset.alt;
+});
+document.addEventListener("mouseout", (e) => {
+  const el = e.target.closest(".swap");
+  if (!el || el.contains(e.relatedTarget)) return;
+  if (el.dataset.base) el.textContent = el.dataset.base;
+  delete el.dataset.hot;
+});
+document.addEventListener("mousemove", (e) => {
+  const tip = document.getElementById("tip");
+  const host = e.target.closest("[data-tip]") || e.target.closest("svg.chart");
+  const direct = e.target.closest("[data-tip]");
+  if (!direct) { tip.hidden = true; return; }
+  tip.hidden = false;
+  tip.textContent = direct.dataset.tip;
+  tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 220) + "px";
+  tip.style.top = (e.clientY + 16) + "px";
+});
+document.addEventListener("contextmenu", (e) => {
+  const hud = e.target.closest("#hud");
+  if (!hud) return;
+  e.preventDefault();
+  state.hudMenu = { x: e.clientX, y: e.clientY };
+  render();
+});
+let drag = null;
+document.addEventListener("pointerdown", (e) => {
+  const hud = e.target.closest("#hud");
+  if (!hud) return;
+  const box = hud.getBoundingClientRect();
+  const stage = document.getElementById("stage").getBoundingClientRect();
+  drag = { dx: e.clientX - box.left, dy: e.clientY - box.top, stage };
+  hud.setPointerCapture(e.pointerId);
+});
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const hud = document.getElementById("hud");
+  if (!hud) return;
+  const left = e.clientX - drag.dx - drag.stage.left;
+  const top = e.clientY - drag.dy - drag.stage.top;
+  hud.style.left = left + "px";
+  hud.style.top = top + "px";
+  hud.style.right = "auto";
+  state.hudLeft = left;
+  state.hudTop = top;
+});
+document.addEventListener("pointerup", () => { drag = null; });
+window.addEventListener("resize", placePopover);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (state.themeMode === "system") { applyTheme(); render(); }
+});
+applyTheme();
+render();
+</script>
+</body>
+</html>

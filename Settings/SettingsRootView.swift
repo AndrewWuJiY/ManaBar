@@ -8,23 +8,117 @@ import SwiftUI
 struct SettingsRootView: View {
     @Environment(AppState.self) private var appState
     @State private var launchAtLoginError: String?
+    @State private var page: SettingsPage = .accounts
+
+    private enum SettingsPage: Hashable, CaseIterable {
+        case accounts
+        case menuBar
+        case floating
+        case refresh
+        case general
+
+        var english: String {
+            switch self {
+            case .accounts: return "Accounts"
+            case .menuBar: return "Menu Bar"
+            case .floating: return "Floating HUD"
+            case .refresh: return "Refresh"
+            case .general: return "General"
+            }
+        }
+
+        var chinese: String {
+            switch self {
+            case .accounts: return "账号"
+            case .menuBar: return "菜单栏"
+            case .floating: return "悬浮窗"
+            case .refresh: return "刷新"
+            case .general: return "通用"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .accounts: return "person"
+            case .menuBar: return "menubar.rectangle"
+            case .floating: return "macwindow"
+            case .refresh: return "arrow.clockwise"
+            case .general: return "gearshape"
+            }
+        }
+    }
 
     var body: some View {
         @Bindable var settings = SettingsStore.shared
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                accountsGroup(settings: settings)
-                menuBarGroup(settings: settings)
-                floatingGroup(settings: settings)
-                refreshGroup(settings: settings)
-                generalGroup(settings: settings)
-                footer
+        HStack(spacing: 0) {
+            settingsSidebar
+                .frame(width: 200)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    switch page {
+                    case .accounts:
+                        accountsGroup(settings: settings)
+                    case .menuBar:
+                        menuBarGroup(settings: settings)
+                    case .floating:
+                        floatingGroup(settings: settings)
+                    case .refresh:
+                        refreshGroup(settings: settings)
+                    case .general:
+                        generalGroup(settings: settings)
+                        footer
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 20)
+                .frame(maxWidth: 680, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 20)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+    }
+
+    private var settingsSidebar: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(tr("Settings", "设置").uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .kerning(0.4)
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 6)
+                .padding(.bottom, 6)
+            ForEach(SettingsPage.allCases, id: \.self) { item in
+                let selected = page == item
+                Button {
+                    page = item
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 13))
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(selected ? Color.white : Color.secondary)
+                        Text(tr(item.english, item.chinese))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(selected ? Color.white : Color.primary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(selected ? Color.accentColor : Color.clear)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 14)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(.regularMaterial)
     }
 
     // MARK: Accounts
@@ -57,6 +151,23 @@ struct SettingsRootView: View {
                     email: appState.claudeAccount?.email,
                     plan: appState.claudeAccount?.subscriptionType,
                     isOn: Binding(get: { settings.showClaude }, set: { settings.showClaude = $0 })
+                )
+                AccountRow(
+                    title: "Cursor",
+                    subtitle: "Billing cycle",
+                    tint: .cursorAccent,
+                    logoName: "cursor",
+                    fallback: "R",
+                    email: appState.cursorAccount?.email,
+                    plan: appState.cursorAccount?.planType,
+                    detected: appState.cursorAccount?.accessToken?.isEmpty == false,
+                    isOn: Binding(get: { settings.showCursor }, set: { newValue in
+                        settings.showCursor = newValue
+                        appState.publishWidgetState(force: true)
+                        if newValue {
+                            Task { await appState.refreshQuotas(reason: .userInitiated) }
+                        }
+                    })
                 )
             }
 
@@ -92,6 +203,18 @@ struct SettingsRootView: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .tint(.green)
+            }
+            PrefsRow(
+                label: "Show Cursor",
+                chinese: "显示 Cursor",
+                desc: "Billing-cycle percent. Ignores the 5H / WK picker.",
+                chineseDesc: "显示账期剩余,不跟 5H / WK 切换"
+            ) {
+                Toggle("", isOn: Binding(get: { settings.menuBarShowCursor }, set: { settings.menuBarShowCursor = $0 }))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+                    .disabled(!settings.showCursor)
             }
             PrefsRow(
                 label: "Quota period",
@@ -171,6 +294,19 @@ struct SettingsRootView: View {
                 .toggleStyle(.switch)
                 .tint(.green)
                 .disabled(!settings.floatingEnabled)
+            }
+            PrefsRow(label: "Show Cursor row", chinese: "显示 Cursor 行") {
+                Toggle("", isOn: Binding(
+                    get: { settings.floatingShowCursor },
+                    set: { newValue in
+                        settings.floatingShowCursor = newValue
+                        FloatingPanelController.shared.sync()
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+                .disabled(!settings.floatingEnabled || !settings.showCursor)
             }
             PrefsRow(label: "Show 5h reset time", chinese: "显示 5h 重置时间") {
                 Toggle("", isOn: Binding(
@@ -453,7 +589,11 @@ private struct AccountRow: View {
     let fallback: String
     let email: String?
     let plan: String?
+    /// 覆盖「有邮箱才算已连接」。Cursor 钥匙串回退可能没有邮箱,但 token 已经在。
+    var detected: Bool? = nil
     @Binding var isOn: Bool
+
+    private var isDetected: Bool { detected ?? (email != nil) }
 
     var body: some View {
         HStack(spacing: 11) {
@@ -481,7 +621,7 @@ private struct AccountRow: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .tint(.green)
-                    .disabled(email == nil)
+                    .disabled(!isDetected)
             }
         }
         .padding(.vertical, 12)
@@ -495,12 +635,14 @@ private struct AccountRow: View {
             }
             return email
         }
+        if isDetected, let plan, !plan.isEmpty { return plan }
+        if isDetected { return tr("Signed in", "已登录") }
         return tr("Not detected", "未识别")
     }
 
     @ViewBuilder
     private var statusBadge: some View {
-        if email != nil {
+        if isDetected {
             HStack(spacing: 4) {
                 Circle().fill(Color.connectedStatus).frame(width: 7, height: 7)
                 Text(tr("Connected", "已连接"))

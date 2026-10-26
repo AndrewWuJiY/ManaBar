@@ -81,8 +81,8 @@ private struct WelcomeStep: View {
                 .kerning(-0.4)
 
             Text(tr(
-                "Track Codex and Claude Code quota right from your menu bar. We'll detect your accounts automatically.",
-                "在菜单栏即时查看 Codex 与 Claude Code 的额度,我们将自动检测你的账号。"
+                "Track Codex, Claude Code, and Cursor quota right from your menu bar. We'll detect your accounts automatically.",
+                "在菜单栏即时查看 Codex、Claude Code 和 Cursor 的额度,我们将自动检测你的账号。"
             ))
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
@@ -164,6 +164,17 @@ private struct DetectAccountsStep: View {
                     fallback: "K",
                     isDetected: appState.claudeAccount != nil
                 )
+                DetectedAccountRow(
+                    title: "Cursor",
+                    subtitle: "Billing cycle",
+                    plan: appState.cursorAccount?.planType,
+                    email: appState.cursorAccount?.email,
+                    source: cursorSource,
+                    tint: .cursorAccent,
+                    logoName: "cursor",
+                    fallback: "R",
+                    isDetected: appState.cursorAccount != nil
+                )
             }
             .padding(.top, 18)
 
@@ -190,6 +201,14 @@ private struct DetectAccountsStep: View {
         switch appState.claudeAccount?.source {
         case .file: return "~/.claude/.credentials.json"
         case .keychain: return "Keychain · claude-code"
+        case .none: return "—"
+        }
+    }
+
+    private var cursorSource: String {
+        switch appState.cursorAccount?.source {
+        case .file: return "Cursor state.vscdb"
+        case .keychain: return "Keychain · cursor"
         case .none: return "—"
         }
     }
@@ -311,12 +330,14 @@ private struct ConfigureStep: View {
             VStack(spacing: 14) {
                 ConfigureRow(title: "Show in menu bar",
                              chineseTitle: "菜单栏",
-                             subtitle: "Show Codex / Claude percentage next to the menu bar icon.",
-                             chineseSubtitle: "在菜单栏图标旁显示百分比") {
+                             subtitle: "Show Codex / Claude / Cursor percentage next to the menu bar icon.",
+                             chineseSubtitle: "在菜单栏图标旁显示百分比。Cursor 需先在设置里打开账号。") {
                     HStack(spacing: 12) {
                         Toggle("Codex", isOn: Binding(get: { settings.menuBarShowCodex }, set: { settings.menuBarShowCodex = $0 }))
                             .toggleStyle(.switch)
                         Toggle("Claude", isOn: Binding(get: { settings.menuBarShowClaude }, set: { settings.menuBarShowClaude = $0 }))
+                            .toggleStyle(.switch)
+                        Toggle("Cursor", isOn: Binding(get: { settings.menuBarShowCursor }, set: { settings.menuBarShowCursor = $0 }))
                             .toggleStyle(.switch)
                     }
                 }

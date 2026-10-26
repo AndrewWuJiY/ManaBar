@@ -110,16 +110,19 @@ struct PopoverRootView: View {
 
     /// `now` 由 header 的 TimelineView 提供,让"Xs 前已刷新"实时滚动。
     private func headerSubtitle(now: Date) -> String {
+        let showCursor = SettingsStore.shared.showCursor
         let latest = [
             appState.codexRefreshState.lastSuccessAt,
-            appState.claudeRefreshState.lastSuccessAt
+            appState.claudeRefreshState.lastSuccessAt,
+            showCursor ? appState.cursorRefreshState.lastSuccessAt : nil
         ].compactMap { $0 }.max()
 
         if let latest {
             let age = Self.relativeAge(from: latest, now: now)
             return tr("refreshed \(age) ago", "\(age) 前已刷新")
         }
-        if appState.codexQuotaError != nil || appState.claudeQuotaError != nil {
+        if appState.codexQuotaError != nil || appState.claudeQuotaError != nil
+            || (showCursor && appState.cursorQuotaError != nil) {
             return tr("refresh failed", "刷新失败")
         }
         return tr("waiting…", "等待数据")
@@ -131,8 +134,9 @@ struct PopoverRootView: View {
     private var content: some View {
         let showCodex = SettingsStore.shared.showCodex
         let showClaude = SettingsStore.shared.showClaude
+        let showCursor = SettingsStore.shared.showCursor
 
-        if !showCodex && !showClaude {
+        if !showCodex && !showClaude && !showCursor {
             VStack(spacing: 6) {
                 Text(tr("No services enabled", "未启用任何服务"))
                     .font(.system(size: 12, weight: .medium))
@@ -152,6 +156,7 @@ struct PopoverRootView: View {
                         tint: .codexAccent,
                         logoName: "codex",
                         fallback: "C",
+                        app: .codex,
                         snapshot: appState.codexQuota,
                         error: appState.codexQuotaError,
                         weekSpend: weekSpend(for: .codex),
@@ -177,11 +182,31 @@ struct PopoverRootView: View {
                         tint: .claudeAccent,
                         logoName: "claude",
                         fallback: "K",
+                        app: .claude,
                         snapshot: appState.claudeQuota,
                         error: appState.claudeQuotaError,
                         weekSpend: weekSpend(for: .claude),
                         todayCost: appState.claudeTodayCost,
                         serviceStatus: SettingsStore.shared.showServiceStatus ? appState.claudeServiceStatus : nil
+                    )
+                }
+
+                if showCursor && (showCodex || hasImported || showClaude) {
+                    Divider().padding(.horizontal, 16)
+                }
+                if showCursor {
+                    ServiceBlockView(
+                        title: "Cursor",
+                        subtitle: cursorSubtitle,
+                        tint: .cursorAccent,
+                        logoName: "cursor",
+                        fallback: "R",
+                        app: .cursor,
+                        snapshot: appState.cursorQuota,
+                        error: appState.cursorQuotaError,
+                        weekSpend: 0,
+                        todayCost: nil,
+                        serviceStatus: nil
                     )
                 }
             }
@@ -214,6 +239,19 @@ struct PopoverRootView: View {
         return parts.joined(separator: " · ")
     }
 
+    private var cursorSubtitle: String {
+        let privacy = SettingsStore.shared.privacyMode
+        var parts: [String] = []
+        if !privacy, let email = appState.cursorAccount?.email, !email.isEmpty {
+            parts.append(email)
+        }
+        if let plan = appState.cursorAccount?.planType, !plan.isEmpty {
+            parts.append(plan.capitalized)
+        }
+        if parts.isEmpty { parts.append("Cursor") }
+        return parts.joined(separator: " · ")
+    }
+
     private func weekSpend(for app: UsageApp) -> Decimal {
         let (from, to) = Self.weekBounds()
         let totals = appState.usageService.aggregator.totals(app: app, from: from, to: to)
@@ -226,11 +264,14 @@ struct PopoverRootView: View {
         let settings = SettingsStore.shared
         let codex = appState.codexRefreshState
         let claude = appState.claudeRefreshState
+        let cursor = appState.cursorRefreshState
         let codexLast = settings.showCodex ? codex.lastSuccessAt : nil
         let claudeLast = settings.showClaude ? claude.lastSuccessAt : nil
-        let latest = [codexLast, claudeLast].compactMap { $0 }.max()
+        let cursorLast = settings.showCursor ? cursor.lastSuccessAt : nil
+        let latest = [codexLast, claudeLast, cursorLast].compactMap { $0 }.max()
         let hasError = (settings.showCodex && codex.lastError != nil)
             || (settings.showClaude && claude.lastError != nil)
+            || (settings.showCursor && cursor.lastError != nil)
 
         guard let latest else {
             return hasError ? .offline : nil
@@ -298,6 +339,7 @@ private struct ServiceBlockView: View {
     let tint: Color
     let logoName: String
     let fallback: String
+    let app: QuotaApp
     let snapshot: QuotaSnapshot?
     let error: String?
     let weekSpend: Decimal
@@ -308,7 +350,9 @@ private struct ServiceBlockView: View {
         VStack(alignment: .leading, spacing: 12) {
             headerRow
             bodyRow
-            weeklyRow
+            if !isCursor || snapshot?.onDemand != nil {
+                weeklyRow
+            }
             if let message = shortError(error) {
                 Text(message)
                     .font(.system(size: 11))
@@ -376,7 +420,7 @@ private struct ServiceBlockView: View {
                 }
                 .fixedSize()
 
-                Text(fiveHourUnlimited ? tr("5-HOUR · UNLIMITED", "5-HOUR · 无限制") : "5-HOUR · 五小时")
+                Text(primaryCaption)
                     .font(.system(size: 9, weight: .semibold))
                     .kerning(0.5)
                     .foregroundStyle(.tertiary)
@@ -388,16 +432,18 @@ private struct ServiceBlockView: View {
 
                 VStack(spacing: 1) {
                     HStack(spacing: 0) {
-                        ResetTimeText(resetsAt: snapshot?.displayFiveHour()?.resetsAt)
+                        ResetTimeText(resetsAt: primaryWindow?.resetsAt)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
 
                         Spacer(minLength: 8)
 
-                        HStack(spacing: 10) {
-                            statInline(value: formatCostInt(todayCost), english: "today", chinese: "今日")
-                            statInline(value: formatCostInt(weekSpend), english: "this week", chinese: "本周")
+                        if !isCursor {
+                            HStack(spacing: 10) {
+                                statInline(value: formatCostInt(todayCost), english: "today", chinese: "今日")
+                                statInline(value: formatCostInt(weekSpend), english: "this week", chinese: "本周")
+                            }
                         }
                     }
 
@@ -408,9 +454,11 @@ private struct ServiceBlockView: View {
 
                         Spacer(minLength: 0)
 
-                        BilingualInline(english: "cost", chinese: "花费")
-                            .font(.system(size: 9.5))
-                            .foregroundStyle(.tertiary)
+                        if !isCursor {
+                            BilingualInline(english: "cost", chinese: "花费")
+                                .font(.system(size: 9.5))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                 }
             }
@@ -420,20 +468,20 @@ private struct ServiceBlockView: View {
 
     private var weeklyRow: some View {
         HStack(spacing: 10) {
-            Text("WK")
+            Text(isCursor ? "OD" : "WK")
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.6)
                 .foregroundStyle(.tertiary)
                 .frame(width: 36, alignment: .leading)
 
-            ProgressBar(value: weeklyRemaining / 100, tint: weeklyColor, height: 2.5)
+            ProgressBar(value: secondaryRemaining / 100, tint: secondaryColor, height: 2.5)
 
-            Text(weeklyPercentText)
+            Text(secondaryPercentText)
                 .font(.system(size: 10.5, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(weeklyColor)
+                .foregroundStyle(secondaryColor)
 
-            ResetTimeText(resetsAt: snapshot?.displayWeekly()?.resetsAt)
+            ResetTimeText(resetsAt: secondaryWindow?.resetsAt)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }
@@ -453,38 +501,56 @@ private struct ServiceBlockView: View {
 
     // MARK: Derived data
 
+    private var isCursor: Bool { app == .cursor }
+
     private var fiveHourUnlimited: Bool {
-        snapshot?.fiveHourUnlimited == true
+        !isCursor && snapshot?.fiveHourUnlimited == true
+    }
+
+    private var primaryWindow: QuotaWindow? {
+        if isCursor { return snapshot?.displayBillingCycle() }
+        return snapshot?.displayFiveHour()
+    }
+
+    private var secondaryWindow: QuotaWindow? {
+        if isCursor { return snapshot?.displayOnDemand() }
+        return snapshot?.displayWeekly()
+    }
+
+    private var primaryCaption: String {
+        if isCursor { return tr("CYCLE · BILLING", "CYCLE · 账期") }
+        if fiveHourUnlimited { return tr("5-HOUR · UNLIMITED", "5-HOUR · 无限制") }
+        return "5-HOUR · 五小时"
     }
 
     private var fiveHourRemaining: Double {
         if fiveHourUnlimited { return 100 }
-        return snapshot?.displayFiveHour()?.remainingPercent ?? 0
+        return primaryWindow?.remainingPercent ?? 0
     }
 
-    private var weeklyRemaining: Double {
-        snapshot?.displayWeekly()?.remainingPercent ?? 0
+    private var secondaryRemaining: Double {
+        secondaryWindow?.remainingPercent ?? 0
     }
 
     private var fiveHourColor: Color {
         if fiveHourUnlimited { return statusColor(remainingPercent: 100, tint: tint) }
-        guard snapshot?.displayFiveHour() != nil else { return .secondary }
+        guard primaryWindow != nil else { return .secondary }
         return statusColor(remainingPercent: fiveHourRemaining, tint: tint)
     }
 
-    private var weeklyColor: Color {
-        guard snapshot?.displayWeekly() != nil else { return .secondary }
-        return statusColor(remainingPercent: weeklyRemaining, tint: tint)
+    private var secondaryColor: Color {
+        guard secondaryWindow != nil else { return .secondary }
+        return statusColor(remainingPercent: secondaryRemaining, tint: tint)
     }
 
     private var fiveHourValueText: String {
         if fiveHourUnlimited { return "∞" }
-        guard let window = snapshot?.displayFiveHour() else { return "--" }
+        guard let window = primaryWindow else { return "--" }
         return "\(Int(window.remainingPercent.rounded()))"
     }
 
-    private var weeklyPercentText: String {
-        guard let window = snapshot?.displayWeekly() else { return "--%" }
+    private var secondaryPercentText: String {
+        guard let window = secondaryWindow else { return "--%" }
         return "\(Int(window.remainingPercent.rounded()))%"
     }
 

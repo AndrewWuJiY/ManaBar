@@ -73,6 +73,8 @@ func quotaAdaptiveColor(
 // Popover 服务行左侧、Stats sidebar 服务条目、Onboarding 账号列表都用。
 
 struct ServiceTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     /// 资源名,对应 Resources/Logos/ 下的 svg。
     let logoName: String
     /// 备用字母(SVG 加载失败时显示)。
@@ -89,16 +91,25 @@ struct ServiceTile: View {
     /// Codex 的 tile 还原 OpenAI 官方品牌图标:白底黑 logo + 极细边框。
     /// 其余地方(文字色、环形、图表)的 `Color.codexAccent` 是蓝紫(#718DFF / #8FA6FF),不受影响。
     private var isOpenAIBrand: Bool { logoName == "codex" }
+    /// Cursor 用官方 2D 立方体:浅色黑底白标,深色白底黑标,避免深色里黑块消失。
+    private var isCursorBrand: Bool { logoName == "cursor" }
 
-    private var background: Color { isOpenAIBrand ? .white : tint }
-    private var foreground: Color { isOpenAIBrand ? .black : .white }
+    private var background: Color {
+        if isOpenAIBrand { return .white }
+        if isCursorBrand { return colorScheme == .dark ? .white : Color(red: 0.11, green: 0.11, blue: 0.12) }
+        return tint
+    }
+    private var foreground: Color {
+        if isOpenAIBrand || (isCursorBrand && colorScheme == .dark) { return .black }
+        return .white
+    }
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(background)
             .frame(width: size, height: size)
             .overlay {
-                if isOpenAIBrand {
+                if isOpenAIBrand || isCursorBrand {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
                 }

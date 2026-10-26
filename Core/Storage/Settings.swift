@@ -105,16 +105,20 @@ final class SettingsStore {
     // 账号
     var showCodex: Bool { didSet { defaults.set(showCodex, forKey: Keys.showCodex) } }
     var showClaude: Bool { didSet { defaults.set(showClaude, forKey: Keys.showClaude) } }
+    /// Cursor 账期额度。默认关闭,避免菜单栏在用户没要求时多出一段。
+    var showCursor: Bool { didSet { defaults.set(showCursor, forKey: Keys.showCursor) } }
 
     // 菜单栏
     var menuBarShowCodex: Bool { didSet { defaults.set(menuBarShowCodex, forKey: Keys.menuBarShowCodex) } }
     var menuBarShowClaude: Bool { didSet { defaults.set(menuBarShowClaude, forKey: Keys.menuBarShowClaude) } }
+    var menuBarShowCursor: Bool { didSet { defaults.set(menuBarShowCursor, forKey: Keys.menuBarShowCursor) } }
     var menuBarWindow: MenuBarWindowChoice { didSet { defaults.set(menuBarWindow.rawValue, forKey: Keys.menuBarWindow) } }
 
     // 悬浮窗（占位，M8 接）
     var floatingEnabled: Bool { didSet { defaults.set(floatingEnabled, forKey: Keys.floatingEnabled) } }
     var floatingShowCodex: Bool { didSet { defaults.set(floatingShowCodex, forKey: Keys.floatingShowCodex) } }
     var floatingShowClaude: Bool { didSet { defaults.set(floatingShowClaude, forKey: Keys.floatingShowClaude) } }
+    var floatingShowCursor: Bool { didSet { defaults.set(floatingShowCursor, forKey: Keys.floatingShowCursor) } }
     var floatingShowReset: Bool { didSet { defaults.set(floatingShowReset, forKey: Keys.floatingShowReset) } }
 
     /// 全局快捷键 ⌃⌥F 显示/隐藏悬浮窗（Carbon HotKey,后台可用,见 Core/HotKey.swift）
@@ -159,6 +163,11 @@ final class SettingsStore {
         didSet { defaults.set(didShowKeychainPrompt, forKey: Keys.didShowKeychainPrompt) }
     }
 
+    /// 是否已经解释过 Cursor safeStorage 的钥匙串授权
+    var didShowCursorKeychainPrompt: Bool {
+        didSet { defaults.set(didShowCursorKeychainPrompt, forKey: Keys.didShowCursorKeychainPrompt) }
+    }
+
     /// 是否已经完成首次启动引导
     var didCompleteOnboarding: Bool {
         didSet { defaults.set(didCompleteOnboarding, forKey: Keys.didCompleteOnboarding) }
@@ -171,15 +180,18 @@ final class SettingsStore {
         // 账号
         showCodex = defaults.object(forKey: Keys.showCodex) as? Bool ?? true
         showClaude = defaults.object(forKey: Keys.showClaude) as? Bool ?? true
+        showCursor = defaults.object(forKey: Keys.showCursor) as? Bool ?? false
         // 菜单栏
         menuBarShowCodex = defaults.object(forKey: Keys.menuBarShowCodex) as? Bool ?? true
         menuBarShowClaude = defaults.object(forKey: Keys.menuBarShowClaude) as? Bool ?? true
+        menuBarShowCursor = defaults.object(forKey: Keys.menuBarShowCursor) as? Bool ?? true
         let mbWindowRaw = defaults.string(forKey: Keys.menuBarWindow) ?? MenuBarWindowChoice.fiveHour.rawValue
         menuBarWindow = MenuBarWindowChoice(rawValue: mbWindowRaw) ?? .fiveHour
         // 悬浮窗
         floatingEnabled = defaults.object(forKey: Keys.floatingEnabled) as? Bool ?? false
         floatingShowCodex = defaults.object(forKey: Keys.floatingShowCodex) as? Bool ?? true
         floatingShowClaude = defaults.object(forKey: Keys.floatingShowClaude) as? Bool ?? true
+        floatingShowCursor = defaults.object(forKey: Keys.floatingShowCursor) as? Bool ?? true
         floatingShowReset = defaults.object(forKey: Keys.floatingShowReset) as? Bool ?? true
         floatingHotkeyEnabled = defaults.object(forKey: Keys.floatingHotkeyEnabled) as? Bool ?? true
         // 刷新
@@ -199,6 +211,7 @@ final class SettingsStore {
         launchAtLogin = stored
         privacyMode = defaults.object(forKey: Keys.privacyMode) as? Bool ?? true
         didShowKeychainPrompt = defaults.object(forKey: Keys.didShowKeychainPrompt) as? Bool ?? false
+        didShowCursorKeychainPrompt = defaults.object(forKey: Keys.didShowCursorKeychainPrompt) as? Bool ?? false
         didCompleteOnboarding = defaults.object(forKey: Keys.didCompleteOnboarding) as? Bool ?? false
         // 立即播种 _cachedLanguage,避免首个 tr() 调用早于任何 resolvedLanguage 访问时拿到默认值
         _ = resolvedLanguage
@@ -207,10 +220,12 @@ final class SettingsStore {
     /// 账号与菜单栏开关的合取，最终决定菜单栏该不该画该应用
     var effectiveMenuBarShowCodex: Bool { showCodex && menuBarShowCodex }
     var effectiveMenuBarShowClaude: Bool { showClaude && menuBarShowClaude }
+    var effectiveMenuBarShowCursor: Bool { showCursor && menuBarShowCursor }
 
     /// 悬浮窗的行可见性同样需要叠加全局「显示该应用」开关
     var effectiveFloatingShowCodex: Bool { showCodex && floatingShowCodex }
     var effectiveFloatingShowClaude: Bool { showClaude && floatingShowClaude }
+    var effectiveFloatingShowCursor: Bool { showCursor && floatingShowCursor }
 
     /// 把 `appLanguage` 解析为最终渲染语言。`.system` 看系统首选语言是否以 `zh` 开头。
     /// 不用 `Locale.current`:它返回的是 App 当前生效的本地化语言,工程未添加中文资源时会回退到开发语言 `en`,
@@ -290,12 +305,15 @@ final class SettingsStore {
     private enum Keys {
         static let showCodex = "manabar.settings.showCodex"
         static let showClaude = "manabar.settings.showClaude"
+        static let showCursor = "manabar.settings.showCursor"
         static let menuBarShowCodex = "manabar.settings.menuBarShowCodex"
         static let menuBarShowClaude = "manabar.settings.menuBarShowClaude"
+        static let menuBarShowCursor = "manabar.settings.menuBarShowCursor"
         static let menuBarWindow = "manabar.settings.menuBarWindow"
         static let floatingEnabled = "manabar.settings.floatingEnabled"
         static let floatingShowCodex = "manabar.settings.floatingShowCodex"
         static let floatingShowClaude = "manabar.settings.floatingShowClaude"
+        static let floatingShowCursor = "manabar.settings.floatingShowCursor"
         static let floatingShowReset = "manabar.settings.floatingShowReset"
         static let floatingHotkeyEnabled = "manabar.settings.floatingHotkeyEnabled"
         static let quotaInterval = "manabar.settings.quotaInterval"
@@ -307,6 +325,7 @@ final class SettingsStore {
         static let appLanguage = "manabar.settings.appLanguage"
         static let privacyMode = "manabar.settings.privacyMode"
         static let didShowKeychainPrompt = "manabar.settings.didShowKeychainPrompt"
+        static let didShowCursorKeychainPrompt = "manabar.settings.didShowCursorKeychainPrompt"
         static let didCompleteOnboarding = "manabar.settings.didCompleteOnboarding"
         static let floatingFrameX = "manabar.settings.floatingFrame.x"
         static let floatingFrameY = "manabar.settings.floatingFrame.y"

@@ -10,6 +10,8 @@ struct QuotaCachePayload: Sendable, Equatable, Codable {
     var version: Int = 1
     var codex: QuotaCacheRecord?
     var claude: QuotaCacheRecord?
+    /// Cursor 账期额度。旧缓存没有该字段时解码为 nil。
+    var cursor: QuotaCacheRecord?
     /// 用户导入的 Codex 账号配额缓存,key = ImportedCodexAccount.id (= chatgpt_account_id)。
     /// 字段缺失时解码为 nil,旧缓存文件兼容。
     var importedCodex: [String: QuotaCacheRecord]?

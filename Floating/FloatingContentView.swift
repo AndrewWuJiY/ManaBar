@@ -14,10 +14,12 @@ struct FloatingContentView: View {
     var body: some View {
         let showCodex = settings.effectiveFloatingShowCodex
         let showClaude = settings.effectiveFloatingShowClaude
+        let showCursor = settings.effectiveFloatingShowCursor
 
         VStack(alignment: .leading, spacing: 7) {
             // 无 5h 限制时(fiveHour 为 nil)回退显示周窗口:
-            // 悬浮窗是常驻小组件,∞ 没有信息量,周耗量才有监控价值
+            // 悬浮窗是常驻小组件,∞ 没有信息量,周耗量才有监控价值。
+            // Cursor 走账期剩余,见 QuotaSnapshot.monitoredWindow。
             if showCodex {
                 FloatingRow(
                     logoName: "codex",
@@ -36,7 +38,16 @@ struct FloatingContentView: View {
                     showReset: settings.floatingShowReset
                 )
             }
-            if !showCodex && !showClaude {
+            if showCursor {
+                FloatingRow(
+                    logoName: "cursor",
+                    fallback: "R",
+                    tint: .cursorAccent,
+                    window: monitoredWindow(appState.cursorQuota),
+                    showReset: settings.floatingShowReset
+                )
+            }
+            if !showCodex && !showClaude && !showCursor {
                 Text(tr("No services", "未启用"))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
@@ -82,10 +93,9 @@ struct FloatingContentView: View {
         }
     }
 
-    /// 5h 优先、无 5h 限制时回退周窗口;重置时间已过的窗口按无数据处理(见 QuotaSnapshot.displayFiveHour)。
+    /// 5h 优先、无 5h 限制时回退周窗口;Cursor 用账期。重置时间已过按无数据处理。
     private func monitoredWindow(_ snapshot: QuotaSnapshot?) -> QuotaWindow? {
-        guard let snapshot else { return nil }
-        return snapshot.fiveHourUnlimited ? snapshot.displayWeekly() : snapshot.displayFiveHour()
+        snapshot?.monitoredWindow()
     }
 }
 

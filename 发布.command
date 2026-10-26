@@ -45,7 +45,7 @@ echo "▶ 构建 Release..."
 LOG=build/xcodebuild.log
 mkdir -p build
 if ! xcodebuild -project ManaBar.xcodeproj -scheme ManaBar -configuration Release \
-  -derivedDataPath build/DerivedData build > "$LOG" 2>&1; then
+  -derivedDataPath build/DerivedData -allowProvisioningUpdates build > "$LOG" 2>&1; then
   echo "❌ 构建失败,错误摘要:"; grep -E "error:" "$LOG" | head -20; exit 1
 fi
 APP="build/DerivedData/Build/Products/Release/ManaBar.app"

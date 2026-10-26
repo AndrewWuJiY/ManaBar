@@ -3,6 +3,7 @@ import Foundation
 enum QuotaApp: String, Sendable, Codable {
     case codex
     case claude
+    case cursor
 }
 
 enum QuotaSnapshotSource: String, Sendable, Codable {
@@ -54,6 +55,10 @@ struct QuotaSnapshot: Sendable, Equatable, Codable {
     var weeklySonnet: QuotaWindow?    // 仅 Claude
     var planType: String?
     var fetchedAt: Date
+    /// Cursor 当前账期。Codex / Claude 不用。
+    var billingCycle: QuotaWindow? = nil
+    /// Cursor 按量付费上限。未开启时为空。
+    var onDemand: QuotaWindow? = nil
 
     /// 服务端返回了周窗口但没有 5h 窗口 ⇒ 该服务当前没有 5 小时限制
     /// (2026-07 OpenAI 暂时移除 Plus/Business/Pro 的 5h 限制)。
@@ -64,6 +69,15 @@ struct QuotaSnapshot: Sendable, Equatable, Codable {
     /// 避免把过期百分比配 `<1m` 当实时数据展示。`fiveHourUnlimited` 仍按原始字段判断。
     func displayFiveHour(now: Date = Date()) -> QuotaWindow? { Self.live(fiveHour, now: now) }
     func displayWeekly(now: Date = Date()) -> QuotaWindow? { Self.live(weekly, now: now) }
+    func displayBillingCycle(now: Date = Date()) -> QuotaWindow? { Self.live(billingCycle, now: now) }
+    func displayOnDemand(now: Date = Date()) -> QuotaWindow? { Self.live(onDemand, now: now) }
+
+    /// 菜单栏、悬浮窗、小组件共用的主数字。
+    /// Cursor 永远是账期剩余;Codex / Claude 优先 5h,没有 5h 限制时回退周窗口。
+    func monitoredWindow(now: Date = Date()) -> QuotaWindow? {
+        if app == .cursor { return displayBillingCycle(now: now) }
+        return fiveHourUnlimited ? displayWeekly(now: now) : displayFiveHour(now: now)
+    }
 
     private static func live(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -78,6 +92,8 @@ enum QuotaError: Error, CustomStringConvertible {
     case transport(String)
     case decode(String)
     case tokenRefreshFailed(String)
+    /// 接口成功但没有可展示的个人额度,例如 Cursor 团队席位。
+    case unsupported(String)
     /// OAuth 服务端拒绝了 refresh_token(典型为 `invalid_grant`),
     /// 通常是 Claude Code CLI / Desktop / cc-switch 等其他客户端抢先刷新使旧 token 失效,
     /// 或用户主动退登 / 改密码。此时只能重新登录。
@@ -93,12 +109,14 @@ enum QuotaError: Error, CustomStringConvertible {
         case .transport(let msg): return "transport: \(msg)"
         case .decode(let msg): return "decode: \(msg)"
         case .tokenRefreshFailed(let msg): return "token refresh failed: \(msg)"
+        case .unsupported(let msg): return msg
         case .tokenRevoked:
             return "Claude 登录已失效,请在终端运行 claude 重新登录后再回来刷新"
         case .tokenExpired(let app):
             switch app {
             case .claude: return "Claude 凭据已过期,等待 Claude Code 续期(运行一次 claude 即可恢复)"
             case .codex: return "Codex 凭据已过期,等待 Codex CLI 续期(运行一次 codex 即可恢复)"
+            case .cursor: return "Cursor 凭据已过期,打开一次 Cursor 即可恢复"
             }
         }
     }
